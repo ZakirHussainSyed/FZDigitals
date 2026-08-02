@@ -2,8 +2,11 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+import logging
 
 from .models import MediaFile
+
+logger = logging.getLogger(__name__)
 
 
 def index(request):
@@ -42,21 +45,25 @@ def service_worker(request):
 
 @require_http_methods(["GET"])
 def api_media_list(request):
-    files = MediaFile.objects.all()
-    return JsonResponse(
-        {
-            'success': True,
-            'files': [
-                {
-                    'id': f.id,
-                    'title': f.title,
-                    'type': f.content_type,
-                    'url': request.build_absolute_uri(f.file.url),
-                }
-                for f in files
-            ],
-        }
-    )
+    try:
+        files = MediaFile.objects.all()
+        return JsonResponse(
+            {
+                'success': True,
+                'files': [
+                    {
+                        'id': f.id,
+                        'title': f.title,
+                        'type': f.content_type,
+                        'url': request.build_absolute_uri(f.file.url),
+                    }
+                    for f in files
+                ],
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error in api_media_list: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -64,6 +71,7 @@ def api_media_list(request):
 def api_upload(request):
     try:
         uploaded = request.FILES.getlist('files')
+        logger.info(f"Received {len(uploaded)} files for upload")
         created = []
         for uf in uploaded:
             if uf.content_type.startswith('image/'):
@@ -71,6 +79,7 @@ def api_upload(request):
             elif uf.content_type.startswith('video/'):
                 ct = 'video'
             else:
+                logger.warning(f"Skipping file with unsupported content type: {uf.content_type}")
                 continue
 
             m = MediaFile.objects.create(
@@ -89,6 +98,7 @@ def api_upload(request):
 
         return JsonResponse({'success': True, 'files': created})
     except Exception as e:
+        logger.error(f"Error in api_upload: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
@@ -102,4 +112,5 @@ def api_delete(request, pk: int):
         obj.delete()
         return JsonResponse({'success': True})
     except Exception as e:
+        logger.error(f"Error in api_delete: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
