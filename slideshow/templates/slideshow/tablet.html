@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Slideshow</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Slideshow" />
+    <link rel="apple-touch-icon" href="/static/slideshow/icon.svg" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; background: #000; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .stage {
+            position: fixed;
+            inset: 0;
+            background: #000;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 1000ms ease, transform 1000ms ease;
+            will-change: opacity, transform;
+        }
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+        img, video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.45), transparent 25%, transparent 75%, rgba(0,0,0,0.55));
+            opacity: 0;
+            transition: opacity 150ms ease;
+        }
+        .stage.paused .overlay { opacity: 1; }
+
+        .controls {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 150ms ease, transform 150ms ease;
+            pointer-events: none;
+        }
+        .stage.paused .controls {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .btn {
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 16px;
+            font-weight: 800;
+            min-width: 110px;
+        }
+        .counter {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            color: rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
+            padding: 10px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 150ms ease;
+        }
+        .stage.paused .counter { opacity: 1; }
+
+        .empty {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.75);
+            font-size: 16px;
+            text-align: center;
+            padding: 24px;
+        }
+        .empty.show { display: flex; }
+
+        /* Big tap area for pause/resume */
+        .tap-layer {
+            position: absolute;
+            inset: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="stage" id="stage">
+        <div class="tap-layer" id="tap"></div>
+        <div class="empty" id="empty">No media uploaded yet.</div>
+        <div id="slides"></div>
+        <div class="overlay"></div>
+        <div class="counter" id="counter">0 / 0</div>
+        <div class="controls">
+            <button class="btn" id="prev">Back</button>
+            <button class="btn" id="next">Next</button>
+        </div>
+    </div>
+
+    <script>
+        let media = [];
+        let current = 0;
+        let autoplayTimer = null;
+        let resumeTimer = null;
+        let paused = false;
+
+        const stage = document.getElementById('stage');
+        const slidesEl = document.getElementById('slides');
+        const emptyEl = document.getElementById('empty');
+        const counterEl = document.getElementById('counter');
+        const prevBtn = document.getElementById('prev');
+        const nextBtn = document.getElementById('next');
+        const tapLayer = document.getElementById('tap');
+
+        function setPaused(v) {
+            paused = v;
+            stage.classList.toggle('paused', paused);
+            if (paused) {
+                stopAutoplay();
+                scheduleResume();
+            } else {
+                clearResume();
+                startAutoplay();
+            }
+        }
+
+        function clearResume() {
+            if (resumeTimer) clearTimeout(resumeTimer);
+            resumeTimer = null;
+        }
+
+        // Once screen is untouch, slideshow should auto start in 5 seconds
+        function scheduleResume() {
+            clearResume();
+            resumeTimer = setTimeout(() => {
+                setPaused(false);
+            }, 5000);
+        }
+
+        function stopAutoplay() {
+            if (autoplayTimer) clearInterval(autoplayTimer);
+            autoplayTimer = null;
+        }
+
+        function startAutoplay() {
+            stopAutoplay();
+            if (!media.length) return;
+            if (paused) return;
+            autoplayTimer = setInterval(() => {
+                show(current + 1);
+            }, 5000);
+        }
+
+        function updateCounter() {
+            counterEl.textContent = `${media.length ? current + 1 : 0} / ${media.length}`;
+        }
+
+        function renderSlides() {
+            slidesEl.innerHTML = '';
+            if (!media.length) {
+                emptyEl.classList.add('show');
+                updateCounter();
+                stopAutoplay();
+                return;
+            }
+            emptyEl.classList.remove('show');
+
+            media.forEach((f, idx) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'slide' + (idx === current ? ' active' : '');
+
+                if (f.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = f.url;
+                    img.alt = f.title;
+                    wrap.appendChild(img);
+                } else {
+                    const vid = document.createElement('video');
+                    vid.src = f.url;
+                    vid.controls = false;
+                    vid.muted = true;
+                    vid.playsInline = true;
+                    wrap.appendChild(vid);
+                }
+
+                slidesEl.appendChild(wrap);
+            });
+
+            updateCounter();
+        }
+
+        function show(i) {
+            if (!media.length) return;
+            const prev = current;
+            current = (i + media.length) % media.length;
+            const nodes = slidesEl.querySelectorAll('.slide');
+            
+            nodes.forEach((n, idx) => {
+                n.classList.remove('active', 'prev');
+                if (idx === current) {
+                    n.classList.add('active');
+                } else if (idx === prev) {
+                    n.classList.add('prev');
+                }
+            });
+
+            nodes.forEach((n, idx) => {
+                const v = n.querySelector('video');
+                if (!v) return;
+                if (idx !== current) {
+                    v.pause();
+                } else {
+                    // try play silently; if blocked, it's okay
+                    v.play().catch(() => {});
+                }
+            });
+
+            updateCounter();
+        }
+
+        async function refresh() {
+            const res = await fetch('/api/media/');
+            const data = await res.json();
+            if (!data.success) return;
+            media = data.files;
+            if (current >= media.length) current = 0;
+            renderSlides();
+            show(current);
+            startAutoplay();
+        }
+
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            show(current - 1);
+            scheduleResume();
+        });
+
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            show(current + 1);
+            scheduleResume();
+        });
+
+        // Touch behavior:
+        // - on touch -> pause and show controls
+        // - when touch ends -> keep paused and resume after 5s
+        tapLayer.addEventListener('pointerdown', () => {
+            setPaused(true);
+        });
+        tapLayer.addEventListener('pointerup', () => {
+            // user stopped touching; resume in 5 seconds
+            setPaused(true);
+        });
+        tapLayer.addEventListener('pointercancel', () => {
+            setPaused(true);
+        });
+
+        // Keep list updated
+        setInterval(refresh, 8000);
+        refresh();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
