@@ -76,12 +76,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Force PostgreSQL for production - no SQLite fallback
+# Use Render's DATABASE_URL if available, otherwise fallback to SQLite for local development
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=False
     )
 }
 
