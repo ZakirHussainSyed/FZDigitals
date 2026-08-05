@@ -134,3 +134,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Whitenoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Run migrations automatically on startup (for Render deployment)
+if os.environ.get('DATABASE_URL'):
+    try:
+        from django.core.management import call_command
+        call_command('migrate', '--noinput', verbosity=0)
+    except Exception:
+        pass
