@@ -122,6 +122,17 @@ def serve_media(request, path):
         from django.conf import settings
         import os
         full_path = os.path.join(settings.MEDIA_ROOT, path)
+        logger.info(f"Serving media: path={path}, MEDIA_ROOT={settings.MEDIA_ROOT}, full_path={full_path}")
+        logger.info(f"File exists: {os.path.exists(full_path)}")
+        
+        # List files in media directory for debugging
+        if os.path.exists(settings.MEDIA_ROOT):
+            files = os.listdir(settings.MEDIA_ROOT)
+            logger.info(f"Files in MEDIA_ROOT: {files}")
+            if os.path.exists(os.path.join(settings.MEDIA_ROOT, 'uploads')):
+                upload_files = os.listdir(os.path.join(settings.MEDIA_ROOT, 'uploads'))
+                logger.info(f"Files in uploads: {upload_files}")
+        
         if os.path.exists(full_path):
             return FileResponse(open(full_path, 'rb'))
         return HttpResponse('File not found', status=404)
