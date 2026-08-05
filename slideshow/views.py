@@ -1,4 +1,4 @@
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -114,3 +114,17 @@ def api_delete(request, pk: int):
     except Exception as e:
         logger.error(f"Error in api_delete: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+def serve_media(request, path):
+    """Serve media files directly - needed for Render deployment"""
+    try:
+        from django.conf import settings
+        import os
+        full_path = os.path.join(settings.MEDIA_ROOT, path)
+        if os.path.exists(full_path):
+            return FileResponse(open(full_path, 'rb'))
+        return HttpResponse('File not found', status=404)
+    except Exception as e:
+        logger.error(f"Error serving media: {str(e)}", exc_info=True)
+        return HttpResponse('Error serving file', status=500)

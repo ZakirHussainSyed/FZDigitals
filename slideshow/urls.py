@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/media/', views.api_media_list, name='api-media-list'),
     path('api/upload/', views.api_upload, name='api-upload'),
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
+    path('media/uploads/<path:path>', views.serve_media, name='serve-media'),
 ]
