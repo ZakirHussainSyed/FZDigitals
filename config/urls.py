@@ -23,6 +23,3 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('slideshow.urls')),
 ]
-
-# Serve media files in production (for Render deployment)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
