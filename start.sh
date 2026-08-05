@@ -1,8 +1,9 @@
 #!/bin/bash
-echo "Starting application..."
-echo "Environment check:"
-echo "DATABASE_URL is set: $(if [ -n "$DATABASE_URL" ]; then echo "YES"; else echo "NO"; fi)"
+set -e
+
+echo "=== Starting Application ==="
 echo "Running database migrations..."
 python manage.py migrate --noinput
+echo "Migrations completed successfully"
 echo "Starting gunicorn server..."
 exec gunicorn config.wsgi --log-file -
