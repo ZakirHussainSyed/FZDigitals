@@ -4,5 +4,5 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn config.wsgi:application
-    releaseCommand: python3 manage.py migrate --no-input
+    startCommand: gunicorn config.wsgi --log-file -
+    releaseCommand: python manage.py migrate --noinput
