@@ -70,8 +70,14 @@ def api_media_list(request):
 @require_http_methods(["POST"])
 def api_upload(request):
     try:
+        from django.conf import settings
+        import os
+        
         uploaded = request.FILES.getlist('files')
         logger.info(f"Received {len(uploaded)} files for upload")
+        logger.info(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        logger.info(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
+        
         created = []
         for uf in uploaded:
             if uf.content_type.startswith('image/'):
@@ -87,6 +93,10 @@ def api_upload(request):
                 content_type=ct,
                 file=uf,
             )
+            logger.info(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
+            logger.info(f"File path: {m.file.path}")
+            logger.info(f"File exists: {os.path.exists(m.file.path)}")
+            
             created.append(
                 {
                     'id': m.id,
