@@ -74,9 +74,10 @@ def api_upload(request):
         import os
         
         uploaded = request.FILES.getlist('files')
-        logger.info(f"Received {len(uploaded)} files for upload")
-        logger.info(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-        logger.info(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
+        print(f"=== UPLOAD DEBUG ===")
+        print(f"Received {len(uploaded)} files for upload")
+        print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        print(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
         
         created = []
         for uf in uploaded:
@@ -85,7 +86,7 @@ def api_upload(request):
             elif uf.content_type.startswith('video/'):
                 ct = 'video'
             else:
-                logger.warning(f"Skipping file with unsupported content type: {uf.content_type}")
+                print(f"Skipping file with unsupported content type: {uf.content_type}")
                 continue
 
             m = MediaFile.objects.create(
@@ -93,9 +94,9 @@ def api_upload(request):
                 content_type=ct,
                 file=uf,
             )
-            logger.info(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
-            logger.info(f"File path: {m.file.path}")
-            logger.info(f"File exists: {os.path.exists(m.file.path)}")
+            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
+            print(f"File path: {m.file.path}")
+            print(f"File exists: {os.path.exists(m.file.path)}")
             
             created.append(
                 {
@@ -106,9 +107,13 @@ def api_upload(request):
                 }
             )
 
+        print(f"=== UPLOAD COMPLETE ===")
         return JsonResponse({'success': True, 'files': created})
     except Exception as e:
-        logger.error(f"Error in api_upload: {str(e)}", exc_info=True)
+        print(f"=== UPLOAD ERROR ===")
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
@@ -132,20 +137,24 @@ def serve_media(request, path):
         from django.conf import settings
         import os
         full_path = os.path.join(settings.MEDIA_ROOT, path)
-        logger.info(f"Serving media: path={path}, MEDIA_ROOT={settings.MEDIA_ROOT}, full_path={full_path}")
-        logger.info(f"File exists: {os.path.exists(full_path)}")
+        print(f"=== MEDIA SERVE DEBUG ===")
+        print(f"Serving media: path={path}, MEDIA_ROOT={settings.MEDIA_ROOT}, full_path={full_path}")
+        print(f"File exists: {os.path.exists(full_path)}")
         
         # List files in media directory for debugging
         if os.path.exists(settings.MEDIA_ROOT):
             files = os.listdir(settings.MEDIA_ROOT)
-            logger.info(f"Files in MEDIA_ROOT: {files}")
+            print(f"Files in MEDIA_ROOT: {files}")
             if os.path.exists(os.path.join(settings.MEDIA_ROOT, 'uploads')):
                 upload_files = os.listdir(os.path.join(settings.MEDIA_ROOT, 'uploads'))
-                logger.info(f"Files in uploads: {upload_files}")
+                print(f"Files in uploads: {upload_files}")
         
         if os.path.exists(full_path):
             return FileResponse(open(full_path, 'rb'))
         return HttpResponse('File not found', status=404)
     except Exception as e:
-        logger.error(f"Error serving media: {str(e)}", exc_info=True)
+        print(f"=== MEDIA SERVE ERROR ===")
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return HttpResponse('Error serving file', status=500)
