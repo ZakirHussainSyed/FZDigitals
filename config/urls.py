@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from slideshow import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('slideshow.urls')),
+    path('media/uploads/<path:path>', views.serve_media, name='serve-media'),
 ]
