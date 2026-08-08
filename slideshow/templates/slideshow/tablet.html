@@ -120,6 +120,10 @@
         .tap-layer {
             position: absolute;
             inset: 0;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
@@ -283,15 +287,24 @@
         // Touch behavior:
         // - on touch -> pause and show controls
         // - when touch ends -> keep paused and resume after 5s
-        tapLayer.addEventListener('pointerdown', () => {
+        tapLayer.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             setPaused(true);
         });
-        tapLayer.addEventListener('pointerup', () => {
+        tapLayer.addEventListener('pointerup', (e) => {
+            e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
             // No need to call setPaused again since it's already paused
         });
-        tapLayer.addEventListener('pointercancel', () => {
+        tapLayer.addEventListener('pointercancel', (e) => {
+            e.preventDefault();
             setPaused(true);
+        });
+        
+        // Prevent context menu on long press
+        tapLayer.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
         });
 
         // Keep list updated
