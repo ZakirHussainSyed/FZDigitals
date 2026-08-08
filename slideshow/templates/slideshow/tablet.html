@@ -287,8 +287,8 @@
             setPaused(true);
         });
         tapLayer.addEventListener('pointerup', () => {
-            // user stopped touching; resume in 5 seconds
-            setPaused(true);
+            // user stopped touching; already paused, resume timer is scheduled
+            // No need to call setPaused again since it's already paused
         });
         tapLayer.addEventListener('pointercancel', () => {
             setPaused(true);
