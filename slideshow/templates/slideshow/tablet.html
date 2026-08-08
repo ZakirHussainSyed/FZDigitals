@@ -287,6 +287,8 @@
         // Touch behavior:
         // - on touch -> pause and show controls
         // - when touch ends -> keep paused and resume after 5s
+        
+        // Pointer events (modern browsers)
         tapLayer.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             setPaused(true);
@@ -294,12 +296,21 @@
         tapLayer.addEventListener('pointerup', (e) => {
             e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
-            // No need to call setPaused again since it's already paused
         });
         tapLayer.addEventListener('pointercancel', (e) => {
             e.preventDefault();
             setPaused(true);
         });
+        
+        // Touch events (Safari iOS support)
+        tapLayer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            setPaused(true);
+        }, { passive: false });
+        tapLayer.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            // user stopped touching; already paused, resume timer is scheduled
+        }, { passive: false });
         
         // Prevent context menu on long press
         tapLayer.addEventListener('contextmenu', (e) => {
