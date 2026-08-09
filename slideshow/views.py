@@ -55,7 +55,7 @@ def api_media_list(request):
                         'id': f.id,
                         'title': f.title,
                         'type': f.content_type,
-                        'url': request.build_absolute_uri(f.file.url),
+                        'url': request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'),
                     }
                     for f in files
                 ],
