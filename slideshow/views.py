@@ -50,12 +50,12 @@ def api_media_list(request):
         result_files = []
         for f in files:
             # Handle both string (old data) and File object (new S3 data)
-            if isinstance(f.file, str):
-                # Old data - file is a string path
-                url = f.file
-            else:
-                # New data - file is a File object
+            if hasattr(f.file, 'url'):
+                # New data - file is a File object with url attribute
                 url = f.file.url
+            else:
+                # Old data - file is a string path
+                url = str(f.file)
             result_files.append({
                 'id': f.id,
                 'title': f.title,
