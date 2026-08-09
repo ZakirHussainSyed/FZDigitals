@@ -6,3 +6,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn config.wsgi --log-file -
     releaseCommand: python manage.py migrate --noinput
+
+crons:
+  - name: keep-awake
+    schedule: "*/10 * * * *"
+    command: "curl https://fzdigitials.onrender.com/"
