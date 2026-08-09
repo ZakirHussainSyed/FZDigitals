@@ -76,8 +76,9 @@ def api_upload(request):
         uploaded = request.FILES.getlist('files')
         print(f"=== UPLOAD DEBUG ===")
         print(f"Received {len(uploaded)} files for upload")
+        print(f"DEFAULT_FILE_STORAGE: {settings.DEFAULT_FILE_STORAGE}")
+        print(f"MEDIA_URL: {settings.MEDIA_URL}")
         print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-        print(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
         
         created = []
         for uf in uploaded:
@@ -89,14 +90,22 @@ def api_upload(request):
                 print(f"Skipping file with unsupported content type: {uf.content_type}")
                 continue
 
+            print(f"Creating MediaFile for: {uf.name}")
             m = MediaFile.objects.create(
                 title=uf.name,
                 content_type=ct,
                 file=uf,
             )
             print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
-            print(f"File path: {m.file.path}")
-            print(f"File exists: {os.path.exists(m.file.path)}")
+            print(f"File URL: {m.file.url}")
+            print(f"File storage backend: {m.file.storage.__class__.__name__}")
+            
+            # Try to verify the file exists in storage
+            try:
+                exists = m.file.storage.exists(m.file.name)
+                print(f"File exists in storage: {exists}")
+            except Exception as e:
+                print(f"Error checking file existence: {e}")
             
             created.append(
                 {
