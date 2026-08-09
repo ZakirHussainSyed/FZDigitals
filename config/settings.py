@@ -132,6 +132,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files configuration
 # Use S3 for persistent storage in production (Render)
+print(f"=== AWS CONFIG DEBUG ===")
+print(f"AWS_STORAGE_BUCKET_NAME env var: {os.environ.get('AWS_STORAGE_BUCKET_NAME')}")
+print(f"AWS_S3_REGION_NAME env var: {os.environ.get('AWS_S3_REGION_NAME')}")
+print(f"AWS_ACCESS_KEY_ID env var: {os.environ.get('AWS_ACCESS_KEY_ID')}")
+print(f"AWS_SECRET_ACCESS_KEY env var: {'SET' if os.environ.get('AWS_SECRET_ACCESS_KEY') else 'NOT SET'}")
+print(f"========================")
+
 if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     # S3 configuration
     AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
@@ -142,10 +149,16 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    print(f"=== USING S3 STORAGE ===")
+    print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
+    print(f"Region: {AWS_S3_REGION_NAME}")
+    print(f"MEDIA_URL: {MEDIA_URL}")
 else:
     # Local filesystem for development
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+    print(f"=== USING LOCAL FILESYSTEM ===")
+    print(f"MEDIA_ROOT: {MEDIA_ROOT}")
 
 # Whitenoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
