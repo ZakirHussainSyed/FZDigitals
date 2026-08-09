@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tellermedia
+    name: fzdigitals
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
