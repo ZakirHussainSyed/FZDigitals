@@ -47,26 +47,18 @@ def service_worker(request):
 def api_media_list(request):
     try:
         files = MediaFile.objects.all()
-        result_files = []
-        for f in files:
-            # Handle both string (old data) and File object (new S3 data)
-            if hasattr(f.file, 'url'):
-                # New data - file is a File object with url attribute
-                url = f.file.url
-            else:
-                # Old data - file is a string path
-                url = str(f.file)
-            result_files.append({
-                'id': f.id,
-                'title': f.title,
-                'type': f.content_type,
-                'url': request.build_absolute_uri(url),
-            })
-        
         return JsonResponse(
             {
                 'success': True,
-                'files': result_files,
+                'files': [
+                    {
+                        'id': f.id,
+                        'title': f.title,
+                        'type': f.content_type,
+                        'url': request.build_absolute_uri(f.file.url),
+                    }
+                    for f in files
+                ],
             }
         )
     except Exception as e:
@@ -84,9 +76,8 @@ def api_upload(request):
         uploaded = request.FILES.getlist('files')
         print(f"=== UPLOAD DEBUG ===")
         print(f"Received {len(uploaded)} files for upload")
-        print(f"DEFAULT_FILE_STORAGE: {settings.DEFAULT_FILE_STORAGE}")
-        print(f"MEDIA_URL: {settings.MEDIA_URL}")
         print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        print(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
         
         created = []
         for uf in uploaded:
@@ -98,22 +89,14 @@ def api_upload(request):
                 print(f"Skipping file with unsupported content type: {uf.content_type}")
                 continue
 
-            print(f"Creating MediaFile for: {uf.name}")
             m = MediaFile.objects.create(
                 title=uf.name,
                 content_type=ct,
                 file=uf,
             )
             print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
-            print(f"File URL: {m.file.url}")
-            print(f"File storage backend: {m.file.storage.__class__.__name__}")
-            
-            # Try to verify the file exists in storage
-            try:
-                exists = m.file.storage.exists(m.file.name)
-                print(f"File exists in storage: {exists}")
-            except Exception as e:
-                print(f"Error checking file existence: {e}")
+            print(f"File path: {m.file.path}")
+            print(f"File exists: {os.path.exists(m.file.path)}")
             
             created.append(
                 {
@@ -139,7 +122,7 @@ def api_upload(request):
 def api_delete(request, pk: int):
     try:
         obj = get_object_or_404(MediaFile, pk=pk)
-        if obj.file:
+        if obj.file and hasattr(obj.file, 'delete'):
             obj.file.delete(save=False)
         obj.delete()
         return JsonResponse({'success': True})
