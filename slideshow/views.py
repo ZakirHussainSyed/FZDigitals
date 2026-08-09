@@ -47,18 +47,26 @@ def service_worker(request):
 def api_media_list(request):
     try:
         files = MediaFile.objects.all()
+        result_files = []
+        for f in files:
+            # Handle both string (old data) and File object (new S3 data)
+            if isinstance(f.file, str):
+                # Old data - file is a string path
+                url = f.file
+            else:
+                # New data - file is a File object
+                url = f.file.url
+            result_files.append({
+                'id': f.id,
+                'title': f.title,
+                'type': f.content_type,
+                'url': request.build_absolute_uri(url),
+            })
+        
         return JsonResponse(
             {
                 'success': True,
-                'files': [
-                    {
-                        'id': f.id,
-                        'title': f.title,
-                        'type': f.content_type,
-                        'url': request.build_absolute_uri(f.file.url),
-                    }
-                    for f in files
-                ],
+                'files': result_files,
             }
         )
     except Exception as e:
