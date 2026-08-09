@@ -291,30 +291,36 @@
         
         // Pointer events (modern browsers)
         tapLayer.addEventListener('pointerdown', (e) => {
+            console.log('pointerdown event fired');
             e.preventDefault();
             setPaused(true);
         });
         tapLayer.addEventListener('pointerup', (e) => {
+            console.log('pointerup event fired');
             e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
         });
         tapLayer.addEventListener('pointercancel', (e) => {
+            console.log('pointercancel event fired');
             e.preventDefault();
             setPaused(true);
         });
         
         // Touch events (Safari iOS support)
         tapLayer.addEventListener('touchstart', (e) => {
+            console.log('touchstart event fired');
             e.preventDefault();
             setPaused(true);
         }, { passive: false });
         tapLayer.addEventListener('touchend', (e) => {
+            console.log('touchend event fired');
             e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
         }, { passive: false });
         
         // Prevent context menu on long press
         tapLayer.addEventListener('contextmenu', (e) => {
+            console.log('contextmenu event fired');
             e.preventDefault();
             return false;
         });
