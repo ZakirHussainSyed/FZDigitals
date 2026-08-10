@@ -95,8 +95,7 @@ def api_upload(request):
                 file=uf,
             )
             print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
-            print(f"File path: {m.file.path}")
-            print(f"File exists: {os.path.exists(m.file.path)}")
+            print(f"File URL: {m.file.url}")
             
             created.append(
                 {
