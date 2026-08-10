@@ -140,26 +140,27 @@ print(f"AWS_SECRET_ACCESS_KEY env var: {'SET' if os.environ.get('AWS_SECRET_ACCE
 print(f"========================")
 
 if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
-    # S3 configuration - let django-storages read from environment variables
+    # S3 configuration - set both standard and django-storages environment variables
     AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    
+    # Also set django-storages specific variables
+    AWS_S3_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+    AWS_S3_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+    
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
     AWS_DEFAULT_ACL = 'public-read'
     AWS_S3_FILE_OVERWRITE = False
     
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-    
-    # Import and instantiate storage class
-    from storages.backends.s3boto3 import S3Boto3Storage
-    DEFAULT_FILE_STORAGE = S3Boto3Storage()
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
     print(f"=== USING S3 STORAGE ===")
     print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
     print(f"Region: {AWS_S3_REGION_NAME}")
     print(f"MEDIA_URL: {MEDIA_URL}")
-    print(f"Storage class: {DEFAULT_FILE_STORAGE}")
 else:
     # Local filesystem for development
     MEDIA_URL = '/media/'
