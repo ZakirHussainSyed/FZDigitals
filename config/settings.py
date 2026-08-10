@@ -149,7 +149,19 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     AWS_S3_OBJECT_PARAMETERS = {'ACL': 'public-read'}
     
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
+    # Import and use S3 storage class directly
+    from storages.backends.s3boto3 import S3Boto3Storage
+    class MediaStorage(S3Boto3Storage):
+        bucket_name = AWS_STORAGE_BUCKET_NAME
+        region_name = AWS_S3_REGION_NAME
+        access_key = AWS_ACCESS_KEY_ID
+        secret_key = AWS_SECRET_ACCESS_KEY
+        custom_domain = AWS_S3_CUSTOM_DOMAIN
+        querystring_auth = False
+        default_acl = 'public-read'
+    
+    DEFAULT_FILE_STORAGE = 'config.settings.MediaStorage'
     
     print(f"=== USING S3 STORAGE ===")
     print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
