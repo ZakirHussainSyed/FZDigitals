@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Upload + Slideshow</title>
+    <title>Slideshow</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -29,6 +29,12 @@
             border-radius: 16px;
             padding: 18px;
             backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            margin: 0 auto 20px auto;
+            display: block;
         }
         h1 { font-size: 20px; margin-bottom: 12px; }
         h2 { font-size: 16px; margin-bottom: 12px; color: rgba(232,234,240,0.9); }
@@ -190,7 +196,7 @@
 <body>
     <div class="page">
         <div class="card">
-            <h1>Upload</h1>
+            <img src="/static/logo.png" alt="Logo" class="logo" />
             <div class="drop" id="drop">
                 <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
                 <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
