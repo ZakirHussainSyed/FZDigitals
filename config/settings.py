@@ -161,7 +161,7 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
         querystring_auth = False
         default_acl = 'public-read'
     
-    DEFAULT_FILE_STORAGE = 'config.settings.MediaStorage'
+    DEFAULT_FILE_STORAGE = MediaStorage
     
     print(f"=== USING S3 STORAGE ===")
     print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
