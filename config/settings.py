@@ -146,9 +146,11 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_S3_OBJECT_PARAMETERS = {'ACL': 'public-read'}
     
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
     print(f"=== USING S3 STORAGE ===")
     print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
     print(f"Region: {AWS_S3_REGION_NAME}")
