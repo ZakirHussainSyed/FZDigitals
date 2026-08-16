@@ -197,6 +197,16 @@
     <div class="page">
         <div class="card">
             <img src="/static/logo.png" alt="Logo" class="logo" />
+            {% if user.is_authenticated %}
+            <div style="margin-bottom: 16px;">
+                <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
+                <a href="/accounts/logout/" style="margin-left: 10px; color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
+            </div>
+            {% else %}
+            <div style="margin-bottom: 16px;">
+                <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>
+            </div>
+            {% endif %}
             <div class="drop" id="drop">
                 <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
                 <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).

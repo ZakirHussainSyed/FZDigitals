@@ -4,5 +4,9 @@ whitenoise==6.9.0
 dj-database-url==2.3.0
 django-storages==1.14.5
 boto3==1.36.16
+django-allauth==0.63.6
+requests==2.32.3
+PyJWT==2.9.0
+cryptography==43.0.0
 # PostgreSQL for production (requires pg_config)
 # psycopg2-binary==2.9.10
