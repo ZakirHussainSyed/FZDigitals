@@ -11,17 +11,17 @@ FZDigitals Advertisement
 
 1. **Install dependencies:**
    ```bash
-   pip install -r requirements.txt
+   python3 -m pip install -r requirements.txt
    ```
 
 2. **Run database migrations:**
    ```bash
-   python manage.py migrate
+   python3 manage.py migrate
    ```
 
 3. **Start the development server:**
    ```bash
-   python manage.py runserver
+   python3 manage.py runserver
    ```
 
 4. **Access the website:**
