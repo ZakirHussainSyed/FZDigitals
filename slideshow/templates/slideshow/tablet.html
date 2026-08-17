@@ -117,6 +117,62 @@
         }
         .empty.show { display: flex; }
 
+        /* Pairing screen */
+        .pairing-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 24px;
+        }
+        .pairing-screen.hidden { display: none; }
+        .pairing-title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+        .pairing-input {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-size: 20px;
+            color: #fff;
+            text-align: center;
+            letter-spacing: 4px;
+            width: 280px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+        .pairing-input:focus {
+            outline: none;
+            border-color: #7c5;
+        }
+        .pairing-btn {
+            background: #7c5cff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        .pairing-btn:active { opacity: 0.8; }
+        .pairing-error {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+        .pairing-error.show { display: block; }
+
         /* Big tap area for pause/resume */
         .tap-layer {
             position: absolute;
@@ -130,6 +186,13 @@
     </style>
 </head>
 <body>
+    <div class="pairing-screen" id="pairingScreen">
+        <div class="pairing-title">Enter Pairing ID</div>
+        <input type="text" class="pairing-input" id="pairingInput" placeholder="XXXXXXXX" maxlength="8" autocomplete="off">
+        <button class="pairing-btn" id="pairingBtn">Connect</button>
+        <div class="pairing-error" id="pairingError">Invalid pairing ID</div>
+    </div>
+    
     <div class="stage" id="stage">
         <div class="tap-layer" id="tap"></div>
         <div class="empty" id="empty">No media uploaded yet.</div>
@@ -148,6 +211,12 @@
         let autoplayTimer = null;
         let resumeTimer = null;
         let paused = false;
+        let pairedUserId = null;
+
+        const pairingScreen = document.getElementById('pairingScreen');
+        const pairingInput = document.getElementById('pairingInput');
+        const pairingBtn = document.getElementById('pairingBtn');
+        const pairingError = document.getElementById('pairingError');
 
         const stage = document.getElementById('stage');
         const slidesEl = document.getElementById('slides');
@@ -264,7 +333,8 @@
         }
 
         async function refresh() {
-            const res = await fetch('/api/media/');
+            if (!pairedUserId) return;
+            const res = await fetch(`/api/media/?user_id=${pairedUserId}`);
             const data = await res.json();
             if (!data.success) return;
             media = data.files;
@@ -273,6 +343,37 @@
             show(current);
             startAutoplay();
         }
+
+        async function connectPairing() {
+            const pairingId = pairingInput.value.trim().toUpperCase();
+            if (!pairingId || pairingId.length !== 8) {
+                pairingError.textContent = 'Please enter 8-character ID';
+                pairingError.classList.add('show');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/pairing/${pairingId}/`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    pairedUserId = data.user_id;
+                    pairingScreen.classList.add('hidden');
+                    refresh();
+                } else {
+                    pairingError.textContent = 'Invalid pairing ID';
+                    pairingError.classList.add('show');
+                }
+            } catch (error) {
+                pairingError.textContent = 'Connection failed';
+                pairingError.classList.add('show');
+            }
+        }
+
+        pairingBtn.addEventListener('click', connectPairing);
+        pairingInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') connectPairing();
+        });
 
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();

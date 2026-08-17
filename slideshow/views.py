@@ -2,9 +2,10 @@ from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 import logging
 
-from .models import MediaFile
+from .models import MediaFile, DevicePairing
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,11 @@ def service_worker(request):
 @require_http_methods(["GET"])
 def api_media_list(request):
     try:
-        files = MediaFile.objects.all()
+        user_id = request.GET.get('user_id')
+        if user_id:
+            files = MediaFile.objects.filter(user_id=user_id)
+        else:
+            files = MediaFile.objects.all()
         return JsonResponse(
             {
                 'success': True,
@@ -90,11 +95,12 @@ def api_upload(request):
                 continue
 
             m = MediaFile.objects.create(
+                user=request.user if request.user.is_authenticated else None,
                 title=uf.name,
                 content_type=ct,
                 file=uf,
             )
-            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}")
+            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}, user={m.user}")
             print(f"File URL: {m.file.url}")
             
             created.append(
@@ -157,3 +163,34 @@ def serve_media(request, path):
         import traceback
         traceback.print_exc()
         return HttpResponse('Error serving file', status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_pairing_info(request):
+    """Get or create device pairing info for current user"""
+    try:
+        pairing, created = DevicePairing.objects.get_or_create(user=request.user)
+        return JsonResponse({
+            'success': True,
+            'pairing_id': pairing.pairing_id,
+            'created': created
+        })
+    except Exception as e:
+        logger.error(f"Error in api_pairing_info: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_pairing_lookup(request, pairing_id):
+    """Lookup user by pairing ID for tablet connection"""
+    try:
+        pairing = get_object_or_404(DevicePairing, pairing_id=pairing_id.upper())
+        return JsonResponse({
+            'success': True,
+            'user_email': pairing.user.email,
+            'user_id': pairing.user.id
+        })
+    except Exception as e:
+        logger.error(f"Error in api_pairing_lookup: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Invalid pairing ID'}, status=404)

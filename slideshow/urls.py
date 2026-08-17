@@ -9,4 +9,6 @@ urlpatterns = [
     path('api/media/', views.api_media_list, name='api-media-list'),
     path('api/upload/', views.api_upload, name='api-upload'),
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
+    path('api/pairing/', views.api_pairing_info, name='api-pairing-info'),
+    path('api/pairing/<str:pairing_id>/', views.api_pairing_lookup, name='api-pairing-lookup'),
 ]

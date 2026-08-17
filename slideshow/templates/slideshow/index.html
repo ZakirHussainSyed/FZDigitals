@@ -202,6 +202,19 @@
                 <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
                 <a href="/accounts/logout/" style="margin-left: 10px; color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
             </div>
+            <div style="margin-bottom: 16px; padding: 12px; background: rgba(124,92,255,0.1); border-radius: 10px; border: 1px solid rgba(124,92,255,0.3);">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Device Pairing</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="qrCode" style="width: 80px; height: 80px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #333; font-size: 10px;">Loading...</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: rgba(232,234,240,0.7); font-size: 12px; margin-bottom: 4px;">Pairing ID:</div>
+                        <div id="pairingId" style="font-size: 24px; font-weight: 800; color: #7c5cff; letter-spacing: 2px;">---</div>
+                        <div style="color: rgba(232,234,240,0.5); font-size: 11px; margin-top: 4px;">Scan this on tablet to connect</div>
+                    </div>
+                </div>
+            </div>
             {% else %}
             <div style="margin-bottom: 16px;">
                 <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>
@@ -452,6 +465,39 @@
 
         // Initial load
         refresh();
+        
+        // Load pairing info if authenticated
+        if (document.querySelector('[style*="Welcome,"]')) {
+            loadPairingInfo();
+        }
+        
+        async function loadPairingInfo() {
+            try {
+                const res = await fetch('/api/pairing/');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('pairingId').textContent = data.pairing_id;
+                    generateQRCode(data.pairing_id);
+                }
+            } catch (error) {
+                console.error('Failed to load pairing info:', error);
+            }
+        }
+        
+        function generateQRCode(pairingId) {
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = '';
+            
+            // Simple QR code using a public API
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(pairingId)}`;
+            const img = document.createElement('img');
+            img.src = qrUrl;
+            img.alt = 'QR Code';
+            img.style.width = '80px';
+            img.style.height = '80px';
+            img.style.borderRadius = '8px';
+            qrContainer.appendChild(img);
+        }
     </script>
 </body>
 </html>
