@@ -3,9 +3,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
+from django.contrib import messages
 import logging
 
-from .models import MediaFile, DevicePairing
+from .models import MediaFile, DevicePairing, UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +19,135 @@ def index(request):
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
     return render(request, 'slideshow/login.html')
+
+
+def django_login(request):
+    """Django traditional login"""
+    if request.user.is_authenticated:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return redirect(f'/{user.id}/')
+        else:
+            return render(request, 'slideshow/login.html', {
+                'form': AuthenticationForm(),
+                'error': 'Invalid username or password'
+            })
+    
+    return render(request, 'slideshow/login.html', {'form': AuthenticationForm()})
+
+
+def signup(request):
+    """User registration with security question"""
+    if request.user.is_authenticated:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        security_question = request.POST.get('security_question')
+        security_answer = request.POST.get('security_answer')
+        
+        if password != confirm_password:
+            return render(request, 'slideshow/signup.html', {
+                'error': 'Passwords do not match',
+                'security_questions': UserProfile.SECURITY_QUESTIONS
+            })
+        
+        if User.objects.filter(username=username).exists():
+            return render(request, 'slideshow/signup.html', {
+                'error': 'Username already exists',
+                'security_questions': UserProfile.SECURITY_QUESTIONS
+            })
+        
+        if User.objects.filter(email=email).exists():
+            return render(request, 'slideshow/signup.html', {
+                'error': 'Email already exists',
+                'security_questions': UserProfile.SECURITY_QUESTIONS
+            })
+        
+        user = User.objects.create_user(username=username, email=email, password=password)
+        UserProfile.objects.create(
+            user=user,
+            security_question=security_question,
+            security_answer=security_answer.lower()
+        )
+        login(request, user)
+        return redirect(f'/{user.id}/')
+    
+    return render(request, 'slideshow/signup.html', {
+        'security_questions': UserProfile.SECURITY_QUESTIONS
+    })
+
+
+def forget_password(request):
+    """Step 1: Enter username to reset password"""
+    if request.user.is_authenticated:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        try:
+            user = User.objects.get(username=username)
+            profile = UserProfile.objects.get(user=user)
+            return render(request, 'slideshow/forget_password_verify.html', {
+                'username': username,
+                'security_question': profile.security_question,
+                'security_question_text': dict(UserProfile.SECURITY_QUESTIONS).get(profile.security_question)
+            })
+        except User.DoesNotExist:
+            return render(request, 'slideshow/forget_password.html', {
+                'error': 'Username not found'
+            })
+        except UserProfile.DoesNotExist:
+            return render(request, 'slideshow/forget_password.html', {
+                'error': 'User profile not found. Please contact support.'
+            })
+    
+    return render(request, 'slideshow/forget_password.html')
+
+
+def forget_password_verify(request):
+    """Step 2: Verify security answer and reset password"""
+    if request.user.is_authenticated:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        security_answer = request.POST.get('security_answer').lower()
+        new_password = request.POST.get('new_password')
+        
+        try:
+            user = User.objects.get(username=username)
+            profile = UserProfile.objects.get(user=user)
+            
+            if profile.security_answer == security_answer:
+                user.set_password(new_password)
+                user.save()
+                return render(request, 'slideshow/login.html', {
+                    'success': 'Password reset successfully. Please login with your new password.'
+                })
+            else:
+                return render(request, 'slideshow/forget_password_verify.html', {
+                    'username': username,
+                    'security_question': profile.security_question,
+                    'security_question_text': dict(UserProfile.SECURITY_QUESTIONS).get(profile.security_question),
+                    'error': 'Incorrect security answer'
+                })
+        except User.DoesNotExist:
+            return render(request, 'slideshow/forget_password.html', {
+                'error': 'Username not found'
+            })
+    
+    return redirect('/forget-password/')
 
 
 @login_required

@@ -1,3 +1,4 @@
+{% load socialaccount %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,6 +38,65 @@
             font-size: 14px; 
             margin-bottom: 24px; 
         }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: rgba(232,234,240,0.5);
+            font-size: 12px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+        .divider span { padding: 0 12px; }
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: rgba(232,234,240,0.8);
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #e8eaf0;
+            font-size: 14px;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #7c5cff;
+        }
+        .form-input::placeholder {
+            color: rgba(232,234,240,0.4);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #7c5cff;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .submit-btn:hover { background: #6a4ce6; }
+        .error-message {
+            color: #ff4444;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .error-message.show { display: block; }
         .sso-buttons {
             display: flex;
             flex-direction: column;
@@ -68,6 +128,29 @@
         <img src="/static/logo.png" alt="FZDigitals" class="logo" />
         <h1>FZDigitals</h1>
         <p class="subtitle">Sign in to manage your slideshows</p>
+        
+        <form method="post" action="{% url 'django_login' %}">
+            {% csrf_token %}
+            <div class="error-message {% if form.errors %}show{% endif %}">
+                {% if form.errors %}
+                    {% for field, errors in form.errors.items %}
+                        {{ errors.0 }}
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" class="form-input" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" class="form-input" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="submit-btn">Sign In</button>
+        </form>
+        
+        <div class="divider"><span>OR</span></div>
+        
         <div class="sso-buttons">
             <a href="{% provider_login_url 'google' process='login' %}" class="sso-btn google">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -78,6 +161,12 @@
                 </svg>
                 Continue with Google
             </a>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="/signup/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">Create an account</a>
+            <span style="color: rgba(232,234,240,0.4); margin: 0 8px;">•</span>
+            <a href="/forget-password/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">Forgot password?</a>
         </div>
     </div>
 </body>

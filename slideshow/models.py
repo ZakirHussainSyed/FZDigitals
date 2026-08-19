@@ -45,3 +45,20 @@ class DevicePairing(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.email} - {self.pairing_id}"
+
+
+class UserProfile(models.Model):
+    SECURITY_QUESTIONS = [
+        ('pet', 'What was the name of your first pet?'),
+        ('school', 'What was the name of your first school?'),
+        ('city', 'In which city were you born?'),
+        ('mother', 'What is your mother\'s maiden name?'),
+        ('job', 'What was your first job?'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    security_question = models.CharField(max_length=50, choices=SECURITY_QUESTIONS)
+    security_answer = models.CharField(max_length=255)
+    
+    def __str__(self):
+        return f"{self.user.username} - Profile"

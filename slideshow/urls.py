@@ -3,6 +3,10 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('login/', views.django_login, name='django_login'),
+    path('signup/', views.signup, name='signup'),
+    path('forget-password/', views.forget_password, name='forget-password'),
+    path('forget-password/verify/', views.forget_password_verify, name='forget-password-verify'),
     path('<int:user_id>/', views.user_dashboard, name='user-dashboard'),
     path('tablet/', views.tablet, name='tablet'),
     path('tablet/<str:pairing_id>/', views.tablet_slideshow, name='tablet-slideshow'),
