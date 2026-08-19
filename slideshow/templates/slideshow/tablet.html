@@ -212,6 +212,10 @@
         let resumeTimer = null;
         let paused = false;
         let pairedUserId = null;
+        
+        // Check if pairing ID is in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
 
         const pairingScreen = document.getElementById('pairingScreen');
         const pairingInput = document.getElementById('pairingInput');
@@ -344,29 +348,38 @@
             startAutoplay();
         }
 
-        async function connectPairing() {
-            const pairingId = pairingInput.value.trim().toUpperCase();
-            if (!pairingId || pairingId.length !== 8) {
-                pairingError.textContent = 'Please enter 8-character ID';
-                pairingError.classList.add('show');
+        async function connectPairing(pairingId = null) {
+            const id = pairingId || pairingInput.value.trim().toUpperCase();
+            if (!id || id.length !== 8) {
+                if (!pairingId) {
+                    pairingError.textContent = 'Please enter 8-character ID';
+                    pairingError.classList.add('show');
+                }
                 return;
             }
 
             try {
-                const res = await fetch(`/api/pairing/${pairingId}/`);
+                const res = await fetch(`/api/pairing/${id}/`);
                 const data = await res.json();
                 
                 if (data.success) {
                     pairedUserId = data.user_id;
                     pairingScreen.classList.add('hidden');
+                    // Update URL to include pairing ID
+                    const newUrl = `/tablet/${id}/`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
                     refresh();
                 } else {
-                    pairingError.textContent = 'Invalid pairing ID';
-                    pairingError.classList.add('show');
+                    if (!pairingId) {
+                        pairingError.textContent = 'Invalid pairing ID';
+                        pairingError.classList.add('show');
+                    }
                 }
             } catch (error) {
-                pairingError.textContent = 'Connection failed';
-                pairingError.classList.add('show');
+                if (!pairingId) {
+                    pairingError.textContent = 'Connection failed';
+                    pairingError.classList.add('show');
+                }
             }
         }
 
@@ -429,7 +442,13 @@
 
         // Keep list updated
         setInterval(refresh, 8000);
-        refresh();
+        
+        // Auto-connect if pairing ID is in URL
+        if (pairingIdFromUrl) {
+            connectPairing(pairingIdFromUrl);
+        } else {
+            refresh();
+        }
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});

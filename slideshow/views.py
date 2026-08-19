@@ -1,5 +1,5 @@
 from django.http import JsonResponse, HttpResponse, FileResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -11,11 +11,28 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
+    """Root URL - shows login page or redirects to user dashboard"""
+    if request.user.is_authenticated:
+        return redirect(f'/{request.user.id}/')
+    return render(request, 'slideshow/login.html')
+
+
+@login_required
+def user_dashboard(request, user_id):
+    """User-specific upload page with device pairing"""
+    if request.user.id != user_id:
+        return redirect(f'/{request.user.id}/')
     return render(request, 'slideshow/index.html')
 
 
 def tablet(request):
+    """Tablet pairing page"""
     return render(request, 'slideshow/tablet.html')
+
+
+def tablet_slideshow(request, pairing_id):
+    """Tablet slideshow after pairing"""
+    return render(request, 'slideshow/tablet.html', {'pairing_id': pairing_id})
 
 
 def manifest(request):

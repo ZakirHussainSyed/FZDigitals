@@ -3,7 +3,9 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('<int:user_id>/', views.user_dashboard, name='user-dashboard'),
     path('tablet/', views.tablet, name='tablet'),
+    path('tablet/<str:pairing_id>/', views.tablet_slideshow, name='tablet-slideshow'),
     path('manifest.webmanifest', views.manifest, name='manifest'),
     path('service-worker.js', views.service_worker, name='service-worker'),
     path('api/media/', views.api_media_list, name='api-media-list'),

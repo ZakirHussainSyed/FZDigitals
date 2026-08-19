@@ -191,6 +191,67 @@
             padding: 16px;
         }
         .hint { margin-top: 10px; }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: rgba(11,16,32,0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #e8eaf0;
+        }
+        .modal-qr {
+            width: 150px;
+            height: 150px;
+            background: white;
+            border-radius: 12px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-id {
+            font-size: 32px;
+            font-weight: 800;
+            color: #7c5cff;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+        .modal-subtitle {
+            color: rgba(232,234,240,0.6);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .modal-close {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e8eaf0;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.15); }
     </style>
 </head>
 <body>
@@ -202,18 +263,8 @@
                 <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
                 <a href="/accounts/logout/" style="margin-left: 10px; color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
             </div>
-            <div style="margin-bottom: 16px; padding: 12px; background: rgba(124,92,255,0.1); border-radius: 10px; border: 1px solid rgba(124,92,255,0.3);">
-                <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Device Pairing</div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div id="qrCode" style="width: 80px; height: 80px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                        <span style="color: #333; font-size: 10px;">Loading...</span>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="color: rgba(232,234,240,0.7); font-size: 12px; margin-bottom: 4px;">Pairing ID:</div>
-                        <div id="pairingId" style="font-size: 24px; font-weight: 800; color: #7c5cff; letter-spacing: 2px;">---</div>
-                        <div style="color: rgba(232,234,240,0.5); font-size: 11px; margin-top: 4px;">Scan this on tablet to connect</div>
-                    </div>
-                </div>
+            <div style="margin-bottom: 16px;">
+                <button id="devicePairingBtn" class="btn primary" style="background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.4);">Device Pairing</button>
             </div>
             {% else %}
             <div style="margin-bottom: 16px;">
@@ -252,6 +303,18 @@
             <div class="muted" style="margin-top:12px;">
                 Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
             </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="pairingModal">
+        <div class="modal-content">
+            <div class="modal-title">Device Pairing</div>
+            <div class="modal-qr" id="modalQrCode">
+                <span style="color: #333; font-size: 12px;">Loading...</span>
+            </div>
+            <div class="modal-id" id="modalPairingId">---</div>
+            <div class="modal-subtitle">Scan this QR code or enter the ID on your tablet</div>
+            <button class="modal-close" id="closeModal">Close</button>
         </div>
     </div>
 
@@ -466,17 +529,36 @@
         // Initial load
         refresh();
         
-        // Load pairing info if authenticated
-        if (document.querySelector('[style*="Welcome,"]')) {
-            loadPairingInfo();
+        // Device pairing modal functionality
+        const devicePairingBtn = document.getElementById('devicePairingBtn');
+        const pairingModal = document.getElementById('pairingModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        if (devicePairingBtn) {
+            devicePairingBtn.addEventListener('click', () => {
+                loadPairingInfo();
+                pairingModal.classList.add('show');
+            });
         }
+        
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                pairingModal.classList.remove('show');
+            });
+        }
+        
+        pairingModal.addEventListener('click', (e) => {
+            if (e.target === pairingModal) {
+                pairingModal.classList.remove('show');
+            }
+        });
         
         async function loadPairingInfo() {
             try {
                 const res = await fetch('/api/pairing/');
                 const data = await res.json();
                 if (data.success) {
-                    document.getElementById('pairingId').textContent = data.pairing_id;
+                    document.getElementById('modalPairingId').textContent = data.pairing_id;
                     generateQRCode(data.pairing_id);
                 }
             } catch (error) {
@@ -485,17 +567,17 @@
         }
         
         function generateQRCode(pairingId) {
-            const qrContainer = document.getElementById('qrCode');
+            const qrContainer = document.getElementById('modalQrCode');
             qrContainer.innerHTML = '';
             
             // Simple QR code using a public API
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(pairingId)}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pairingId)}`;
             const img = document.createElement('img');
             img.src = qrUrl;
             img.alt = 'QR Code';
-            img.style.width = '80px';
-            img.style.height = '80px';
-            img.style.borderRadius = '8px';
+            img.style.width = '150px';
+            img.style.height = '150px';
+            img.style.borderRadius = '12px';
             qrContainer.appendChild(img);
         }
     </script>
