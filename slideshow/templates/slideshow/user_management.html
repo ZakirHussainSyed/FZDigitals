@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - FZDigitals</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #0b1020;
+            color: #e8eaf0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        h1 { font-size: 28px; }
+        .back-link {
+            color: rgba(232,234,240,0.7);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { color: #e8eaf0; }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+        .alert.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            color: #4caf50;
+        }
+        .alert.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.4);
+            color: #f44336;
+        }
+        .table-container {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
+        }
+        th {
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            color: rgba(232,234,240,0.8);
+            font-size: 14px;
+        }
+        td {
+            font-size: 14px;
+        }
+        tr:last-child td { border-bottom: none; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge.superuser {
+            background: rgba(124,92,255,0.2);
+            border: 1px solid rgba(124,92,255,0.4);
+            color: #7c5cff;
+        }
+        .badge.staff {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            color: #4caf50;
+        }
+        .badge.user {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(232,234,240,0.7);
+        }
+        .delete-btn {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.4);
+            color: #f44336;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .delete-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        .delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .empty-state {
+            padding: 48px;
+            text-align: center;
+            color: rgba(232,234,240,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>User Management</h1>
+            <a href="/{{ request.user.id }}/" class="back-link">← Back to Dashboard</a>
+        </div>
+        
+        {% if success %}
+        <div class="alert success">{{ success }}</div>
+        {% endif %}
+        
+        {% if error %}
+        <div class="alert error">{{ error }}</div>
+        {% endif %}
+        
+        <div class="table-container">
+            {% if users %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Date Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.is_superuser %}
+                            <span class="badge superuser">Superuser</span>
+                            {% elif user.is_staff %}
+                            <span class="badge staff">Staff</span>
+                            {% else %}
+                            <span class="badge user">User</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                        <td>
+                            <form method="post" action="/delete-user/{{ user.id }}/" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="delete-btn" 
+                                        {% if user == request.user %}disabled{% endif %}
+                                        onclick="return confirm('Are you sure you want to delete {{ user.username }}? This action cannot be undone.')">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No users found
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

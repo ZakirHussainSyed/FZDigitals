@@ -380,6 +380,44 @@ def handle_payment_failed(invoice):
 
 
 @login_required
+def user_management(request):
+    """User management page - only for superusers"""
+    if not request.user.is_superuser:
+        return redirect(f'/{request.user.id}/')
+    
+    users = User.objects.all().order_by('-id')
+    return render(request, 'slideshow/user_management.html', {'users': users})
+
+
+@login_required
+def delete_user(request, user_id):
+    """Delete a user - only for superusers"""
+    if not request.user.is_superuser:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        try:
+            user = User.objects.get(id=user_id)
+            if user == request.user:
+                return render(request, 'slideshow/user_management.html', {
+                    'users': User.objects.all().order_by('-id'),
+                    'error': 'Cannot delete your own account'
+                })
+            user.delete()
+            return render(request, 'slideshow/user_management.html', {
+                'users': User.objects.all().order_by('-id'),
+                'success': f'User {user.username} deleted successfully'
+            })
+        except User.DoesNotExist:
+            return render(request, 'slideshow/user_management.html', {
+                'users': User.objects.all().order_by('-id'),
+                'error': 'User not found'
+            })
+    
+    return redirect('/user-management/')
+
+
+@login_required
 def user_dashboard(request, user_id):
     """User-specific upload page with device pairing"""
     if request.user.id != user_id:

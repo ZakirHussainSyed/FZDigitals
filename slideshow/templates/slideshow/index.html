@@ -274,6 +274,11 @@
                 {% endif %}
                 <a href="/subscription-plans/" style="margin-left: 8px; color: #7c5cff; text-decoration: none;">Manage</a>
             </div>
+            {% if user.is_superuser %}
+            <div style="margin-bottom: 16px;">
+                <a href="/user-management/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">User Management</a>
+            </div>
+            {% endif %}
             {% else %}
             <div style="margin-bottom: 16px;">
                 <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>

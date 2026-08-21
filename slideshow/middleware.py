@@ -22,6 +22,8 @@ class SubscriptionMiddleware:
             '/api/pairing/',
             '/tablet/',
             '/accounts/',
+            '/user-management/',
+            '/delete-user/',
         ]
         
         if not request.user.is_authenticated:
