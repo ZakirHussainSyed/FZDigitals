@@ -36,7 +36,7 @@ def django_login(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             return redirect(f'/{user.id}/')
         else:
             return render(request, 'slideshow/login.html', {
