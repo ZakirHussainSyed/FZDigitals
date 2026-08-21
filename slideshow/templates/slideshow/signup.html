@@ -57,9 +57,27 @@
             color: #e8eaf0;
             font-size: 14px;
         }
-        .form-input:focus, .form-select:focus {
+        .form-input:focus {
             outline: none;
             border-color: #7c5cff;
+        }
+        .password-container {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(232,234,240,0.6);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+        }
+        .toggle-password:hover {
+            color: rgba(232,234,240,0.9);
         }
         .form-input::placeholder {
             color: rgba(232,234,240,0.4);
@@ -118,11 +136,17 @@
             </div>
             <div class="form-group">
                 <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password" class="form-input" placeholder="Create a password" required>
+                <div class="password-container">
+                    <input type="password" name="password" id="id_password" class="form-input" placeholder="Create password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('id_password', this)">Show</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="id_confirm_password">Confirm Password</label>
-                <input type="password" name="confirm_password" id="id_confirm_password" class="form-input" placeholder="Confirm your password" required>
+                <div class="password-container">
+                    <input type="password" name="confirm_password" id="id_confirm_password" class="form-input" placeholder="Confirm password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('id_confirm_password', this)">Show</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="id_security_question">Security Question</label>
@@ -142,5 +166,18 @@
         
         <a href="/" class="back-link">← Back to Login</a>
     </div>
+    
+    <script>
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+    </script>
 </body>
 </html>
