@@ -84,7 +84,9 @@ def signup(request):
             security_question=security_question,
             security_answer=security_answer.lower()
         )
-        login(request, user)
+        from django.contrib.auth import get_backends
+        backend = get_backends()[0]  # Use the first available backend
+        login(request, user, backend=backend)
         return redirect(f'/{user.id}/')
     
     return render(request, 'slideshow/signup.html', {
