@@ -8,5 +8,6 @@ django-allauth==0.63.6
 requests==2.32.3
 PyJWT==2.9.0
 cryptography==43.0.0
+stripe==7.8.0
 # PostgreSQL for production (requires pg_config)
 # psycopg2-binary==2.9.10

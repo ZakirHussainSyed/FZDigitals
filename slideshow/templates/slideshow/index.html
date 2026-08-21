@@ -266,6 +266,14 @@
             <div style="margin-bottom: 16px;">
                 <button id="devicePairingBtn" class="btn primary" style="background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.4);">Device Pairing</button>
             </div>
+            <div style="margin-bottom: 16px; padding: 8px 12px; background: rgba(124,92,255,0.1); border-radius: 8px; border: 1px solid rgba(124,92,255,0.3); font-size: 12px;">
+                <span style="color: #7c5cff;">Plan:</span> 
+                <span style="color: rgba(232,234,240,0.8);">{{ subscription.plan|title }}</span>
+                {% if subscription.is_trial %}
+                    <span style="margin-left: 8px; color: rgba(232,234,240,0.6);">(Trial - {{ subscription.days_remaining }} days left)</span>
+                {% endif %}
+                <a href="/subscription-plans/" style="margin-left: 8px; color: #7c5cff; text-decoration: none;">Manage</a>
+            </div>
             {% else %}
             <div style="margin-bottom: 16px;">
                 <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>

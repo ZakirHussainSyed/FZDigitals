@@ -7,11 +7,15 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.conf import settings
+import stripe
 import logging
 
-from .models import MediaFile, DevicePairing, UserProfile
+from .models import MediaFile, DevicePairing, UserProfile, Subscription
 
 logger = logging.getLogger(__name__)
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def index(request):
@@ -151,11 +155,240 @@ def forget_password_verify(request):
 
 
 @login_required
+def subscription_plans(request):
+    """Show subscription plans page"""
+    subscription, created = Subscription.objects.get_or_create(
+        user=request.user,
+        defaults={'status': 'trial'}
+    )
+    
+    plans = settings.SUBSCRIPTION_PLANS
+    return render(request, 'slideshow/subscription_plans.html', {
+        'plans': plans,
+        'subscription': subscription,
+        'stripe_public_key': settings.STRIPE_PUBLIC_KEY
+    })
+
+
+@login_required
+def create_checkout_session(request):
+    """Create Stripe checkout session"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+    
+    plan = request.POST.get('plan')
+    if plan not in settings.SUBSCRIPTION_PLANS:
+        return JsonResponse({'error': 'Invalid plan'}, status=400)
+    
+    try:
+        subscription, created = Subscription.objects.get_or_create(
+            user=request.user,
+            defaults={'status': 'trial'}
+        )
+        
+        # Get or create Stripe customer
+        if not subscription.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=request.user.email,
+                name=request.user.username,
+            )
+            subscription.stripe_customer_id = customer.id
+            subscription.save()
+        
+        # Get price ID based on plan
+        price_id_map = {
+            'basic': settings.STRIPE_PRICE_ID_BASIC,
+            'pro': settings.STRIPE_PRICE_ID_PRO,
+            'enterprise': settings.STRIPE_PRICE_ID_ENTERPRISE
+        }
+        price_id = price_id_map.get(plan)
+        
+        # Create checkout session
+        checkout_session = stripe.checkout.Session.create(
+            customer=subscription.stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=request.build_absolute_uri(f'/{request.user.id}/?subscription=success'),
+            cancel_url=request.build_absolute_uri('/subscription-plans/?subscription=cancelled'),
+            subscription_data={
+                'trial_period_days': settings.TRIAL_PERIOD_DAYS,
+                'metadata': {
+                    'user_id': request.user.id,
+                    'plan': plan
+                }
+            }
+        )
+        
+        return JsonResponse({'sessionId': checkout_session.id})
+    
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def billing_portal(request):
+    """Redirect to Stripe customer portal"""
+    try:
+        subscription = Subscription.objects.get(user=request.user)
+        
+        if not subscription.stripe_customer_id:
+            return redirect('/subscription-plans/')
+        
+        portal_session = stripe.billing_portal.Session.create(
+            customer=subscription.stripe_customer_id,
+            return_url=request.build_absolute_uri(f'/{request.user.id}/'),
+        )
+        
+        return redirect(portal_session.url)
+    
+    except Exception as e:
+        logger.error(f"Billing portal error: {str(e)}")
+        return redirect('/subscription-plans/')
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    """Handle Stripe webhooks"""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        logger.error(f"Webhook error: Invalid payload - {str(e)}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Webhook error: Invalid signature - {str(e)}")
+        return HttpResponse(status=400)
+    
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_completed(session)
+    elif event['type'] == 'customer.subscription.created':
+        subscription = event['data']['object']
+        handle_subscription_created(subscription)
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        handle_subscription_updated(subscription)
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        handle_subscription_deleted(subscription)
+    elif event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']
+        handle_payment_succeeded(invoice)
+    elif event['type'] == 'invoice.payment_failed':
+        invoice = event['data']['object']
+        handle_payment_failed(invoice)
+    
+    return HttpResponse(status=200)
+
+
+def handle_checkout_completed(session):
+    """Handle successful checkout"""
+    try:
+        user_id = session.get('metadata', {}).get('user_id')
+        plan = session.get('metadata', {}).get('plan')
+        
+        if user_id:
+            user = User.objects.get(id=user_id)
+            subscription = Subscription.objects.get(user=user)
+            subscription.stripe_customer_id = session.get('customer')
+            subscription.save()
+    except Exception as e:
+        logger.error(f"Checkout completion error: {str(e)}")
+
+
+def handle_subscription_created(stripe_subscription):
+    """Handle subscription creation"""
+    try:
+        customer_id = stripe_subscription.get('customer')
+        subscription = Subscription.objects.get(stripe_customer_id=customer_id)
+        
+        subscription.stripe_subscription_id = stripe_subscription.get('id')
+        subscription.stripe_price_id = stripe_subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('id')
+        subscription.status = 'trial' if stripe_subscription.get('trial_end') else 'active'
+        subscription.current_period_start = stripe_subscription.get('current_period_start')
+        subscription.current_period_end = stripe_subscription.get('current_period_end')
+        
+        if stripe_subscription.get('trial_end'):
+            from django.utils import timezone
+            subscription.trial_start = timezone.now()
+            subscription.trial_end = stripe_subscription.get('trial_end')
+        
+        subscription.save()
+    except Exception as e:
+        logger.error(f"Subscription creation error: {str(e)}")
+
+
+def handle_subscription_updated(stripe_subscription):
+    """Handle subscription updates"""
+    try:
+        customer_id = stripe_subscription.get('customer')
+        subscription = Subscription.objects.get(stripe_customer_id=customer_id)
+        
+        subscription.status = stripe_subscription.get('status')
+        subscription.current_period_start = stripe_subscription.get('current_period_start')
+        subscription.current_period_end = stripe_subscription.get('current_period_end')
+        subscription.cancel_at_period_end = stripe_subscription.get('cancel_at_period_end', False)
+        subscription.save()
+    except Exception as e:
+        logger.error(f"Subscription update error: {str(e)}")
+
+
+def handle_subscription_deleted(stripe_subscription):
+    """Handle subscription cancellation"""
+    try:
+        customer_id = stripe_subscription.get('customer')
+        subscription = Subscription.objects.get(stripe_customer_id=customer_id)
+        subscription.status = 'cancelled'
+        subscription.save()
+    except Exception as e:
+        logger.error(f"Subscription deletion error: {str(e)}")
+
+
+def handle_payment_succeeded(invoice):
+    """Handle successful payment"""
+    try:
+        customer_id = invoice.get('customer')
+        subscription = Subscription.objects.get(stripe_customer_id=customer_id)
+        subscription.status = 'active'
+        subscription.save()
+    except Exception as e:
+        logger.error(f"Payment success error: {str(e)}")
+
+
+def handle_payment_failed(invoice):
+    """Handle failed payment"""
+    try:
+        customer_id = invoice.get('customer')
+        subscription = Subscription.objects.get(stripe_customer_id=customer_id)
+        subscription.status = 'past_due'
+        subscription.save()
+    except Exception as e:
+        logger.error(f"Payment failure error: {str(e)}")
+
+
+@login_required
 def user_dashboard(request, user_id):
     """User-specific upload page with device pairing"""
     if request.user.id != user_id:
         return redirect(f'/{request.user.id}/')
-    return render(request, 'slideshow/index.html')
+    
+    subscription, created = Subscription.objects.get_or_create(
+        user=request.user,
+        defaults={'status': 'trial'}
+    )
+    
+    return render(request, 'slideshow/index.html', {'subscription': subscription})
 
 
 def tablet(request):
