@@ -115,6 +115,13 @@
             display: none;
         }
         .error-message.show { display: block; }
+        .success-message {
+            color: #4caf50;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .success-message.show { display: block; }
         .sso-buttons {
             display: flex;
             flex-direction: column;
@@ -149,6 +156,11 @@
         
         <form method="post" action="{% url 'django_login' %}">
             {% csrf_token %}
+            <div class="success-message {% if success %}show{% endif %}">
+                {% if success %}
+                    {{ success }}
+                {% endif %}
+            </div>
             <div class="error-message {% if form.errors %}show{% endif %}">
                 {% if form.errors %}
                     {% for field, errors in form.errors.items %}
