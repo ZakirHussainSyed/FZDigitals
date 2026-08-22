@@ -13,6 +13,7 @@ urlpatterns = [
     path('stripe-webhook/', views.stripe_webhook, name='stripe-webhook'),
     path('user-management/', views.user_management, name='user-management'),
     path('delete-user/<int:user_id>/', views.delete_user, name='delete-user'),
+    path('admin-reset-password/<int:user_id>/', views.admin_reset_password, name='admin-reset-password'),
     path('<int:user_id>/', views.user_dashboard, name='user-dashboard'),
     path('tablet/', views.tablet, name='tablet'),
     path('tablet/<str:pairing_id>/', views.tablet_slideshow, name='tablet-slideshow'),

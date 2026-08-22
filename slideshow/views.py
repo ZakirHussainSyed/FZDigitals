@@ -416,6 +416,31 @@ def delete_user(request, user_id):
 
 
 @login_required
+def admin_reset_password(request, user_id):
+    """Admin password reset - only for superusers"""
+    if not request.user.is_superuser:
+        return redirect(f'/{request.user.id}/')
+    
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password')
+        try:
+            user = User.objects.get(id=user_id)
+            user.set_password(new_password)
+            user.save()
+            return render(request, 'slideshow/user_management.html', {
+                'users': User.objects.all().order_by('-id'),
+                'success': f'Password reset successfully for {user.username}'
+            })
+        except User.DoesNotExist:
+            return render(request, 'slideshow/user_management.html', {
+                'users': User.objects.all().order_by('-id'),
+                'error': 'User not found'
+            })
+    
+    return redirect('/user-management/')
+
+
+@login_required
 def user_dashboard(request, user_id):
     """User-specific upload page with device pairing"""
     if request.user.id != user_id:

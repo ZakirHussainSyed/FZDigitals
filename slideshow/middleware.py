@@ -24,6 +24,7 @@ class SubscriptionMiddleware:
             '/accounts/',
             '/user-management/',
             '/delete-user/',
+            '/admin-reset-password/',
         ]
         
         if not request.user.is_authenticated:
