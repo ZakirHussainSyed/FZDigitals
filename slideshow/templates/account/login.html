@@ -15,6 +15,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .login-container {
             background: rgba(255,255,255,0.06);
@@ -22,11 +23,78 @@
             border-radius: 16px;
             padding: 32px;
             backdrop-filter: blur(10px);
-            text-align: center;
             max-width: 400px;
-            width: 90%;
+            width: 100%;
         }
-        h1 { font-size: 24px; margin-bottom: 24px; }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 12px;
+            display: block;
+        }
+        h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
+        .subtitle { 
+            color: rgba(232,234,240,0.7); 
+            font-size: 14px; 
+            margin-bottom: 24px; 
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: rgba(232,234,240,0.8);
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #e8eaf0;
+            font-size: 14px;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #7c5cff;
+        }
+        .form-input::placeholder {
+            color: rgba(232,234,240,0.4);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #7c5cff;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .submit-btn:hover { background: #6a4ce6; }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: rgba(232,234,240,0.5);
+            font-size: 12px;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+        .divider span {
+            padding: 0 16px;
+        }
         .sso-buttons {
             display: flex;
             flex-direction: column;
@@ -49,9 +117,16 @@
             gap: 8px;
         }
         .sso-btn:hover { background: rgba(255,255,255,0.12); }
-        .sso-btn.google { background: rgba(66, 133, 244, 0.85); border-color: rgba(66, 133, 244, 0.85); }
-        .sso-btn.google:hover { background: rgba(66, 133, 244, 1); }
+        .sso-btn.google { background: #fff; border-color: #fff; color: #333; }
+        .sso-btn.google:hover { background: #f5f5f5; }
+        .error-message {
+            color: #ff4444;
+            font-size: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
         .back-link {
+            text-align: center;
             margin-top: 20px;
             color: rgba(232,234,240,0.7);
             text-decoration: none;
@@ -62,18 +137,45 @@
 </head>
 <body>
     <div class="login-container">
+        <img src="/static/logo.png" alt="FZDigitals" class="logo" />
         <h1>Login to FZDigitals</h1>
+        <p class="subtitle">Choose your sign-in method</p>
+        
+        {% if form.errors %}
+        <div class="error-message">
+            {% for field, errors in form.errors.items %}
+            {{ errors.0 }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'account_login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_login">Username</label>
+                <input type="text" name="login" id="id_login" class="form-input" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" class="form-input" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="submit-btn">Sign In</button>
+        </form>
+        
+        <div class="divider"><span>OR</span></div>
+        
         <div class="sso-buttons">
             <a href="/accounts/google/login/" class="sso-btn google">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.64 9.2c0-.637-.057-1.252-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#fff"/>
-                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#fff"/>
-                    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#fff"/>
-                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.159 6.656 3.58 9 3.58z" fill="#fff"/>
+                    <path d="M17.64 9.2c0-.637-.057-1.252-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.159 6.656 3.58 9 3.58z" fill="#EA4335"/>
                 </svg>
-                Continue with Google
+                Sign in with Google
             </a>
         </div>
+        
         <a href="/" class="back-link">← Back to Home</a>
     </div>
 </body>
