@@ -222,6 +222,13 @@
         const pairingBtn = document.getElementById('pairingBtn');
         const pairingError = document.getElementById('pairingError');
 
+        console.log('Pairing elements found:', {
+            pairingScreen: !!pairingScreen,
+            pairingInput: !!pairingInput,
+            pairingBtn: !!pairingBtn,
+            pairingError: !!pairingError
+        });
+
         const stage = document.getElementById('stage');
         const slidesEl = document.getElementById('slides');
         const emptyEl = document.getElementById('empty');
@@ -386,9 +393,15 @@
             }
         }
 
-        pairingBtn.addEventListener('click', connectPairing);
+        pairingBtn.addEventListener('click', () => {
+            console.log('Connect button clicked');
+            connectPairing();
+        });
         pairingInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') connectPairing();
+            if (e.key === 'Enter') {
+                console.log('Enter key pressed');
+                connectPairing();
+            }
         });
 
         prevBtn.addEventListener('click', (e) => {
