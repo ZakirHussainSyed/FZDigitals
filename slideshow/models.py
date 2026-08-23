@@ -8,8 +8,17 @@ class MediaFile(models.Model):
         ('image', 'Image'),
         ('video', 'Video'),
     ]
+    
+    SCREEN_CHOICES = [
+        (1, 'Screen-1'),
+        (2, 'Screen-2'),
+        (3, 'Screen-3'),
+        (4, 'Screen-4'),
+        (5, 'Screen-5'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    screen = models.IntegerField(choices=SCREEN_CHOICES, default=1)
     title = models.CharField(max_length=255)
     content_type = models.CharField(max_length=10, choices=CONTENT_TYPE_CHOICES)
     file = models.FileField(
@@ -30,9 +39,21 @@ class MediaFile(models.Model):
 
 
 class DevicePairing(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    SCREEN_CHOICES = [
+        (1, 'Screen-1'),
+        (2, 'Screen-2'),
+        (3, 'Screen-3'),
+        (4, 'Screen-4'),
+        (5, 'Screen-5'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    screen = models.IntegerField(choices=SCREEN_CHOICES, default=1)
     pairing_id = models.CharField(max_length=12, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'screen']
 
     def save(self, *args, **kwargs):
         if not self.pairing_id:
@@ -44,7 +65,7 @@ class DevicePairing(models.Model):
         return str(uuid.uuid4().hex[:8]).upper()
 
     def __str__(self) -> str:
-        return f"{self.user.email} - {self.pairing_id}"
+        return f"{self.user.email} - Screen-{self.screen} - {self.pairing_id}"
 
 
 class UserProfile(models.Model):

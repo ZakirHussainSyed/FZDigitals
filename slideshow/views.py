@@ -494,12 +494,21 @@ def service_worker(request):
 def api_media_list(request):
     try:
         user_id = request.GET.get('user_id')
+        screen = request.GET.get('screen', 1)
+        
+        try:
+            screen = int(screen)
+            if screen < 1 or screen > 5:
+                screen = 1
+        except ValueError:
+            screen = 1
+        
         if user_id:
-            # For tablet pairing - allow filtering by user_id
-            files = MediaFile.objects.filter(user_id=user_id)
+            # For tablet pairing - allow filtering by user_id and screen
+            files = MediaFile.objects.filter(user_id=user_id, screen=screen)
         elif request.user.is_authenticated:
-            # For dashboard - use authenticated user
-            files = MediaFile.objects.filter(user=request.user)
+            # For dashboard - use authenticated user and screen
+            files = MediaFile.objects.filter(user=request.user, screen=screen)
         else:
             # No user specified and not authenticated
             files = MediaFile.objects.none()
@@ -511,6 +520,7 @@ def api_media_list(request):
                         'id': f.id,
                         'title': f.title,
                         'type': f.content_type,
+                        'screen': f.screen,
                         'url': request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'),
                     }
                     for f in files
@@ -530,8 +540,17 @@ def api_upload(request):
         import os
         
         uploaded = request.FILES.getlist('files')
+        screen = request.POST.get('screen', 1)
+        
+        try:
+            screen = int(screen)
+            if screen < 1 or screen > 5:
+                screen = 1
+        except ValueError:
+            screen = 1
+        
         print(f"=== UPLOAD DEBUG ===")
-        print(f"Received {len(uploaded)} files for upload")
+        print(f"Received {len(uploaded)} files for upload to screen {screen}")
         print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
         print(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
         
@@ -547,11 +566,12 @@ def api_upload(request):
 
             m = MediaFile.objects.create(
                 user=request.user if request.user.is_authenticated else None,
+                screen=screen,
                 title=uf.name,
                 content_type=ct,
                 file=uf,
             )
-            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}, user={m.user}")
+            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}, user={m.user}, screen={m.screen}")
             print(f"File URL: {m.file.url}")
             
             created.append(
@@ -619,12 +639,24 @@ def serve_media(request, path):
 @login_required
 @require_http_methods(["GET"])
 def api_pairing_info(request):
-    """Get or create device pairing info for current user"""
+    """Get or create device pairing info for current user and specific screen"""
     try:
-        pairing, created = DevicePairing.objects.get_or_create(user=request.user)
+        screen = request.GET.get('screen', 1)
+        try:
+            screen = int(screen)
+            if screen < 1 or screen > 5:
+                screen = 1
+        except ValueError:
+            screen = 1
+        
+        pairing, created = DevicePairing.objects.get_or_create(
+            user=request.user,
+            screen=screen
+        )
         return JsonResponse({
             'success': True,
             'pairing_id': pairing.pairing_id,
+            'screen': pairing.screen,
             'created': created
         })
     except Exception as e:
@@ -640,7 +672,8 @@ def api_pairing_lookup(request, pairing_id):
         return JsonResponse({
             'success': True,
             'user_email': pairing.user.email,
-            'user_id': pairing.user.id
+            'user_id': pairing.user.id,
+            'screen': pairing.screen
         })
     except Exception as e:
         logger.error(f"Error in api_pairing_lookup: {str(e)}", exc_info=True)

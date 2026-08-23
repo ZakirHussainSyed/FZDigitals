@@ -212,6 +212,7 @@
         let resumeTimer = null;
         let paused = false;
         let pairedUserId = null;
+        let pairedScreen = 1;
         
         // Check if pairing ID is in URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -345,7 +346,7 @@
 
         async function refresh() {
             if (!pairedUserId) return;
-            const res = await fetch(`/api/media/?user_id=${pairedUserId}`);
+            const res = await fetch(`/api/media/?user_id=${pairedUserId}&screen=${pairedScreen}`);
             const data = await res.json();
             if (!data.success) return;
             media = data.files;
@@ -373,6 +374,7 @@
                 
                 if (data.success) {
                     pairedUserId = data.user_id;
+                    pairedScreen = data.screen || 1;
                     pairingScreen.classList.add('hidden');
                     // Update URL to include pairing ID
                     const newUrl = `/tablet/${id}/`;

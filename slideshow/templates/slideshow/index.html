@@ -383,56 +383,193 @@
             <!-- Screen-2 Content -->
             <div class="tab-content" id="screen-2">
                 <h1>Screen-2</h1>
-                <div class="muted">This screen is currently empty. Content coming soon.</div>
+                
+                <div class="drop" id="drop-2">
+                    <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                        <div class="hint">Hover over the slideshow to pause and show controls.</div>
+                    </div>
+                    <div class="muted" id="selectedInfo-2" style="margin-top:10px;"></div>
+                    <input id="fileInput-2" type="file" multiple accept="image/*,video/*" style="display:none" />
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button class="btn primary" id="btnUpload-2">Upload</button>
+                    <button class="btn" id="btnRefresh-2">Refresh</button>
+                </div>
+
+                <h2 style="margin-top:18px;">Library</h2>
+                <div class="grid" id="grid-2"></div>
+
+                <h2 style="margin-top:24px;">Slideshow</h2>
+                <div class="stage" id="stage-2">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty-2">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides-2"></div>
+                    <div class="counter" id="counter-2">0 / 0</div>
+                    <div class="controls" id="controls-2">
+                        <button class="btn" id="prev-2">Prev</button>
+                        <button class="btn" id="next-2">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+
+                <h2 style="margin-top:24px;">Device Pairing</h2>
+                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
+                <div class="pairing-code" id="pairingCode-2">Loading...</div>
+                <button class="btn" id="refreshPairingCode-2" style="margin-top:12px;">Refresh Code</button>
             </div>
 
             <!-- Screen-3 Content -->
             <div class="tab-content" id="screen-3">
                 <h1>Screen-3</h1>
-                <div class="muted">This screen is currently empty. Content coming soon.</div>
+                
+                <div class="drop" id="drop-3">
+                    <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                        <div class="hint">Hover over the slideshow to pause and show controls.</div>
+                    </div>
+                    <div class="muted" id="selectedInfo-3" style="margin-top:10px;"></div>
+                    <input id="fileInput-3" type="file" multiple accept="image/*,video/*" style="display:none" />
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button class="btn primary" id="btnUpload-3">Upload</button>
+                    <button class="btn" id="btnRefresh-3">Refresh</button>
+                </div>
+
+                <h2 style="margin-top:18px;">Library</h2>
+                <div class="grid" id="grid-3"></div>
+
+                <h2 style="margin-top:24px;">Slideshow</h2>
+                <div class="stage" id="stage-3">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty-3">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides-3"></div>
+                    <div class="counter" id="counter-3">0 / 0</div>
+                    <div class="controls" id="controls-3">
+                        <button class="btn" id="prev-3">Prev</button>
+                        <button class="btn" id="next-3">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+
+                <h2 style="margin-top:24px;">Device Pairing</h2>
+                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
+                <div class="pairing-code" id="pairingCode-3">Loading...</div>
+                <button class="btn" id="refreshPairingCode-3" style="margin-top:12px;">Refresh Code</button>
             </div>
 
             <!-- Screen-4 Content -->
             <div class="tab-content" id="screen-4">
                 <h1>Screen-4</h1>
-                <div class="muted">This screen is currently empty. Content coming soon.</div>
+                
+                <div class="drop" id="drop-4">
+                    <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                        <div class="hint">Hover over the slideshow to pause and show controls.</div>
+                    </div>
+                    <div class="muted" id="selectedInfo-4" style="margin-top:10px;"></div>
+                    <input id="fileInput-4" type="file" multiple accept="image/*,video/*" style="display:none" />
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button class="btn primary" id="btnUpload-4">Upload</button>
+                    <button class="btn" id="btnRefresh-4">Refresh</button>
+                </div>
+
+                <h2 style="margin-top:18px;">Library</h2>
+                <div class="grid" id="grid-4"></div>
+
+                <h2 style="margin-top:24px;">Slideshow</h2>
+                <div class="stage" id="stage-4">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty-4">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides-4"></div>
+                    <div class="counter" id="counter-4">0 / 0</div>
+                    <div class="controls" id="controls-4">
+                        <button class="btn" id="prev-4">Prev</button>
+                        <button class="btn" id="next-4">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+
+                <h2 style="margin-top:24px;">Device Pairing</h2>
+                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
+                <div class="pairing-code" id="pairingCode-4">Loading...</div>
+                <button class="btn" id="refreshPairingCode-4" style="margin-top:12px;">Refresh Code</button>
             </div>
 
             <!-- Screen-5 Content -->
             <div class="tab-content" id="screen-5">
                 <h1>Screen-5</h1>
-                <div class="muted">This screen is currently empty. Content coming soon.</div>
+                
+                <div class="drop" id="drop-5">
+                    <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                        <div class="hint">Hover over the slideshow to pause and show controls.</div>
+                    </div>
+                    <div class="muted" id="selectedInfo-5" style="margin-top:10px;"></div>
+                    <input id="fileInput-5" type="file" multiple accept="image/*,video/*" style="display:none" />
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button class="btn primary" id="btnUpload-5">Upload</button>
+                    <button class="btn" id="btnRefresh-5">Refresh</button>
+                </div>
+
+                <h2 style="margin-top:18px;">Library</h2>
+                <div class="grid" id="grid-5"></div>
+
+                <h2 style="margin-top:24px;">Slideshow</h2>
+                <div class="stage" id="stage-5">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty-5">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides-5"></div>
+                    <div class="counter" id="counter-5">0 / 0</div>
+                    <div class="controls" id="controls-5">
+                        <button class="btn" id="prev-5">Prev</button>
+                        <button class="btn" id="next-5">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+
+                <h2 style="margin-top:24px;">Device Pairing</h2>
+                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
+                <div class="pairing-code" id="pairingCode-5">Loading...</div>
+                <button class="btn" id="refreshPairingCode-5" style="margin-top:12px;">Refresh Code</button>
             </div>
         </div>
     </div>
 
     <script>
-        let media = [];
-        let current = 0;
-        let timer = null;
-        let pausedByHover = false;
-        let pendingFiles = [];
-
-        const drop = document.getElementById('drop');
-        const fileInput = document.getElementById('fileInput');
-        const selectedInfo = document.getElementById('selectedInfo');
-        const btnUpload = document.getElementById('btnUpload');
-        const btnRefresh = document.getElementById('btnRefresh');
-        const grid = document.getElementById('grid');
-        const slides = document.getElementById('slides');
-        const stage = document.getElementById('stage');
-        const empty = document.getElementById('empty');
-        const counter = document.getElementById('counter');
-        const prev = document.getElementById('prev');
-        const next = document.getElementById('next');
+        // Screen state management
+        const screenStates = {};
+        
+        // Initialize state for each screen
+        for (let i = 1; i <= 5; i++) {
+            screenStates[i] = {
+                media: [],
+                current: 0,
+                timer: null,
+                pausedByHover: false,
+                pendingFiles: []
+            };
+        }
 
         // Tab switching functionality
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        let activeScreen = 1;
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const targetTab = tab.getAttribute('data-tab');
+                activeScreen = parseInt(targetTab.replace('screen-', ''));
                 
                 // Remove active class from all tabs and contents
                 tabs.forEach(t => t.classList.remove('active'));
@@ -441,15 +578,18 @@
                 // Add active class to clicked tab and corresponding content
                 tab.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
+                
+                // Load pairing code for the active screen
+                loadPairingCode(activeScreen);
             });
         });
 
-        // Device pairing code display
-        const pairingCode = document.getElementById('pairingCode');
-        const refreshPairingCode = document.getElementById('refreshPairingCode');
-        
-        function loadPairingCode() {
-            fetch('/api/pairing/')
+        // Device pairing code display for all screens
+        function loadPairingCode(screen) {
+            const pairingCode = document.getElementById(`pairingCode-${screen}`);
+            if (!pairingCode) return;
+            
+            fetch(`/api/pairing/?screen=${screen}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -462,82 +602,140 @@
                 });
         }
         
-        if (refreshPairingCode) {
-            refreshPairingCode.addEventListener('click', loadPairingCode);
-        }
-        
-        // Load pairing code on page load
-        loadPairingCode();
-
-        drop.addEventListener('click', () => fileInput.click());
-
-        fileInput.addEventListener('change', () => {
-            pendingFiles = Array.from(fileInput.files || []);
-            renderPendingFiles();
-        });
-
-        drop.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            drop.classList.add('dragover');
-        });
-        drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-        drop.addEventListener('drop', (e) => {
-            e.preventDefault();
-            drop.classList.remove('dragover');
-            pendingFiles = Array.from(e.dataTransfer.files || []);
-            renderPendingFiles();
-        });
-
-        btnUpload.addEventListener('click', async () => {
-            const files = pendingFiles.length ? pendingFiles : Array.from(fileInput.files || []);
-            if (!files.length) {
-                fileInput.click();
-                return;
+        // Load pairing codes for all screens on page load
+        for (let i = 1; i <= 5; i++) {
+            loadPairingCode(i);
+            const refreshBtn = document.getElementById(`refreshPairingCode-${i}`);
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => loadPairingCode(i));
             }
-
-            const fd = new FormData();
-            for (const f of files) fd.append('files', f);
-
-            const res = await fetch('/api/upload/', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (!data.success) {
-                alert(data.error || 'Upload failed');
-                return;
-            }
-            fileInput.value = '';
-            pendingFiles = [];
-            renderPendingFiles();
-            await refresh();
-        });
-
-        function renderPendingFiles() {
-            if (!pendingFiles.length) {
-                selectedInfo.textContent = '';
-                return;
-            }
-            const names = pendingFiles.slice(0, 3).map((f) => f.name);
-            const more = pendingFiles.length > 3 ? ` +${pendingFiles.length - 3} more` : '';
-            selectedInfo.textContent = `Selected: ${pendingFiles.length} file(s) — ${names.join(', ')}${more}`;
         }
 
-        btnRefresh.addEventListener('click', refresh);
+        // Screen-specific functions
+        function getScreenElements(screen) {
+            return {
+                drop: document.getElementById(`drop-${screen}`),
+                fileInput: document.getElementById(`fileInput-${screen}`),
+                selectedInfo: document.getElementById(`selectedInfo-${screen}`),
+                btnUpload: document.getElementById(`btnUpload-${screen}`),
+                btnRefresh: document.getElementById(`btnRefresh-${screen}`),
+                grid: document.getElementById(`grid-${screen}`),
+                slides: document.getElementById(`slides-${screen}`),
+                stage: document.getElementById(`stage-${screen}`),
+                empty: document.getElementById(`empty-${screen}`),
+                counter: document.getElementById(`counter-${screen}`),
+                prev: document.getElementById(`prev-${screen}`),
+                next: document.getElementById(`next-${screen}`)
+            };
+        }
 
-        async function refresh() {
-            const res = await fetch('/api/media/');
+        function setupScreen(screen) {
+            const elements = getScreenElements(screen);
+            if (!elements.drop) return;
+
+            const state = screenStates[screen];
+
+            elements.drop.addEventListener('click', () => elements.fileInput.click());
+
+            elements.fileInput.addEventListener('change', () => {
+                state.pendingFiles = Array.from(elements.fileInput.files || []);
+                renderPendingFiles(screen);
+            });
+
+            elements.drop.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.drop.classList.add('dragover');
+            });
+            elements.drop.addEventListener('dragleave', () => elements.drop.classList.remove('dragover'));
+            elements.drop.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.drop.classList.remove('dragover');
+                state.pendingFiles = Array.from(e.dataTransfer.files || []);
+                renderPendingFiles(screen);
+            });
+
+            elements.btnUpload.addEventListener('click', async () => {
+                const files = state.pendingFiles.length ? state.pendingFiles : Array.from(elements.fileInput.files || []);
+                if (!files.length) {
+                    elements.fileInput.click();
+                    return;
+                }
+
+                const fd = new FormData();
+                for (const f of files) fd.append('files', f);
+                fd.append('screen', screen);
+
+                const res = await fetch('/api/upload/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.error || 'Upload failed');
+                    return;
+                }
+                elements.fileInput.value = '';
+                state.pendingFiles = [];
+                renderPendingFiles(screen);
+                await refresh(screen);
+            });
+
+            elements.btnRefresh.addEventListener('click', () => refresh(screen));
+
+            elements.prev.addEventListener('click', () => {
+                show(screen, state.current - 1);
+            });
+
+            elements.next.addEventListener('click', () => {
+                show(screen, state.current + 1);
+            });
+
+            elements.stage.addEventListener('mouseenter', () => {
+                state.pausedByHover = true;
+                elements.stage.classList.add('hovered');
+                stopAutoplay(screen);
+            });
+            elements.stage.addEventListener('mouseleave', () => {
+                state.pausedByHover = false;
+                elements.stage.classList.remove('hovered');
+                startAutoplay(screen);
+            });
+        }
+
+        function renderPendingFiles(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (!elements.selectedInfo) return;
+
+            if (!state.pendingFiles.length) {
+                elements.selectedInfo.textContent = '';
+                return;
+            }
+            const names = state.pendingFiles.slice(0, 3).map((f) => f.name);
+            const more = state.pendingFiles.length > 3 ? ` +${state.pendingFiles.length - 3} more` : '';
+            elements.selectedInfo.textContent = `Selected: ${state.pendingFiles.length} file(s) — ${names.join(', ')}${more}`;
+        }
+
+        async function refresh(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            
+            const res = await fetch(`/api/media/?screen=${screen}`);
             const data = await res.json();
             if (!data.success) {
                 alert(data.error || 'Failed to load');
                 return;
             }
-            media = data.files;
-            renderLibrary();
-            renderSlides();
-            startAutoplay();
+            state.media = data.files;
+            renderLibrary(screen);
+            renderSlides(screen);
+            startAutoplay(screen);
         }
 
-        function renderLibrary() {
-            grid.innerHTML = '';
-            for (const f of media) {
+        function renderLibrary(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (!elements.grid) return;
+
+            elements.grid.innerHTML = '';
+            for (const f of state.media) {
                 const el = document.createElement('div');
                 el.className = 'item';
 
@@ -559,29 +757,33 @@
                     const r = await fetch(`/api/media/${f.id}/delete/`, { method: 'POST' });
                     const d = await r.json();
                     if (!d.success) alert(d.error || 'Delete failed');
-                    await refresh();
+                    await refresh(screen);
                 });
 
                 el.appendChild(thumb);
                 el.appendChild(meta);
                 el.appendChild(del);
-                grid.appendChild(el);
+                elements.grid.appendChild(el);
             }
         }
 
-        function renderSlides() {
-            slides.innerHTML = '';
-            if (!media.length) {
-                empty.style.display = 'flex';
-                counter.textContent = '0 / 0';
-                stopAutoplay();
+        function renderSlides(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (!elements.slides) return;
+
+            elements.slides.innerHTML = '';
+            if (!state.media.length) {
+                if (elements.empty) elements.empty.style.display = 'flex';
+                if (elements.counter) elements.counter.textContent = '0 / 0';
+                stopAutoplay(screen);
                 return;
             }
-            empty.style.display = 'none';
+            if (elements.empty) elements.empty.style.display = 'none';
 
-            media.forEach((f, idx) => {
+            state.media.forEach((f, idx) => {
                 const wrap = document.createElement('div');
-                wrap.className = 'slide' + (idx === current ? ' active' : '');
+                wrap.className = 'slide' + (idx === state.current ? ' active' : '');
 
                 if (f.type === 'image') {
                     const img = document.createElement('img');
@@ -595,70 +797,67 @@
                     wrap.appendChild(vid);
                 }
 
-                slides.appendChild(wrap);
+                elements.slides.appendChild(wrap);
             });
-            updateCounter();
+            updateCounter(screen);
         }
 
-        function show(i) {
-            if (!media.length) return;
-            const prev = current;
-            current = (i + media.length) % media.length;
-            const nodes = slides.querySelectorAll('.slide');
+        function show(screen, i) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (!elements.slides || !state.media.length) return;
+            
+            const prev = state.current;
+            state.current = (i + state.media.length) % state.media.length;
+            const nodes = elements.slides.querySelectorAll('.slide');
             
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
-                if (idx === current) {
+                if (idx === state.current) {
                     n.classList.add('active');
                 } else if (idx === prev) {
                     n.classList.add('prev');
                 }
             });
 
-            // Pause all videos except active
             nodes.forEach((n, idx) => {
                 const v = n.querySelector('video');
                 if (!v) return;
-                if (idx !== current) v.pause();
+                if (idx !== state.current) v.pause();
             });
 
-            updateCounter();
+            updateCounter(screen);
         }
 
-        function updateCounter() {
-            counter.textContent = `${media.length ? current + 1 : 0} / ${media.length}`;
+        function updateCounter(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (!elements.counter) return;
+
+            elements.counter.textContent = `${state.media.length ? state.current + 1 : 0} / ${state.media.length}`;
         }
 
-        function startAutoplay() {
-            stopAutoplay();
-            if (!media.length) return;
-            if (pausedByHover) return;
-            timer = setInterval(() => {
-                show(current + 1);
+        function startAutoplay(screen) {
+            stopAutoplay(screen);
+            const state = screenStates[screen];
+            if (!state.media.length) return;
+            if (state.pausedByHover) return;
+            state.timer = setInterval(() => {
+                show(screen, state.current + 1);
             }, 5000);
         }
 
-        function stopAutoplay() {
-            if (timer) clearInterval(timer);
-            timer = null;
+        function stopAutoplay(screen) {
+            const state = screenStates[screen];
+            if (state.timer) clearInterval(state.timer);
+            state.timer = null;
         }
 
-        prev.addEventListener('click', () => { show(current - 1); });
-        next.addEventListener('click', () => { show(current + 1); });
-
-        stage.addEventListener('mouseenter', () => {
-            pausedByHover = true;
-            stage.classList.add('hovered');
-            stopAutoplay();
-        });
-        stage.addEventListener('mouseleave', () => {
-            pausedByHover = false;
-            stage.classList.remove('hovered');
-            startAutoplay();
-        });
-
-        // Initial load
-        refresh();
+        // Initialize all screens
+        for (let i = 1; i <= 5; i++) {
+            setupScreen(i);
+            refresh(i);
+        }
     </script>
 </body>
 </html>
