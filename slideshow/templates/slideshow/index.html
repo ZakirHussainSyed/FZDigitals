@@ -27,13 +27,13 @@
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(255,255,255,0.10);
             border-radius: 16px;
-            padding: 18px;
+            padding: 16px;
             backdrop-filter: blur(10px);
             text-align: center;
         }
         .logo {
             max-width: 200px;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 12px auto;
             display: block;
         }
         h1 { font-size: 20px; margin-bottom: 12px; }
@@ -306,11 +306,11 @@
         <div class="card">
             <img src="/static/logo.png" alt="Logo" class="logo" />
             {% if user.is_authenticated %}
-            <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 10px;">
                 <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
                 <a href="/accounts/logout/" style="margin-left: 10px; color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
             </div>
-            <div style="margin-bottom: 16px; padding: 8px 12px; background: rgba(124,92,255,0.1); border-radius: 8px; border: 1px solid rgba(124,92,255,0.3); font-size: 12px;">
+            <div style="margin-bottom: 10px; padding: 8px 12px; background: rgba(124,92,255,0.1); border-radius: 8px; border: 1px solid rgba(124,92,255,0.3); font-size: 12px;">
                 <span style="color: #7c5cff;">Plan:</span> 
                 <span style="color: rgba(232,234,240,0.8);">{{ subscription.plan|title }}</span>
                 {% if subscription.is_trial %}
@@ -319,12 +319,12 @@
                 <a href="/subscription-plans/" style="margin-left: 8px; color: #7c5cff; text-decoration: none;">Manage</a>
             </div>
             {% if user.is_superuser %}
-            <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 10px;">
                 <a href="/user-management/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">User Management</a>
             </div>
             {% endif %}
             {% else %}
-            <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 10px;">
                 <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>
             </div>
             {% endif %}
