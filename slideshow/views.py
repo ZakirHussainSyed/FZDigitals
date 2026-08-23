@@ -495,9 +495,14 @@ def api_media_list(request):
     try:
         user_id = request.GET.get('user_id')
         if user_id:
+            # For tablet pairing - allow filtering by user_id
             files = MediaFile.objects.filter(user_id=user_id)
+        elif request.user.is_authenticated:
+            # For dashboard - use authenticated user
+            files = MediaFile.objects.filter(user=request.user)
         else:
-            files = MediaFile.objects.all()
+            # No user specified and not authenticated
+            files = MediaFile.objects.none()
         return JsonResponse(
             {
                 'success': True,
