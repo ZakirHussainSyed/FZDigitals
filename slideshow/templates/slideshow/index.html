@@ -252,6 +252,53 @@
             font-weight: 600;
         }
         .modal-close:hover { background: rgba(255,255,255,0.15); }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+        }
+        .tab {
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: rgba(232,234,240,0.7);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .tab:hover {
+            background: rgba(255,255,255,0.1);
+            color: #e8eaf0;
+        }
+        .tab.active {
+            background: rgba(124,92,255,0.2);
+            border-color: rgba(124,92,255,0.4);
+            color: #7c5cff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .pairing-code {
+            font-size: 24px;
+            font-weight: 800;
+            color: #7c5cff;
+            letter-spacing: 2px;
+            padding: 12px;
+            background: rgba(124,92,255,0.1);
+            border: 1px solid rgba(124,92,255,0.3);
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
@@ -262,9 +309,6 @@
             <div style="margin-bottom: 16px;">
                 <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
                 <a href="/accounts/logout/" style="margin-left: 10px; color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
-            </div>
-            <div style="margin-bottom: 16px;">
-                <button id="devicePairingBtn" class="btn primary" style="background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.4);">Device Pairing</button>
             </div>
             <div style="margin-bottom: 16px; padding: 8px 12px; background: rgba(124,92,255,0.1); border-radius: 8px; border: 1px solid rgba(124,92,255,0.3); font-size: 12px;">
                 <span style="color: #7c5cff;">Plan:</span> 
@@ -284,50 +328,81 @@
                 <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>
             </div>
             {% endif %}
-            <div class="drop" id="drop">
-                <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
-                    <div class="hint">Hover over the slideshow to pause and show controls.</div>
-                </div>
-                <div class="muted" id="selectedInfo" style="margin-top:10px;"></div>
-                <input id="fileInput" type="file" multiple accept="image/*,video/*" style="display:none" />
-            </div>
-            <div style="display:flex; gap:10px; margin-top:12px;">
-                <button class="btn primary" id="btnUpload">Upload</button>
-                <button class="btn" id="btnRefresh">Refresh</button>
-            </div>
-
-            <h2 style="margin-top:18px;">Library</h2>
-            <div class="grid" id="grid"></div>
         </div>
 
         <div class="card">
-            <h1>Slideshow</h1>
-            <div class="stage" id="stage">
-                <div class="overlay"></div>
-                <div class="empty" id="empty">No media yet. Upload a photo or video to start.</div>
-                <div id="slides"></div>
-                <div class="counter" id="counter">0 / 0</div>
-                <div class="controls" id="controls">
-                    <button class="btn" id="prev">Prev</button>
-                    <button class="btn" id="next">Next</button>
+            <div class="tabs">
+                <div class="tab active" data-tab="screen-1">Screen-1</div>
+                <div class="tab" data-tab="screen-2">Screen-2</div>
+                <div class="tab" data-tab="screen-3">Screen-3</div>
+                <div class="tab" data-tab="screen-4">Screen-4</div>
+                <div class="tab" data-tab="screen-5">Screen-5</div>
+            </div>
+
+            <!-- Screen-1 Content -->
+            <div class="tab-content active" id="screen-1">
+                <h1>Screen-1</h1>
+                
+                <div class="drop" id="drop">
+                    <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                        <div class="hint">Hover over the slideshow to pause and show controls.</div>
+                    </div>
+                    <div class="muted" id="selectedInfo" style="margin-top:10px;"></div>
+                    <input id="fileInput" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button class="btn primary" id="btnUpload">Upload</button>
+                    <button class="btn" id="btnRefresh">Refresh</button>
+                </div>
+
+                <h2 style="margin-top:18px;">Library</h2>
+                <div class="grid" id="grid"></div>
+
+                <h2 style="margin-top:24px;">Slideshow</h2>
+                <div class="stage" id="stage">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides"></div>
+                    <div class="counter" id="counter">0 / 0</div>
+                    <div class="controls" id="controls">
+                        <button class="btn" id="prev">Prev</button>
+                        <button class="btn" id="next">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+
+                <h2 style="margin-top:24px;">Device Pairing</h2>
+                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
+                <div class="pairing-code" id="pairingCode">Loading...</div>
+                <button class="btn" id="refreshPairingCode" style="margin-top:12px;">Refresh Code</button>
             </div>
-            <div class="muted" style="margin-top:12px;">
-                Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+
+            <!-- Screen-2 Content -->
+            <div class="tab-content" id="screen-2">
+                <h1>Screen-2</h1>
+                <div class="muted">This screen is currently empty. Content coming soon.</div>
             </div>
-        </div>
-    </div>
-    
-    <div class="modal" id="pairingModal">
-        <div class="modal-content">
-            <div class="modal-title">Device Pairing</div>
-            <div class="modal-qr" id="modalQrCode">
-                <span style="color: #333; font-size: 12px;">Loading...</span>
+
+            <!-- Screen-3 Content -->
+            <div class="tab-content" id="screen-3">
+                <h1>Screen-3</h1>
+                <div class="muted">This screen is currently empty. Content coming soon.</div>
             </div>
-            <div class="modal-id" id="modalPairingId">---</div>
-            <div class="modal-subtitle">Scan this QR code or enter the ID on your tablet</div>
-            <button class="modal-close" id="closeModal">Close</button>
+
+            <!-- Screen-4 Content -->
+            <div class="tab-content" id="screen-4">
+                <h1>Screen-4</h1>
+                <div class="muted">This screen is currently empty. Content coming soon.</div>
+            </div>
+
+            <!-- Screen-5 Content -->
+            <div class="tab-content" id="screen-5">
+                <h1>Screen-5</h1>
+                <div class="muted">This screen is currently empty. Content coming soon.</div>
+            </div>
         </div>
     </div>
 
@@ -350,6 +425,49 @@
         const counter = document.getElementById('counter');
         const prev = document.getElementById('prev');
         const next = document.getElementById('next');
+
+        // Tab switching functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                document.getElementById(targetTab).classList.add('active');
+            });
+        });
+
+        // Device pairing code display
+        const pairingCode = document.getElementById('pairingCode');
+        const refreshPairingCode = document.getElementById('refreshPairingCode');
+        
+        function loadPairingCode() {
+            fetch('/api/pairing/')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        pairingCode.textContent = data.pairing_id;
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load pairing code:', error);
+                    pairingCode.textContent = 'Error loading code';
+                });
+        }
+        
+        if (refreshPairingCode) {
+            refreshPairingCode.addEventListener('click', loadPairingCode);
+        }
+        
+        // Load pairing code on page load
+        loadPairingCode();
 
         drop.addEventListener('click', () => fileInput.click());
 
@@ -541,58 +659,6 @@
 
         // Initial load
         refresh();
-        
-        // Device pairing modal functionality
-        const devicePairingBtn = document.getElementById('devicePairingBtn');
-        const pairingModal = document.getElementById('pairingModal');
-        const closeModal = document.getElementById('closeModal');
-        
-        if (devicePairingBtn) {
-            devicePairingBtn.addEventListener('click', () => {
-                loadPairingInfo();
-                pairingModal.classList.add('show');
-            });
-        }
-        
-        if (closeModal) {
-            closeModal.addEventListener('click', () => {
-                pairingModal.classList.remove('show');
-            });
-        }
-        
-        pairingModal.addEventListener('click', (e) => {
-            if (e.target === pairingModal) {
-                pairingModal.classList.remove('show');
-            }
-        });
-        
-        async function loadPairingInfo() {
-            try {
-                const res = await fetch('/api/pairing/');
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('modalPairingId').textContent = data.pairing_id;
-                    generateQRCode(data.pairing_id);
-                }
-            } catch (error) {
-                console.error('Failed to load pairing info:', error);
-            }
-        }
-        
-        function generateQRCode(pairingId) {
-            const qrContainer = document.getElementById('modalQrCode');
-            qrContainer.innerHTML = '';
-            
-            // Simple QR code using a public API
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pairingId)}`;
-            const img = document.createElement('img');
-            img.src = qrUrl;
-            img.alt = 'QR Code';
-            img.style.width = '150px';
-            img.style.height = '150px';
-            img.style.borderRadius = '12px';
-            qrContainer.appendChild(img);
-        }
     </script>
 </body>
 </html>
