@@ -359,8 +359,10 @@
             }
 
             try {
+                console.log('Attempting to connect with pairing ID:', id);
                 const res = await fetch(`/api/pairing/${id}/`);
                 const data = await res.json();
+                console.log('Pairing response:', data);
                 
                 if (data.success) {
                     pairedUserId = data.user_id;
@@ -371,13 +373,14 @@
                     refresh();
                 } else {
                     if (!pairingId) {
-                        pairingError.textContent = 'Invalid pairing ID';
+                        pairingError.textContent = data.error || 'Invalid pairing ID';
                         pairingError.classList.add('show');
                     }
                 }
             } catch (error) {
+                console.error('Pairing error:', error);
                 if (!pairingId) {
-                    pairingError.textContent = 'Connection failed';
+                    pairingError.textContent = 'Connection failed: ' + error.message;
                     pairingError.classList.add('show');
                 }
             }
