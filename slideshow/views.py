@@ -21,7 +21,6 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 def google_login_direct(request):
     """Direct Google login - redirects to Google OAuth URL without intermediate page"""
     from allauth.socialaccount.models import SocialApp
-    from allauth.socialaccount.providers.google.provider import GoogleProvider
     import urllib.parse
     
     # Get the Google SocialApp
@@ -29,9 +28,6 @@ def google_login_direct(request):
         app = SocialApp.objects.get(provider='google')
     except SocialApp.DoesNotExist:
         return redirect('/accounts/google/login/')
-    
-    # Get the provider
-    provider = GoogleProvider(request)
     
     # Build the OAuth2 authorization URL manually
     callback_url = request.build_absolute_uri('/accounts/google/login/callback/')
