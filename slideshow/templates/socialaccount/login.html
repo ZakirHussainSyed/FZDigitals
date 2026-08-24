@@ -111,7 +111,7 @@
         <h1>Connect with Google</h1>
         <p class="subtitle">Sign in to manage your slideshows using your Google account</p>
         
-        <form method="post" action="{% url 'socialaccount_login' 'google' %}">
+        <form method="post" action="{% provider_login_url 'google' %}">
             {% csrf_token %}
             <button type="submit" class="google-btn">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
