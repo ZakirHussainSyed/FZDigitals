@@ -147,6 +147,7 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'offline',
+            'prompt': 'select_account',
         }
     }
 }
