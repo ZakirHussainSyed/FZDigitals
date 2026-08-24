@@ -1,0 +1,17 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting to Google...</title>
+</head>
+<body>
+    <p>Redirecting to Google sign-in...</p>
+    <script>
+        // Auto-redirect to Google OAuth
+        window.location.href = "{% provider_login_url 'google' %}";
+    </script>
+    <noscript>
+        <a href="{% provider_login_url 'google' %}">Click here to continue to Google sign-in</a>
+    </noscript>
+</body>
+</html>
