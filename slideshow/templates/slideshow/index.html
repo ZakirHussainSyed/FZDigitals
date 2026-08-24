@@ -12,56 +12,65 @@
             color: #e8eaf0;
             min-height: 100vh;
         }
-        .page {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        .card {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 16px;
-            padding: 16px;
-            backdrop-filter: blur(10px);
-            text-align: center;
-        }
+        
+        /* Header */
         .header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 16px;
-            padding: 16px 24px;
-            backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        .header-left {
-            display: flex;
             align-items: center;
-            gap: 24px;
+            padding: 20px 30px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .logo {
-            max-width: 150px;
+            max-width: 180px;
             display: block;
         }
-        .header-info {
+        .user-info {
             display: flex;
             align-items: center;
             gap: 20px;
-            flex-wrap: wrap;
         }
-        .header-right {
+        .user-info span {
+            color: rgba(232,234,240,0.7);
+            font-size: 14px;
+        }
+        .user-info a {
+            color: #7c5cff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .user-info a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        /* Left Side - Scrollable */
+        .left-panel {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Right Side - Fixed */
+        .right-panel {
+            flex: 1;
+            padding: 30px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            justify-content: center;
+            position: sticky;
+            top: 0;
         }
-        h1 { font-size: 20px; margin-bottom: 12px; }
-        h2 { font-size: 16px; margin-bottom: 12px; color: rgba(232,234,240,0.9); }
+        
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        h2 { font-size: 18px; margin-bottom: 15px; color: rgba(232,234,240,0.9); }
 
         /* Upload */
         .drop {
@@ -326,33 +335,33 @@
     </style>
 </head>
 <body>
-    <div class="page">
-        <div class="header">
-            <div class="header-left">
-                <img src="/static/logo.png" alt="Logo" class="logo" />
-                {% if user.is_authenticated %}
-                <div class="header-info">
-                    <span style="color: rgba(232,234,240,0.7); font-size: 14px;">Welcome, {{ user.email }}</span>
-                    <a href="/accounts/logout/" style="color: #7c5cff; text-decoration: none; font-size: 14px;">Logout</a>
-                    <div style="padding: 6px 12px; background: rgba(124,92,255,0.1); border-radius: 8px; border: 1px solid rgba(124,92,255,0.3); font-size: 12px;">
-                        <span style="color: #7c5cff;">Plan:</span> 
-                        <span style="color: rgba(232,234,240,0.8);">{{ subscription.plan|title }}</span>
-                        {% if subscription.is_trial %}
-                            <span style="margin-left: 8px; color: rgba(232,234,240,0.6);">(Trial - {{ subscription.days_remaining }} days left)</span>
-                        {% endif %}
-                        <a href="/subscription-plans/" style="margin-left: 8px; color: #7c5cff; text-decoration: none;">Manage</a>
-                    </div>
-                    {% if user.is_superuser %}
-                    <a href="/user-management/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">User Management</a>
-                    {% endif %}
-                </div>
-                {% else %}
-                <a href="/accounts/login/" class="btn primary" style="display: inline-block; text-decoration: none;">Login</a>
-                {% endif %}
-            </div>
+    <!-- Header -->
+    <header class="header">
+        <img src="/static/logo.png" alt="Logo" class="logo" />
+        {% if user.is_authenticated %}
+        <div class="user-info">
+            <span>Welcome, {{ user.email }}</span>
+            <a href="/accounts/logout/">Logout</a>
+            <span>Plan: {{ subscription.plan|title }}</span>
+            {% if subscription.is_trial %}
+                <span>(Trial - {{ subscription.days_remaining }} days left)</span>
+            {% endif %}
+            <a href="/subscription-plans/">Manage</a>
+            {% if user.is_superuser %}
+                <a href="/user-management/">User Management</a>
+            {% endif %}
         </div>
+        {% else %}
+        <div class="user-info">
+            <a href="/accounts/login/">Login</a>
+        </div>
+        {% endif %}
+    </header>
 
-        <div class="card">
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Panel - Scrollable -->
+        <div class="left-panel">
             <div class="tabs">
                 <div class="tab active" data-tab="screen-1">Screen-1</div>
                 <div class="tab" data-tab="screen-2">Screen-2</div>
@@ -378,28 +387,13 @@
                     <button class="btn" id="btnRefresh-1">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:18px;">Library</h2>
-                <div class="grid" id="grid-1"></div>
-
-                <h2 style="margin-top:24px;">Slideshow</h2>
-                <div class="stage" id="stage-1">
-                    <div class="overlay"></div>
-                    <div class="empty" id="empty-1">No media yet. Upload a photo or video to start.</div>
-                    <div id="slides-1"></div>
-                    <div class="counter" id="counter-1">0 / 0</div>
-                    <div class="controls" id="controls-1">
-                        <button class="btn" id="prev-1">Prev</button>
-                        <button class="btn" id="next-1">Next</button>
-                    </div>
-                </div>
-                <div class="muted" style="margin-top:12px;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
-                </div>
-
                 <h2 style="margin-top:24px;">Device Pairing</h2>
                 <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
                 <div class="pairing-code" id="pairingCode-1">Loading...</div>
                 <button class="btn" id="refreshPairingCode-1" style="margin-top:12px;">Refresh Code</button>
+
+                <h2 style="margin-top:24px;">Library</h2>
+                <div class="grid" id="grid-1"></div>
             </div>
 
             <!-- Screen-2 Content -->
@@ -419,28 +413,13 @@
                     <button class="btn" id="btnRefresh-2">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:18px;">Library</h2>
-                <div class="grid" id="grid-2"></div>
-
-                <h2 style="margin-top:24px;">Slideshow</h2>
-                <div class="stage" id="stage-2">
-                    <div class="overlay"></div>
-                    <div class="empty" id="empty-2">No media yet. Upload a photo or video to start.</div>
-                    <div id="slides-2"></div>
-                    <div class="counter" id="counter-2">0 / 0</div>
-                    <div class="controls" id="controls-2">
-                        <button class="btn" id="prev-2">Prev</button>
-                        <button class="btn" id="next-2">Next</button>
-                    </div>
-                </div>
-                <div class="muted" style="margin-top:12px;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
-                </div>
-
                 <h2 style="margin-top:24px;">Device Pairing</h2>
                 <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
                 <div class="pairing-code" id="pairingCode-2">Loading...</div>
                 <button class="btn" id="refreshPairingCode-2" style="margin-top:12px;">Refresh Code</button>
+
+                <h2 style="margin-top:24px;">Library</h2>
+                <div class="grid" id="grid-2"></div>
             </div>
 
             <!-- Screen-3 Content -->
@@ -460,28 +439,13 @@
                     <button class="btn" id="btnRefresh-3">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:18px;">Library</h2>
-                <div class="grid" id="grid-3"></div>
-
-                <h2 style="margin-top:24px;">Slideshow</h2>
-                <div class="stage" id="stage-3">
-                    <div class="overlay"></div>
-                    <div class="empty" id="empty-3">No media yet. Upload a photo or video to start.</div>
-                    <div id="slides-3"></div>
-                    <div class="counter" id="counter-3">0 / 0</div>
-                    <div class="controls" id="controls-3">
-                        <button class="btn" id="prev-3">Prev</button>
-                        <button class="btn" id="next-3">Next</button>
-                    </div>
-                </div>
-                <div class="muted" style="margin-top:12px;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
-                </div>
-
                 <h2 style="margin-top:24px;">Device Pairing</h2>
                 <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
                 <div class="pairing-code" id="pairingCode-3">Loading...</div>
                 <button class="btn" id="refreshPairingCode-3" style="margin-top:12px;">Refresh Code</button>
+
+                <h2 style="margin-top:24px;">Library</h2>
+                <div class="grid" id="grid-3"></div>
             </div>
 
             <!-- Screen-4 Content -->
@@ -501,28 +465,13 @@
                     <button class="btn" id="btnRefresh-4">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:18px;">Library</h2>
-                <div class="grid" id="grid-4"></div>
-
-                <h2 style="margin-top:24px;">Slideshow</h2>
-                <div class="stage" id="stage-4">
-                    <div class="overlay"></div>
-                    <div class="empty" id="empty-4">No media yet. Upload a photo or video to start.</div>
-                    <div id="slides-4"></div>
-                    <div class="counter" id="counter-4">0 / 0</div>
-                    <div class="controls" id="controls-4">
-                        <button class="btn" id="prev-4">Prev</button>
-                        <button class="btn" id="next-4">Next</button>
-                    </div>
-                </div>
-                <div class="muted" style="margin-top:12px;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
-                </div>
-
                 <h2 style="margin-top:24px;">Device Pairing</h2>
                 <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
                 <div class="pairing-code" id="pairingCode-4">Loading...</div>
                 <button class="btn" id="refreshPairingCode-4" style="margin-top:12px;">Refresh Code</button>
+
+                <h2 style="margin-top:24px;">Library</h2>
+                <div class="grid" id="grid-4"></div>
             </div>
 
             <!-- Screen-5 Content -->
@@ -542,28 +491,30 @@
                     <button class="btn" id="btnRefresh-5">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:18px;">Library</h2>
-                <div class="grid" id="grid-5"></div>
-
-                <h2 style="margin-top:24px;">Slideshow</h2>
-                <div class="stage" id="stage-5">
-                    <div class="overlay"></div>
-                    <div class="empty" id="empty-5">No media yet. Upload a photo or video to start.</div>
-                    <div id="slides-5"></div>
-                    <div class="counter" id="counter-5">0 / 0</div>
-                    <div class="controls" id="controls-5">
-                        <button class="btn" id="prev-5">Prev</button>
-                        <button class="btn" id="next-5">Next</button>
-                    </div>
-                </div>
-                <div class="muted" style="margin-top:12px;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
-                </div>
-
                 <h2 style="margin-top:24px;">Device Pairing</h2>
                 <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
                 <div class="pairing-code" id="pairingCode-5">Loading...</div>
                 <button class="btn" id="refreshPairingCode-5" style="margin-top:12px;">Refresh Code</button>
+
+                <h2 style="margin-top:24px;">Library</h2>
+                <div class="grid" id="grid-5"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Fixed Slideshow -->
+        <div class="right-panel">
+            <div class="stage" id="stage-1">
+                <div class="overlay"></div>
+                <div class="empty" id="empty-1">No media yet. Upload a photo or video to start.</div>
+                <div id="slides-1"></div>
+                <div class="counter" id="counter-1">0 / 0</div>
+                <div class="controls" id="controls-1">
+                    <button class="btn" id="prev-1">Prev</button>
+                    <button class="btn" id="next-1">Next</button>
+                </div>
+            </div>
+            <div class="muted" style="margin-top:12px; text-align: center;">
+                Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
             </div>
         </div>
     </div>
@@ -603,6 +554,9 @@
                 
                 // Load pairing code for the active screen
                 loadPairingCode(activeScreen);
+                
+                // Update right panel slideshow for active screen
+                updateRightPanelSlideshow(activeScreen);
             });
         });
 
@@ -631,6 +585,63 @@
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', () => loadPairingCode(i));
             }
+        }
+
+        // Update right panel slideshow for active screen
+        function updateRightPanelSlideshow(screen) {
+            const rightPanel = document.querySelector('.right-panel');
+            const state = screenStates[screen];
+            
+            // Update slideshow elements to use active screen
+            rightPanel.innerHTML = `
+                <div class="stage" id="stage-${screen}">
+                    <div class="overlay"></div>
+                    <div class="empty" id="empty-${screen}">No media yet. Upload a photo or video to start.</div>
+                    <div id="slides-${screen}"></div>
+                    <div class="counter" id="counter-${screen}">0 / 0</div>
+                    <div class="controls" id="controls-${screen}">
+                        <button class="btn" id="prev-${screen}">Prev</button>
+                        <button class="btn" id="next-${screen}">Next</button>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:12px; text-align: center;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
+            `;
+            
+            // Re-attach event listeners for the new slideshow
+            setupScreenSlideshow(screen);
+            
+            // Render slides for the active screen
+            renderSlides(screen);
+            show(screen, state.current);
+            startAutoplay(screen);
+        }
+
+        function setupScreenSlideshow(screen) {
+            const elements = getScreenElements(screen);
+            if (!elements.prev || !elements.next) return;
+
+            const state = screenStates[screen];
+
+            elements.prev.addEventListener('click', () => {
+                show(screen, state.current - 1);
+            });
+
+            elements.next.addEventListener('click', () => {
+                show(screen, state.current + 1);
+            });
+
+            elements.stage.addEventListener('mouseenter', () => {
+                state.pausedByHover = true;
+                elements.stage.classList.add('hovered');
+                stopAutoplay(screen);
+            });
+            elements.stage.addEventListener('mouseleave', () => {
+                state.pausedByHover = false;
+                elements.stage.classList.remove('hovered');
+                startAutoplay(screen);
+            });
         }
 
         // Screen-specific functions
@@ -697,28 +708,14 @@
                 state.pendingFiles = [];
                 renderPendingFiles(screen);
                 await refresh(screen);
+                
+                // Update right panel slideshow if this is the active screen
+                if (activeScreen === screen) {
+                    updateRightPanelSlideshow(screen);
+                }
             });
 
             elements.btnRefresh.addEventListener('click', () => refresh(screen));
-
-            elements.prev.addEventListener('click', () => {
-                show(screen, state.current - 1);
-            });
-
-            elements.next.addEventListener('click', () => {
-                show(screen, state.current + 1);
-            });
-
-            elements.stage.addEventListener('mouseenter', () => {
-                state.pausedByHover = true;
-                elements.stage.classList.add('hovered');
-                stopAutoplay(screen);
-            });
-            elements.stage.addEventListener('mouseleave', () => {
-                state.pausedByHover = false;
-                elements.stage.classList.remove('hovered');
-                startAutoplay(screen);
-            });
         }
 
         function renderPendingFiles(screen) {
@@ -880,6 +877,9 @@
             setupScreen(i);
             refresh(i);
         }
+        
+        // Initialize right panel with Screen-1 slideshow
+        updateRightPanelSlideshow(1);
     </script>
 </body>
 </html>
