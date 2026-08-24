@@ -8,9 +8,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            background: #0b1020;
+            background: #000000;
             color: #e8eaf0;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
         
         /* Header */
@@ -19,8 +20,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 20px 30px;
-            background: rgba(255,255,255,0.02);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: #000000;
         }
         .logo {
             max-width: 180px;
@@ -55,7 +55,11 @@
             flex: 1;
             padding: 30px;
             overflow-y: auto;
-            border-right: 1px solid rgba(255,255,255,0.1);
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        .left-panel::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
         }
         
         /* Right Side - Fixed */
@@ -63,10 +67,10 @@
             flex: 1;
             padding: 30px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: sticky;
-            top: 0;
+            background: #000000;
         }
         
         h1 { font-size: 24px; margin-bottom: 20px; }
@@ -74,7 +78,7 @@
 
         /* Upload */
         .drop {
-            border: 2px dashed rgba(255,255,255,0.25);
+            border: none;
             border-radius: 14px;
             padding: 18px;
             text-align: center;
@@ -83,26 +87,25 @@
             transition: 0.2s;
         }
         .drop.dragover {
-            border-color: rgba(124,92,255,0.9);
-            background: rgba(124,92,255,0.12);
+            background: rgba(255,255,255,0.08);
             transform: translateY(-1px);
         }
         .muted { color: rgba(232,234,240,0.7); font-size: 13px; line-height: 1.4; }
         .btn {
             appearance: none;
-            border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(255,255,255,0.08);
-            color: #e8eaf0;
-            padding: 10px 12px;
-            border-radius: 10px;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: 0.2s;
+            background: rgba(255,255,255,0.1);
+            color: #e8eaf0;
         }
-        .btn:hover { background: rgba(255,255,255,0.12); }
-        .btn.primary { background: rgba(124,92,255,0.85); border-color: rgba(124,92,255,0.85); }
-        .btn.primary:hover { background: rgba(124,92,255,1); }
-
+        .btn:hover { background: rgba(255,255,255,0.15); }
+        .btn.primary {
+            background: #7c5cff;
+        }
+        
         /* Library */
         .grid {
             display: grid;
@@ -111,7 +114,7 @@
             margin-top: 12px;
         }
         .item {
-            border: 1px solid rgba(255,255,255,0.10);
+            border: none;
             background: rgba(255,255,255,0.04);
             border-radius: 12px;
             overflow: hidden;
@@ -154,7 +157,7 @@
             border-radius: 16px;
             overflow: hidden;
             background: #000;
-            border: 1px solid rgba(255,255,255,0.10);
+            border: none;
         }
         @media (max-width: 980px) {
             .stage { height: 420px; }
@@ -291,13 +294,11 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 12px;
         }
         .tab {
             padding: 10px 16px;
             background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: none;
             border-radius: 8px;
             color: rgba(232,234,240,0.7);
             cursor: pointer;
@@ -311,7 +312,6 @@
         }
         .tab.active {
             background: rgba(124,92,255,0.2);
-            border-color: rgba(124,92,255,0.4);
             color: #7c5cff;
         }
         .tab-content {
@@ -327,7 +327,7 @@
             letter-spacing: 2px;
             padding: 12px;
             background: rgba(124,92,255,0.1);
-            border: 1px solid rgba(124,92,255,0.3);
+            border: none;
             border-radius: 8px;
             text-align: center;
             margin-top: 12px;
@@ -503,6 +503,9 @@
 
         <!-- Right Panel - Fixed Slideshow -->
         <div class="right-panel">
+            <div class="muted" style="margin-bottom:12px; text-align: center;">
+                Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+            </div>
             <div class="stage" id="stage-1">
                 <div class="overlay"></div>
                 <div class="empty" id="empty-1">No media yet. Upload a photo or video to start.</div>
@@ -512,9 +515,6 @@
                     <button class="btn" id="prev-1">Prev</button>
                     <button class="btn" id="next-1">Next</button>
                 </div>
-            </div>
-            <div class="muted" style="margin-top:12px; text-align: center;">
-                Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
             </div>
         </div>
     </div>
@@ -594,6 +594,9 @@
             
             // Update slideshow elements to use active screen
             rightPanel.innerHTML = `
+                <div class="muted" style="margin-bottom:12px; text-align: center;">
+                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                </div>
                 <div class="stage" id="stage-${screen}">
                     <div class="overlay"></div>
                     <div class="empty" id="empty-${screen}">No media yet. Upload a photo or video to start.</div>
@@ -603,9 +606,6 @@
                         <button class="btn" id="prev-${screen}">Prev</button>
                         <button class="btn" id="next-${screen}">Next</button>
                     </div>
-                </div>
-                <div class="muted" style="margin-top:12px; text-align: center;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
                 </div>
             `;
             
