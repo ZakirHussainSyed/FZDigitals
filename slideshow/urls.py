@@ -1,11 +1,8 @@
-from django.urls import path, redirect
+from django.urls import path
 from . import views
 
-def index_redirect(request):
-    return redirect('/accounts/google/login/')
-
 urlpatterns = [
-    path('', index_redirect, name='index'),
+    path('', views.index, name='index'),
     path('login/', views.django_login, name='django_login'),
     path('signup/', views.signup, name='signup'),
     path('forget-password/', views.forget_password, name='forget-password'),
@@ -27,4 +24,5 @@ urlpatterns = [
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
     path('api/pairing/', views.api_pairing_info, name='api-pairing-info'),
     path('api/pairing/<str:pairing_id>/', views.api_pairing_lookup, name='api-pairing-lookup'),
+    path('google-login-direct/', views.google_login_direct, name='google-login-direct'),
 ]
