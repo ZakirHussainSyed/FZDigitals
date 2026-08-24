@@ -24,5 +24,4 @@ urlpatterns = [
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
     path('api/pairing/', views.api_pairing_info, name='api-pairing-info'),
     path('api/pairing/<str:pairing_id>/', views.api_pairing_lookup, name='api-pairing-lookup'),
-    path('google-login-direct/', views.google_login_direct, name='google-login-direct'),
 ]
