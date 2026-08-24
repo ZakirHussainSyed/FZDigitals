@@ -1,8 +1,11 @@
-from django.urls import path
+from django.urls import path, redirect
 from . import views
 
+def index_redirect(request):
+    return redirect('/accounts/google/login/')
+
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', index_redirect, name='index'),
     path('login/', views.django_login, name='django_login'),
     path('signup/', views.signup, name='signup'),
     path('forget-password/', views.forget_password, name='forget-password'),
