@@ -1,7 +1,10 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
 from django.contrib.auth.models import User
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 import uuid
+import os
 
 class MediaFile(models.Model):
     CONTENT_TYPE_CHOICES = [
@@ -136,3 +139,11 @@ class Subscription(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.plan} ({self.status})"
+
+
+@receiver(post_delete, sender=MediaFile)
+def delete_media_file(sender, instance, **kwargs):
+    """Delete file from disk when MediaFile is deleted"""
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)
