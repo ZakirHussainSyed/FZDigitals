@@ -42,6 +42,33 @@
             text-align: center;
         }
         .trial-banner strong { color: #7c5cff; }
+        .warning-banner {
+            background: rgba(255,152,0,0.2);
+            border: 1px solid rgba(255,152,0,0.4);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .warning-banner strong { color: #ff9800; }
+        .error-banner {
+            background: rgba(244,67,54,0.2);
+            border: 1px solid rgba(244,67,54,0.4);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .error-banner strong { color: #f44336; }
+        .success-banner {
+            background: rgba(76,175,80,0.2);
+            border: 1px solid rgba(76,175,80,0.4);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .success-banner strong { color: #4caf50; }
         .plans {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -154,6 +181,34 @@
         </div>
         
         {% if subscription.is_active %}
+            {% if subscription.is_trial and subscription.days_remaining <= 3 %}
+            <div class="warning-banner">
+                <strong>⚠️ Trial Ending Soon</strong> - Your trial ends in {{ subscription.days_remaining }} day(s). Subscribe now to avoid interruption.
+            </div>
+            {% elif subscription.is_trial %}
+            <div class="trial-banner">
+                <strong>🎁 Trial Active</strong> - {{ subscription.days_remaining }} days remaining in your 14-day trial
+            </div>
+            {% else %}
+            <div class="success-banner">
+                <strong>✓ Subscription Active</strong> - Your {{ subscription.get_plan_display }} plan is active
+            </div>
+            {% endif %}
+        {% elif subscription.status == 'past_due' %}
+        <div class="error-banner">
+            <strong>❌ Payment Failed</strong> - Please update your payment method to continue using the service
+        </div>
+        {% elif subscription.status == 'cancelled' %}
+        <div class="error-banner">
+            <strong>❌ Subscription Cancelled</strong> - Please subscribe to continue using the service
+        </div>
+        {% else %}
+        <div class="trial-banner">
+            <strong>🎁 14-Day Free Trial</strong> - Try all features risk-free
+        </div>
+        {% endif %}
+        
+        {% if subscription.is_active %}
         <div class="current-subscription">
             <div>
                 <strong>Current Plan: {{ subscription.get_plan_display }}</strong>
@@ -168,10 +223,6 @@
             {% if subscription.stripe_customer_id %}
             <a href="/billing-portal/" class="manage-btn">Manage Subscription</a>
             {% endif %}
-        </div>
-        {% else %}
-        <div class="trial-banner">
-            <strong>🎁 14-Day Free Trial</strong> - Try all features risk-free
         </div>
         {% endif %}
         
