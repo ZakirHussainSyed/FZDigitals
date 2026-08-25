@@ -13,11 +13,11 @@ class MediaFile(models.Model):
     ]
     
     SCREEN_CHOICES = [
-        (1, 'Screen-1'),
-        (2, 'Screen-2'),
-        (3, 'Screen-3'),
-        (4, 'Screen-4'),
-        (5, 'Screen-5'),
+        (1, 'Slideshow-1'),
+        (2, 'Slideshow-2'),
+        (3, 'Slideshow-3'),
+        (4, 'Slideshow-4'),
+        (5, 'Slideshow-5'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -43,11 +43,11 @@ class MediaFile(models.Model):
 
 class DevicePairing(models.Model):
     SCREEN_CHOICES = [
-        (1, 'Screen-1'),
-        (2, 'Screen-2'),
-        (3, 'Screen-3'),
-        (4, 'Screen-4'),
-        (5, 'Screen-5'),
+        (1, 'Slideshow-1'),
+        (2, 'Slideshow-2'),
+        (3, 'Slideshow-3'),
+        (4, 'Slideshow-4'),
+        (5, 'Slideshow-5'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)

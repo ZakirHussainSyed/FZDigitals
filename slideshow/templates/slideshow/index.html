@@ -112,13 +112,6 @@
             font-size: 0.75em;
         }
         
-        .button-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-            justify-content: center;
-        }
-        
         /* Library */
         .grid {
             display: grid;
@@ -307,7 +300,6 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
-            justify-content: center;
         }
         .tab {
             padding: 10px 16px;
@@ -377,16 +369,16 @@
         <!-- Left Panel - Scrollable -->
         <div class="left-panel">
             <div class="tabs">
-                <div class="tab active" data-tab="screen-1">Screen-1</div>
-                <div class="tab" data-tab="screen-2">Screen-2</div>
-                <div class="tab" data-tab="screen-3">Screen-3</div>
-                <div class="tab" data-tab="screen-4">Screen-4</div>
-                <div class="tab" data-tab="screen-5">Screen-5</div>
+                <div class="tab active" data-tab="screen-1">Slideshow-1</div>
+                <div class="tab" data-tab="screen-2">Slideshow-2</div>
+                <div class="tab" data-tab="screen-3">Slideshow-3</div>
+                <div class="tab" data-tab="screen-4">Slideshow-4</div>
+                <div class="tab" data-tab="screen-5">Slideshow-5</div>
             </div>
 
-            <!-- Screen-1 Content -->
+            <!-- Slideshow-1 Content -->
             <div class="tab-content active" id="screen-1">
-                <h1 id="screenHeader-1">Screen-1 ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-1">Slideshow-1 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-1">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -396,7 +388,7 @@
                     <div class="muted" id="selectedInfo-1" style="margin-top:10px;"></div>
                     <input id="fileInput-1" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
-                <div class="button-container">
+                <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-1">Upload</button>
                     <button class="btn" id="btnRefresh-1">Refresh</button>
                 </div>
@@ -405,9 +397,9 @@
                 <div class="grid" id="grid-1"></div>
             </div>
 
-            <!-- Screen-2 Content -->
+            <!-- Slideshow-2 Content -->
             <div class="tab-content" id="screen-2">
-                <h1 id="screenHeader-2">Screen-2 ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-2">Slideshow-2 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-2">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -417,7 +409,7 @@
                     <div class="muted" id="selectedInfo-2" style="margin-top:10px;"></div>
                     <input id="fileInput-2" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
-                <div class="button-container">
+                <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-2">Upload</button>
                     <button class="btn" id="btnRefresh-2">Refresh</button>
                 </div>
@@ -426,9 +418,9 @@
                 <div class="grid" id="grid-2"></div>
             </div>
 
-            <!-- Screen-3 Content -->
+            <!-- Slideshow-3 Content -->
             <div class="tab-content" id="screen-3">
-                <h1 id="screenHeader-3">Screen-3 ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-3">Slideshow-3 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-3">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -438,7 +430,7 @@
                     <div class="muted" id="selectedInfo-3" style="margin-top:10px;"></div>
                     <input id="fileInput-3" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
-                <div class="button-container">
+                <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-3">Upload</button>
                     <button class="btn" id="btnRefresh-3">Refresh</button>
                 </div>
@@ -447,9 +439,9 @@
                 <div class="grid" id="grid-3"></div>
             </div>
 
-            <!-- Screen-4 Content -->
+            <!-- Slideshow-4 Content -->
             <div class="tab-content" id="screen-4">
-                <h1 id="screenHeader-4">Screen-4 ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-4">Slideshow-4 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-4">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -459,7 +451,7 @@
                     <div class="muted" id="selectedInfo-4" style="margin-top:10px;"></div>
                     <input id="fileInput-4" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
-                <div class="button-container">
+                <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-4">Upload</button>
                     <button class="btn" id="btnRefresh-4">Refresh</button>
                 </div>
@@ -468,9 +460,9 @@
                 <div class="grid" id="grid-4"></div>
             </div>
 
-            <!-- Screen-5 Content -->
+            <!-- Slideshow-5 Content -->
             <div class="tab-content" id="screen-5">
-                <h1 id="screenHeader-5">Screen-5 ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-5">Slideshow-5 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-5">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -480,7 +472,7 @@
                     <div class="muted" id="selectedInfo-5" style="margin-top:10px;"></div>
                     <input id="fileInput-5" type="file" multiple accept="image/*,video/*" style="display:none" />
                 </div>
-                <div class="button-container">
+                <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-5">Upload</button>
                     <button class="btn" id="btnRefresh-5">Refresh</button>
                 </div>
@@ -558,12 +550,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        screenHeader.innerHTML = `Screen-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : ${data.pairing_id} )</span>`;
+                        screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : ${data.pairing_id} )</span>`;
                     }
                 })
                 .catch(error => {
                     console.error('Failed to load pairing code:', error);
-                    screenHeader.innerHTML = `Screen-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
+                    screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
                 });
         }
         
