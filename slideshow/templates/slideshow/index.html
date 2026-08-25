@@ -372,7 +372,7 @@
 
             <!-- Screen-1 Content -->
             <div class="tab-content active" id="screen-1">
-                <h1>Screen-1</h1>
+                <h1 id="screenHeader-1">Screen-1 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-1">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -387,16 +387,13 @@
                     <button class="btn" id="btnRefresh-1">Refresh</button>
                 </div>
 
-                <div class="pairing-code" id="pairingCode-1">Screen-1 ( Use this code to pair your tablet device : Loading... )</div>
-                <button class="btn" id="refreshPairingCode-1" style="margin-top:12px;">Refresh Code</button>
-
                 <h2 style="margin-top:24px;">Library</h2>
                 <div class="grid" id="grid-1"></div>
             </div>
 
             <!-- Screen-2 Content -->
             <div class="tab-content" id="screen-2">
-                <h1>Screen-2</h1>
+                <h1 id="screenHeader-2">Screen-2 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-2">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -411,16 +408,13 @@
                     <button class="btn" id="btnRefresh-2">Refresh</button>
                 </div>
 
-                <div class="pairing-code" id="pairingCode-2">Screen-2 ( Use this code to pair your tablet device : Loading... )</div>
-                <button class="btn" id="refreshPairingCode-2" style="margin-top:12px;">Refresh Code</button>
-
                 <h2 style="margin-top:24px;">Library</h2>
                 <div class="grid" id="grid-2"></div>
             </div>
 
             <!-- Screen-3 Content -->
             <div class="tab-content" id="screen-3">
-                <h1>Screen-3</h1>
+                <h1 id="screenHeader-3">Screen-3 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-3">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -435,16 +429,13 @@
                     <button class="btn" id="btnRefresh-3">Refresh</button>
                 </div>
 
-                <div class="pairing-code" id="pairingCode-3">Screen-3 ( Use this code to pair your tablet device : Loading... )</div>
-                <button class="btn" id="refreshPairingCode-3" style="margin-top:12px;">Refresh Code</button>
-
                 <h2 style="margin-top:24px;">Library</h2>
                 <div class="grid" id="grid-3"></div>
             </div>
 
             <!-- Screen-4 Content -->
             <div class="tab-content" id="screen-4">
-                <h1>Screen-4</h1>
+                <h1 id="screenHeader-4">Screen-4 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-4">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -459,16 +450,13 @@
                     <button class="btn" id="btnRefresh-4">Refresh</button>
                 </div>
 
-                <div class="pairing-code" id="pairingCode-4">Screen-4 ( Use this code to pair your tablet device : Loading... )</div>
-                <button class="btn" id="refreshPairingCode-4" style="margin-top:12px;">Refresh Code</button>
-
                 <h2 style="margin-top:24px;">Library</h2>
                 <div class="grid" id="grid-4"></div>
             </div>
 
             <!-- Screen-5 Content -->
             <div class="tab-content" id="screen-5">
-                <h1>Screen-5</h1>
+                <h1 id="screenHeader-5">Screen-5 ( Use this code to pair your tablet device : Loading... )</h1>
                 
                 <div class="drop" id="drop-5">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -482,9 +470,6 @@
                     <button class="btn primary" id="btnUpload-5">Upload</button>
                     <button class="btn" id="btnRefresh-5">Refresh</button>
                 </div>
-
-                <div class="pairing-code" id="pairingCode-5">Screen-5 ( Use this code to pair your tablet device : Loading... )</div>
-                <button class="btn" id="refreshPairingCode-5" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
                 <div class="grid" id="grid-5"></div>
@@ -552,29 +537,25 @@
 
         // Device pairing code display for all screens
         function loadPairingCode(screen) {
-            const pairingCode = document.getElementById(`pairingCode-${screen}`);
-            if (!pairingCode) return;
+            const screenHeader = document.getElementById(`screenHeader-${screen}`);
+            if (!screenHeader) return;
             
             fetch(`/api/pairing/?screen=${screen}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        pairingCode.textContent = `Screen-${screen} ( Use this code to pair your tablet device : ${data.pairing_id} )`;
+                        screenHeader.textContent = `Screen-${screen} ( Use this code to pair your tablet device : ${data.pairing_id} )`;
                     }
                 })
                 .catch(error => {
                     console.error('Failed to load pairing code:', error);
-                    pairingCode.textContent = `Screen-${screen} ( Error loading code )`;
+                    screenHeader.textContent = `Screen-${screen} ( Use this code to pair your tablet device : Error loading code )`;
                 });
         }
         
         // Load pairing codes for all screens on page load
         for (let i = 1; i <= 5; i++) {
             loadPairingCode(i);
-            const refreshBtn = document.getElementById(`refreshPairingCode-${i}`);
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => loadPairingCode(i));
-            }
         }
 
         // Update right panel slideshow for active screen
