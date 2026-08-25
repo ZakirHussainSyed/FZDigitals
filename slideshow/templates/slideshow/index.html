@@ -387,9 +387,7 @@
                     <button class="btn" id="btnRefresh-1">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:24px;">Device Pairing</h2>
-                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
-                <div class="pairing-code" id="pairingCode-1">Loading...</div>
+                <div class="pairing-code" id="pairingCode-1">Screen-1 ( Use this code to pair your tablet device : Loading... )</div>
                 <button class="btn" id="refreshPairingCode-1" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
@@ -413,9 +411,7 @@
                     <button class="btn" id="btnRefresh-2">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:24px;">Device Pairing</h2>
-                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
-                <div class="pairing-code" id="pairingCode-2">Loading...</div>
+                <div class="pairing-code" id="pairingCode-2">Screen-2 ( Use this code to pair your tablet device : Loading... )</div>
                 <button class="btn" id="refreshPairingCode-2" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
@@ -439,9 +435,7 @@
                     <button class="btn" id="btnRefresh-3">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:24px;">Device Pairing</h2>
-                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
-                <div class="pairing-code" id="pairingCode-3">Loading...</div>
+                <div class="pairing-code" id="pairingCode-3">Screen-3 ( Use this code to pair your tablet device : Loading... )</div>
                 <button class="btn" id="refreshPairingCode-3" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
@@ -465,9 +459,7 @@
                     <button class="btn" id="btnRefresh-4">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:24px;">Device Pairing</h2>
-                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
-                <div class="pairing-code" id="pairingCode-4">Loading...</div>
+                <div class="pairing-code" id="pairingCode-4">Screen-4 ( Use this code to pair your tablet device : Loading... )</div>
                 <button class="btn" id="refreshPairingCode-4" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
@@ -491,9 +483,7 @@
                     <button class="btn" id="btnRefresh-5">Refresh</button>
                 </div>
 
-                <h2 style="margin-top:24px;">Device Pairing</h2>
-                <div class="muted" style="margin-bottom:12px;">Use this code to pair your tablet device:</div>
-                <div class="pairing-code" id="pairingCode-5">Loading...</div>
+                <div class="pairing-code" id="pairingCode-5">Screen-5 ( Use this code to pair your tablet device : Loading... )</div>
                 <button class="btn" id="refreshPairingCode-5" style="margin-top:12px;">Refresh Code</button>
 
                 <h2 style="margin-top:24px;">Library</h2>
@@ -569,12 +559,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        pairingCode.textContent = data.pairing_id;
+                        pairingCode.textContent = `Screen-${screen} ( Use this code to pair your tablet device : ${data.pairing_id} )`;
                     }
                 })
                 .catch(error => {
                     console.error('Failed to load pairing code:', error);
-                    pairingCode.textContent = 'Error loading code';
+                    pairingCode.textContent = `Screen-${screen} ( Error loading code )`;
                 });
         }
         
