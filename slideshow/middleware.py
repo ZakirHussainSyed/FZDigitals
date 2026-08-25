@@ -31,6 +31,10 @@ class SubscriptionMiddleware:
         if not request.user.is_authenticated:
             return self.get_response(request)
         
+        # Allow superusers to bypass subscription checks
+        if request.user.is_superuser:
+            return self.get_response(request)
+        
         # Check if path is exempt
         if any(request.path.startswith(path) for path in exempt_paths):
             return self.get_response(request)

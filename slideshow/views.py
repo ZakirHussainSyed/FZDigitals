@@ -536,8 +536,12 @@ def api_media_list(request):
 @require_http_methods(["POST"])
 def api_upload(request):
     try:
+        # Allow superusers to bypass subscription checks
+        if request.user.is_superuser:
+            # Proceed with upload for superusers
+            pass
         # Check subscription status for authenticated users
-        if request.user.is_authenticated:
+        elif request.user.is_authenticated:
             from .models import Subscription
             try:
                 subscription = Subscription.objects.get(user=request.user)
