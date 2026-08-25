@@ -550,12 +550,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        screenHeader.innerHTML = `Screen-${screen} <span class="pairing-code-text">( Use this code to pair your tablet device : ${data.pairing_id} )</span>`;
+                        screenHeader.innerHTML = `Screen-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : ${data.pairing_id} )</span>`;
                     }
                 })
                 .catch(error => {
                     console.error('Failed to load pairing code:', error);
-                    screenHeader.innerHTML = `Screen-${screen} <span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
+                    screenHeader.innerHTML = `Screen-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
                 });
         }
         
