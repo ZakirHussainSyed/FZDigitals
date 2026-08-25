@@ -536,6 +536,32 @@ def api_media_list(request):
 @require_http_methods(["POST"])
 def api_upload(request):
     try:
+        # Check subscription status for authenticated users
+        if request.user.is_authenticated:
+            from .models import Subscription
+            try:
+                subscription = Subscription.objects.get(user=request.user)
+                
+                # Check if trial has expired
+                if subscription.is_trial() and subscription.days_remaining() <= 0:
+                    return JsonResponse({'success': False, 'error': 'Your trial has expired. Please subscribe to continue uploading.'}, status=403)
+                
+                # Check if payment has failed
+                if subscription.status == 'past_due':
+                    return JsonResponse({'success': False, 'error': 'Payment failed. Please update your payment method to continue uploading.'}, status=403)
+                
+                # Check if subscription is cancelled
+                if subscription.status == 'cancelled':
+                    return JsonResponse({'success': False, 'error': 'Your subscription has been cancelled. Please subscribe to continue uploading.'}, status=403)
+                
+                # Check if subscription is active
+                if not subscription.is_active():
+                    return JsonResponse({'success': False, 'error': 'Your subscription is not active. Please subscribe to continue uploading.'}, status=403)
+                    
+            except Subscription.DoesNotExist:
+                # Create trial subscription if doesn't exist
+                Subscription.objects.create(user=request.user, status='trial')
+        
         from django.conf import settings
         import os
         
