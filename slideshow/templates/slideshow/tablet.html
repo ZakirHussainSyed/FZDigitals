@@ -281,6 +281,11 @@
             if (!deviceId) return null;
             try {
                 const response = await fetch(`/api/device/${deviceId}/slideshow/`);
+                // Check if response is OK (status 200-299)
+                if (!response.ok) {
+                    // 404 or other error responses are expected for unassigned devices
+                    return null;
+                }
                 const data = await response.json();
                 if (data.success) {
                     pairedUserId = data.user_id;
@@ -289,7 +294,8 @@
                 }
                 return null;
             } catch (error) {
-                console.error('Failed to get device slideshow:', error);
+                // Only log actual network errors
+                console.error('Failed to get device slideshow (network error):', error);
                 return null;
             }
         }
