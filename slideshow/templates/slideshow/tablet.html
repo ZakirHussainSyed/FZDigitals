@@ -468,6 +468,8 @@
                     if (current >= media.length) current = 0;
                     renderSlides();
                     show(current);
+                    // Ensure autoplay starts
+                    setPaused(false);
                     startAutoplay();
                     return;
                 }
@@ -490,6 +492,8 @@
                     if (current >= media.length) current = 0;
                     renderSlides();
                     show(current);
+                    // Ensure autoplay starts
+                    setPaused(false);
                     startAutoplay();
                     return;
                 }
