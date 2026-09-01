@@ -345,8 +345,12 @@
         }
 
         function startAutoplay() {
-            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length);
-            stopAutoplay();
+            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length, 'autoplayTimer:', autoplayTimer);
+            // Don't restart if already running
+            if (autoplayTimer) {
+                console.log('startAutoplay: already running, skipping');
+                return;
+            }
             if (!media.length) {
                 console.log('startAutoplay: no media, returning');
                 return;
