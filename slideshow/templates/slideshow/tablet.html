@@ -88,6 +88,28 @@
             font-weight: 800;
             min-width: 110px;
         }
+        .fullscreen-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.85);
+            border-radius: 999px;
+            padding: 10px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 150ms ease;
+            pointer-events: none;
+        }
+        .stage.paused .fullscreen-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .fullscreen-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
         .counter {
             position: absolute;
             top: 16px;
@@ -195,6 +217,7 @@
     
     <div class="stage" id="stage">
         <div class="tap-layer" id="tap"></div>
+        <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
         <div class="empty" id="empty">No media uploaded yet.</div>
         <div id="slides"></div>
         <div class="overlay"></div>
@@ -332,6 +355,41 @@
 
         function updateCounter() {
             counterEl.textContent = `${media.length ? current + 1 : 0} / ${media.length}`;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Auto-enter fullscreen on load for kiosk mode
+        function requestAutoFullscreen() {
+            // Try to enter fullscreen automatically
+            const requestFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Auto-fullscreen blocked (user interaction required): ${err.message}`);
+                    });
+                }
+            };
+
+            // Try immediately (may be blocked by browser)
+            requestFullscreen();
+
+            // Also try on first user interaction
+            const enableFullscreenOnInteraction = () => {
+                requestFullscreen();
+                document.removeEventListener('click', enableFullscreenOnInteraction);
+                document.removeEventListener('touchstart', enableFullscreenOnInteraction);
+            };
+
+            document.addEventListener('click', enableFullscreenOnInteraction, { once: true });
+            document.addEventListener('touchstart', enableFullscreenOnInteraction, { once: true });
         }
 
         function renderSlides() {
@@ -520,9 +578,9 @@
         tapLayer.addEventListener('pointercancel', (e) => {
             console.log('pointercancel event fired');
             e.preventDefault();
-            setPaused(true);
+            scheduleResume();
         });
-        
+
         // Touch events (Safari iOS support)
         tapLayer.addEventListener('touchstart', (e) => {
             console.log('touchstart event fired');
@@ -549,6 +607,7 @@
         console.log('Initial load: starting device registration and refresh');
         registerDevice().then(() => {
             refresh();
+            requestAutoFullscreen();
         });
 
         if ('serviceWorker' in navigator) {
