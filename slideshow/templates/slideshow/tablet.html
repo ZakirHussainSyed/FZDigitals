@@ -345,10 +345,19 @@
         }
 
         function startAutoplay() {
+            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length);
             stopAutoplay();
-            if (!media.length) return;
-            if (paused) return;
+            if (!media.length) {
+                console.log('startAutoplay: no media, returning');
+                return;
+            }
+            if (paused) {
+                console.log('startAutoplay: paused, returning');
+                return;
+            }
+            console.log('startAutoplay: starting interval with 10000ms');
             autoplayTimer = setInterval(() => {
+                console.log('Autoplay interval fired, showing next slide');
                 show(current + 1);
             }, 10000);
         }
@@ -427,10 +436,16 @@
         }
 
         function show(i) {
-            if (!media.length) return;
+            console.log('show called with index:', i, 'current:', current, 'media.length:', media.length);
+            if (!media.length) {
+                console.log('show: no media, returning');
+                return;
+            }
             const prev = current;
             current = (i + media.length) % media.length;
+            console.log('show: updated current to:', current);
             const nodes = slidesEl.querySelectorAll('.slide');
+            console.log('show: found', nodes.length, 'slide nodes');
             
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
