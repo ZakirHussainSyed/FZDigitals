@@ -391,7 +391,7 @@
                 
                 <div class="drop" id="drop-1">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (10 seconds each).
                         <div class="hint">Hover over the slideshow to pause and show controls.</div>
                     </div>
                     <div class="muted" id="selectedInfo-1" style="margin-top:10px;"></div>
@@ -421,7 +421,7 @@
                 
                 <div class="drop" id="drop-2">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (10 seconds each).
                         <div class="hint">Hover over the slideshow to pause and show controls.</div>
                     </div>
                     <div class="muted" id="selectedInfo-2" style="margin-top:10px;"></div>
@@ -451,7 +451,7 @@
                 
                 <div class="drop" id="drop-3">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (10 seconds each).
                         <div class="hint">Hover over the slideshow to pause and show controls.</div>
                     </div>
                     <div class="muted" id="selectedInfo-3" style="margin-top:10px;"></div>
@@ -481,7 +481,7 @@
                 
                 <div class="drop" id="drop-4">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (10 seconds each).
                         <div class="hint">Hover over the slideshow to pause and show controls.</div>
                     </div>
                     <div class="muted" id="selectedInfo-4" style="margin-top:10px;"></div>
@@ -511,7 +511,7 @@
                 
                 <div class="drop" id="drop-5">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
-                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
+                    <div class="muted">Upload photos/videos. Then watch the auto slideshow (10 seconds each).
                         <div class="hint">Hover over the slideshow to pause and show controls.</div>
                     </div>
                     <div class="muted" id="selectedInfo-5" style="margin-top:10px;"></div>
@@ -530,7 +530,7 @@
         <!-- Right Panel - Fixed Slideshow -->
         <div class="right-panel">
             <div class="muted" style="margin-bottom:12px; text-align: center;">
-                Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                Autoplay: 10 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
             </div>
             <div class="stage" id="stage-1">
                 <div class="overlay"></div>
@@ -661,7 +661,7 @@
             // Update slideshow elements to use active screen
             rightPanel.innerHTML = `
                 <div class="muted" style="margin-bottom:12px; text-align: center;">
-                    Autoplay: 5 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
+                    Autoplay: 10 seconds per slide. Hover pauses autoplay and reveals Prev/Next.
                 </div>
                 <div class="stage" id="stage-${screen}">
                     <div class="overlay"></div>
@@ -929,7 +929,7 @@
             if (state.pausedByHover) return;
             state.timer = setInterval(() => {
                 show(screen, state.current + 1);
-            }, 5000);
+            }, 10000);
         }
 
         function stopAutoplay(screen) {

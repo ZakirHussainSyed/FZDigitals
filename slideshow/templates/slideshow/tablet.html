@@ -313,7 +313,7 @@
             clearResume();
             resumeTimer = setTimeout(() => {
                 setPaused(false);
-            }, 5000);
+            }, 10000);
         }
 
         function stopAutoplay() {
@@ -327,7 +327,7 @@
             if (paused) return;
             autoplayTimer = setInterval(() => {
                 show(current + 1);
-            }, 5000);
+            }, 10000);
         }
 
         function updateCounter() {
