@@ -133,7 +133,10 @@
     <div class="container">
         <div class="header">
             <h1>User Management</h1>
-            <a href="/{{ request.user.id }}/" class="back-link">← Back to Dashboard</a>
+            <div style="display: flex; gap: 16px;">
+                <a href="/device-management/" class="back-link">Device Management</a>
+                <a href="/{{ request.user.id }}/" class="back-link">← Back to Dashboard</a>
+            </div>
         </div>
         
         {% if success %}

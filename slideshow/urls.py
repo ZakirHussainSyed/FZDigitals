@@ -12,6 +12,7 @@ urlpatterns = [
     path('billing-portal/', views.billing_portal, name='billing-portal'),
     path('stripe-webhook/', views.stripe_webhook, name='stripe-webhook'),
     path('user-management/', views.user_management, name='user-management'),
+    path('device-management/', views.device_management, name='device-management'),
     path('delete-user/<int:user_id>/', views.delete_user, name='delete-user'),
     path('admin-reset-password/<int:user_id>/', views.admin_reset_password, name='admin-reset-password'),
     path('<int:user_id>/', views.user_dashboard, name='user-dashboard'),
@@ -27,5 +28,6 @@ urlpatterns = [
     path('api/device/register/', views.api_device_register, name='api-device-register'),
     path('api/device/<str:device_id>/slideshow/', views.api_device_slideshow, name='api-device-slideshow'),
     path('api/devices/', views.api_devices_list, name='api-devices-list'),
+    path('api/users/', views.api_users_list, name='api-users-list'),
     path('api/device/<str:device_id>/assign/', views.api_device_assign, name='api-device-assign'),
 ]

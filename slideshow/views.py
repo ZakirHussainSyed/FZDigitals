@@ -637,6 +637,41 @@ def api_delete(request, pk: int):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+@login_required
+@require_http_methods(["GET"])
+def api_users_list(request):
+    """Get list of all users for admin dashboard"""
+    try:
+        if not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        users = User.objects.all()
+        return JsonResponse({
+            'success': True,
+            'users': [
+                {
+                    'id': u.id,
+                    'email': u.email,
+                    'username': u.username,
+                    'is_active': u.is_active,
+                    'date_joined': u.date_joined.isoformat() if u.date_joined else None,
+                }
+                for u in users
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error in api_users_list: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def device_management(request):
+    """Device management page - only for superusers"""
+    if not request.user.is_superuser:
+        return redirect(f'/{request.user.id}/')
+    return render(request, 'slideshow/device_management.html')
+
+
 def serve_media(request, path):
     """Serve media files directly - needed for Render deployment"""
     try:
