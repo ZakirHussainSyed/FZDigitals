@@ -213,10 +213,63 @@
         let paused = false;
         let pairedUserId = null;
         let pairedScreen = 1;
+        let deviceId = null;
         
-        // Check if pairing ID is in URL
+        // Hybrid approach: Priority 1 - URL code parameter
         const urlParams = new URLSearchParams(window.location.search);
         const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
+        
+        // Generate or get device ID for hardware device registration
+        function getDeviceId() {
+            // Try localStorage first (for browsers)
+            let id = localStorage.getItem('fz_device_id');
+            if (!id) {
+                // Generate new ID
+                id = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                localStorage.setItem('fz_device_id', id);
+            }
+            return id;
+        }
+        
+        // Register device
+        async function registerDevice() {
+            deviceId = getDeviceId();
+            try {
+                const response = await fetch('/api/device/register/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: deviceId,
+                        device_type: 'browser',
+                        name: 'Browser Device'
+                    })
+                });
+                const data = await response.json();
+                console.log('Device registered:', data);
+                return data;
+            } catch (error) {
+                console.error('Device registration failed:', error);
+                return null;
+            }
+        }
+        
+        // Get slideshow for device
+        async function getDeviceSlideshow() {
+            if (!deviceId) return null;
+            try {
+                const response = await fetch(`/api/device/${deviceId}/slideshow/`);
+                const data = await response.json();
+                if (data.success) {
+                    pairedUserId = data.user_id;
+                    pairedScreen = data.screen;
+                    return data.files;
+                }
+                return null;
+            } catch (error) {
+                console.error('Failed to get device slideshow:', error);
+                return null;
+            }
+        }
 
         const pairingScreen = document.getElementById('pairingScreen');
         const pairingInput = document.getElementById('pairingInput');
@@ -345,15 +398,46 @@
         }
 
         async function refresh() {
-            if (!pairedUserId) return;
-            const res = await fetch(`/api/media/?user_id=${pairedUserId}&screen=${pairedScreen}`);
-            const data = await res.json();
-            if (!data.success) return;
-            media = data.files;
-            if (current >= media.length) current = 0;
-            renderSlides();
-            show(current);
-            startAutoplay();
+            console.log('refresh: checking slideshow sources');
+            
+            // Priority 1: Try device slideshow (hardware device assignment)
+            if (deviceId) {
+                console.log('refresh: trying device slideshow');
+                const deviceFiles = await getDeviceSlideshow();
+                if (deviceFiles && deviceFiles.length > 0) {
+                    console.log('refresh: got device slideshow with', deviceFiles.length, 'files');
+                    media = deviceFiles;
+                    if (current >= media.length) current = 0;
+                    renderSlides();
+                    show(current);
+                    startAutoplay();
+                    return;
+                }
+            }
+            
+            // Priority 2: Try URL code pairing (existing system)
+            if (pairingIdFromUrl && !pairedUserId) {
+                console.log('refresh: trying URL code pairing');
+                await connectPairing(pairingIdFromUrl);
+                return;
+            }
+            
+            // Priority 3: Use existing pairing if available
+            if (pairedUserId) {
+                console.log('refresh: using existing pairing');
+                const res = await fetch(`/api/media/?user_id=${pairedUserId}&screen=${pairedScreen}`);
+                const data = await res.json();
+                if (data.success) {
+                    media = data.files;
+                    if (current >= media.length) current = 0;
+                    renderSlides();
+                    show(current);
+                    startAutoplay();
+                    return;
+                }
+            }
+            
+            console.log('refresh: no slideshow source available');
         }
 
         async function connectPairing(pairingId = null) {
@@ -461,12 +545,11 @@
         // Keep list updated
         setInterval(refresh, 8000);
         
-        // Auto-connect if pairing ID is in URL
-        if (pairingIdFromUrl) {
-            connectPairing(pairingIdFromUrl);
-        } else {
+        // Initial load
+        console.log('Initial load: starting device registration and refresh');
+        registerDevice().then(() => {
             refresh();
-        }
+        });
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});

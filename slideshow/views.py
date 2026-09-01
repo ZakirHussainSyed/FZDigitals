@@ -11,7 +11,7 @@ from django.conf import settings
 import stripe
 import logging
 
-from .models import MediaFile, DevicePairing, UserProfile, Subscription
+from .models import MediaFile, DevicePairing, UserProfile, Subscription, Device
 
 logger = logging.getLogger(__name__)
 
@@ -708,3 +708,155 @@ def api_pairing_lookup(request, pairing_id):
     except Exception as e:
         logger.error(f"Error in api_pairing_lookup: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'Invalid pairing ID'}, status=404)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_device_register(request):
+    """Register a device (browser or USB) for auto-assignment"""
+    try:
+        import json
+        data = json.loads(request.body)
+        device_id = data.get('device_id')
+        device_type = data.get('device_type', 'browser')
+        device_name = data.get('name', '')
+        
+        if not device_id:
+            return JsonResponse({'success': False, 'error': 'device_id is required'}, status=400)
+        
+        device, created = Device.objects.get_or_create(
+            device_id=device_id,
+            defaults={
+                'name': device_name,
+                'device_type': device_type,
+            }
+        )
+        
+        # Update last_seen and name if changed
+        device.last_seen = device.last_seen  # This will auto-update due to auto_now=True
+        if device_name and device.name != device_name:
+            device.name = device_name
+            device.save()
+        
+        return JsonResponse({
+            'success': True,
+            'device_id': device.device_id,
+            'name': device.name,
+            'device_type': device.device_type,
+            'assigned_user': device.user_id,
+            'assigned_screen': device.screen if device.user else None,
+            'created': created
+        })
+    except Exception as e:
+        logger.error(f"Error in api_device_register: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_device_slideshow(request, device_id):
+    """Get slideshow for a specific device"""
+    try:
+        device = get_object_or_404(Device, device_id=device_id)
+        
+        if not device.user:
+            return JsonResponse({
+                'success': False,
+                'error': 'Device not assigned to any user',
+                'device_id': device.device_id,
+                'device_name': device.name
+            }, status=404)
+        
+        files = MediaFile.objects.filter(user=device.user, screen=device.screen)
+        return JsonResponse({
+            'success': True,
+            'device_id': device.device_id,
+            'user_id': device.user.id,
+            'screen': device.screen,
+            'files': [
+                {
+                    'id': f.id,
+                    'title': f.title,
+                    'type': f.content_type,
+                    'screen': f.screen,
+                    'url': request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'),
+                }
+                for f in files
+            ],
+        })
+    except Exception as e:
+        logger.error(f"Error in api_device_slideshow: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_devices_list(request):
+    """Get list of all devices for admin dashboard"""
+    try:
+        if not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        devices = Device.objects.all()
+        return JsonResponse({
+            'success': True,
+            'devices': [
+                {
+                    'id': d.id,
+                    'device_id': d.device_id,
+                    'name': d.name,
+                    'device_type': d.device_type,
+                    'user_id': d.user_id,
+                    'user_email': d.user.email if d.user else None,
+                    'screen': d.screen,
+                    'last_seen': d.last_seen.isoformat() if d.last_seen else None,
+                    'is_active': d.is_active,
+                    'created_at': d.created_at.isoformat() if d.created_at else None,
+                }
+                for d in devices
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error in api_devices_list: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_device_assign(request, device_id):
+    """Assign a device to a user and screen"""
+    try:
+        if not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        import json
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        screen = data.get('screen', 1)
+        
+        try:
+            screen = int(screen)
+            if screen < 1 or screen > 5:
+                screen = 1
+        except ValueError:
+            screen = 1
+        
+        device = get_object_or_404(Device, device_id=device_id)
+        
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            device.user = user
+            device.screen = screen
+            device.save()
+        else:
+            device.user = None
+            device.save()
+        
+        return JsonResponse({
+            'success': True,
+            'device_id': device.device_id,
+            'assigned_user': device.user_id,
+            'assigned_screen': device.screen
+        })
+    except Exception as e:
+        logger.error(f"Error in api_device_assign: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

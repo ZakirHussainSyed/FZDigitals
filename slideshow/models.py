@@ -141,6 +141,29 @@ class Subscription(models.Model):
         return f"{self.user.username} - {self.plan} ({self.status})"
 
 
+class Device(models.Model):
+    """Hardware device for USB displays"""
+    DEVICE_TYPE_CHOICES = [
+        ('browser', 'Browser'),
+        ('usb', 'USB Device'),
+    ]
+    
+    device_id = models.CharField(max_length=100, unique=True)  # Hardware ID or localStorage ID
+    name = models.CharField(max_length=200, blank=True)
+    device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='browser')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Assigned user
+    screen = models.IntegerField(choices=MediaFile.SCREEN_CHOICES, default=1)  # Assigned screen
+    last_seen = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self) -> str:
+        return f"{self.device_id} - {self.name or 'Unnamed'} ({self.device_type})"
+
+
 @receiver(post_delete, sender=MediaFile)
 def delete_media_file(sender, instance, **kwargs):
     """Delete file from disk when MediaFile is deleted"""

@@ -24,4 +24,8 @@ urlpatterns = [
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
     path('api/pairing/', views.api_pairing_info, name='api-pairing-info'),
     path('api/pairing/<str:pairing_id>/', views.api_pairing_lookup, name='api-pairing-lookup'),
+    path('api/device/register/', views.api_device_register, name='api-device-register'),
+    path('api/device/<str:device_id>/slideshow/', views.api_device_slideshow, name='api-device-slideshow'),
+    path('api/devices/', views.api_devices_list, name='api-devices-list'),
+    path('api/device/<str:device_id>/assign/', views.api_device_assign, name='api-device-assign'),
 ]
