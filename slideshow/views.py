@@ -731,14 +731,37 @@ def api_pairing_info(request):
 
 @require_http_methods(["GET"])
 def api_pairing_lookup(request, pairing_id):
-    """Lookup user by pairing ID for tablet connection"""
+    """Lookup user by pairing ID for tablet connection and auto-create/link device"""
     try:
         pairing = get_object_or_404(DevicePairing, pairing_id=pairing_id.upper())
+        
+        # Auto-create or update device entry when pairing code is used
+        # Use pairing_id as device_id for consistency
+        device, created = Device.objects.get_or_create(
+            device_id=pairing_id.upper(),
+            defaults={
+                'name': f'Paired Device ({pairing_id.upper()})',
+                'device_type': 'browser',
+                'user': pairing.user,
+                'screen': pairing.screen,
+                'is_active': True
+            }
+        )
+        
+        # If device already exists, update its assignment
+        if not created:
+            device.user = pairing.user
+            device.screen = pairing.screen
+            device.is_active = True
+            device.save()
+        
         return JsonResponse({
             'success': True,
             'user_email': pairing.user.email,
             'user_id': pairing.user.id,
-            'screen': pairing.screen
+            'screen': pairing.screen,
+            'device_id': device.device_id,
+            'device_linked': True
         })
     except Exception as e:
         logger.error(f"Error in api_pairing_lookup: {str(e)}", exc_info=True)
@@ -820,6 +843,43 @@ def api_device_slideshow(request, device_id):
         })
     except Exception as e:
         logger.error(f"Error in api_device_slideshow: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_user_devices(request):
+    """Get devices for the current user, optionally filtered by screen"""
+    try:
+        screen = request.GET.get('screen')
+        devices = Device.objects.filter(user=request.user)
+        
+        if screen:
+            try:
+                screen = int(screen)
+                if 1 <= screen <= 5:
+                    devices = devices.filter(screen=screen)
+            except ValueError:
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'devices': [
+                {
+                    'id': d.id,
+                    'device_id': d.device_id,
+                    'name': d.name,
+                    'device_type': d.device_type,
+                    'screen': d.screen,
+                    'last_seen': d.last_seen.isoformat() if d.last_seen else None,
+                    'is_active': d.is_active,
+                    'created_at': d.created_at.isoformat() if d.created_at else None,
+                }
+                for d in devices
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error in api_user_devices: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
