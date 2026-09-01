@@ -860,13 +860,15 @@ def api_devices_list(request):
 def api_device_assign(request, device_id):
     """Assign a device to a user and screen"""
     try:
-        if not request.user.is_superuser:
-            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
-        
         import json
         data = json.loads(request.body)
         user_id = data.get('user_id')
         screen = data.get('screen', 1)
+        
+        # Allow superusers to assign any device to any user
+        # Allow regular users to assign devices only to themselves
+        if not request.user.is_superuser and user_id != request.user.id:
+            return JsonResponse({'success': False, 'error': 'Unauthorized - can only assign devices to yourself'}, status=403)
         
         try:
             screen = int(screen)

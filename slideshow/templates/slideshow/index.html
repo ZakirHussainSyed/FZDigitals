@@ -340,7 +340,7 @@
         }
     </style>
 </head>
-<body>
+<body data-user-id="{{ user.id }}">
     <!-- Header -->
     <header class="header">
         <img src="/static/logo.png" alt="Logo" class="logo" />
@@ -380,6 +380,15 @@
             <div class="tab-content active" id="screen-1">
                 <h1 id="screenHeader-1">Slideshow-1 ( Use this code to pair your tablet device : Loading... )</h1>
                 
+                <div class="device-link-section" style="background: rgba(124,92,255,0.1); border: 1px solid rgba(124,92,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Link Hardware Device</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deviceId-1" placeholder="Enter Device ID from your tablet/USB" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; color: #e8eaf0; font-size: 14px;" />
+                        <button class="btn primary" onclick="linkDevice(1)" style="padding: 8px 16px; font-size: 14px;">Link Device</button>
+                    </div>
+                    <div id="deviceStatus-1" style="margin-top: 8px; font-size: 12px; color: rgba(232,234,240,0.7);"></div>
+                </div>
+                
                 <div class="drop" id="drop-1">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
                     <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
@@ -400,6 +409,15 @@
             <!-- Slideshow-2 Content -->
             <div class="tab-content" id="screen-2">
                 <h1 id="screenHeader-2">Slideshow-2 ( Use this code to pair your tablet device : Loading... )</h1>
+                
+                <div class="device-link-section" style="background: rgba(124,92,255,0.1); border: 1px solid rgba(124,92,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Link Hardware Device</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deviceId-2" placeholder="Enter Device ID from your tablet/USB" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; color: #e8eaf0; font-size: 14px;" />
+                        <button class="btn primary" onclick="linkDevice(2)" style="padding: 8px 16px; font-size: 14px;">Link Device</button>
+                    </div>
+                    <div id="deviceStatus-2" style="margin-top: 8px; font-size: 12px; color: rgba(232,234,240,0.7);"></div>
+                </div>
                 
                 <div class="drop" id="drop-2">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -422,6 +440,15 @@
             <div class="tab-content" id="screen-3">
                 <h1 id="screenHeader-3">Slideshow-3 ( Use this code to pair your tablet device : Loading... )</h1>
                 
+                <div class="device-link-section" style="background: rgba(124,92,255,0.1); border: 1px solid rgba(124,92,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Link Hardware Device</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deviceId-3" placeholder="Enter Device ID from your tablet/USB" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; color: #e8eaf0; font-size: 14px;" />
+                        <button class="btn primary" onclick="linkDevice(3)" style="padding: 8px 16px; font-size: 14px;">Link Device</button>
+                    </div>
+                    <div id="deviceStatus-3" style="margin-top: 8px; font-size: 12px; color: rgba(232,234,240,0.7);"></div>
+                </div>
+                
                 <div class="drop" id="drop-3">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
                     <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
@@ -443,6 +470,15 @@
             <div class="tab-content" id="screen-4">
                 <h1 id="screenHeader-4">Slideshow-4 ( Use this code to pair your tablet device : Loading... )</h1>
                 
+                <div class="device-link-section" style="background: rgba(124,92,255,0.1); border: 1px solid rgba(124,92,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Link Hardware Device</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deviceId-4" placeholder="Enter Device ID from your tablet/USB" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; color: #e8eaf0; font-size: 14px;" />
+                        <button class="btn primary" onclick="linkDevice(4)" style="padding: 8px 16px; font-size: 14px;">Link Device</button>
+                    </div>
+                    <div id="deviceStatus-4" style="margin-top: 8px; font-size: 12px; color: rgba(232,234,240,0.7);"></div>
+                </div>
+                
                 <div class="drop" id="drop-4">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
                     <div class="muted">Upload photos/videos. Then watch the auto slideshow (5 seconds each).
@@ -463,6 +499,15 @@
             <!-- Slideshow-5 Content -->
             <div class="tab-content" id="screen-5">
                 <h1 id="screenHeader-5">Slideshow-5 ( Use this code to pair your tablet device : Loading... )</h1>
+                
+                <div class="device-link-section" style="background: rgba(124,92,255,0.1); border: 1px solid rgba(124,92,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #7c5cff;">Link Hardware Device</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deviceId-5" placeholder="Enter Device ID from your tablet/USB" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; color: #e8eaf0; font-size: 14px;" />
+                        <button class="btn primary" onclick="linkDevice(5)" style="padding: 8px 16px; font-size: 14px;">Link Device</button>
+                    </div>
+                    <div id="deviceStatus-5" style="margin-top: 8px; font-size: 12px; color: rgba(232,234,240,0.7);"></div>
+                </div>
                 
                 <div class="drop" id="drop-5">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -557,6 +602,50 @@
                     console.error('Failed to load pairing code:', error);
                     screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
                 });
+        }
+        
+        // Link hardware device to user's screen
+        async function linkDevice(screen) {
+            const deviceIdInput = document.getElementById(`deviceId-${screen}`);
+            const statusDiv = document.getElementById(`deviceStatus-${screen}`);
+            const deviceId = deviceIdInput.value.trim();
+            const userId = document.body.dataset.userId;
+            
+            if (!deviceId) {
+                statusDiv.textContent = 'Please enter a Device ID';
+                statusDiv.style.color = '#f44336';
+                return;
+            }
+            
+            statusDiv.textContent = 'Linking device...';
+            statusDiv.style.color = '#7c5cff';
+            
+            try {
+                const response = await fetch(`/api/device/${deviceId}/assign/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        screen: screen
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.textContent = `✓ Device ${deviceId} linked to Slideshow-${screen}`;
+                    statusDiv.style.color = '#4caf50';
+                    deviceIdInput.value = '';
+                } else {
+                    statusDiv.textContent = `Failed to link device: ${data.error || 'Unknown error'}`;
+                    statusDiv.style.color = '#f44336';
+                }
+            } catch (error) {
+                statusDiv.textContent = `Failed to link device: ${error.message}`;
+                statusDiv.style.color = '#f44336';
+            }
         }
         
         // Load pairing codes for all screens on page load
