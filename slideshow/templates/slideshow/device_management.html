@@ -560,10 +560,7 @@
                     <td>${device.screen ? `Slideshow-${device.screen}` : '-'}</td>
                     <td>${lastSeen}</td>
                     <td>
-                        ${device.user_id ? 
-                            `<button class="action-btn unlink" onclick="unlinkDevice('${device.device_id}')">Unlink</button>` :
-                            `<button class="action-btn" onclick="openAssignModal('${device.device_id}')">Link</button>`
-                        }
+                        <button class="action-btn" onclick="openAssignModal('${device.device_id}')">Link</button>
                         <button class="action-btn delete" onclick="deleteDevice('${device.device_id}')">Delete</button>
                     </td>
                 `;
