@@ -13,14 +13,4 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Run migrations automatically on startup (for Render deployment)
-if os.environ.get('DATABASE_URL'):
-    try:
-        import django
-        django.setup()
-        from django.core.management import call_command
-        call_command('migrate', '--noinput', verbosity=0)
-    except Exception:
-        pass
-
 application = get_wsgi_application()
