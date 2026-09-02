@@ -17,13 +17,9 @@ services:
           name: fzdigitals-db
           property: connectionString
       - key: AWS_STORAGE_BUCKET_NAME
-        value: your-bucket-name-here
+        value: fzdigitals-media
       - key: AWS_S3_REGION_NAME
-        value: us-east-1
-      - key: AWS_ACCESS_KEY_ID
-        value: your-access-key-here
-      - key: AWS_SECRET_ACCESS_KEY
-        value: your-secret-key-here
+        value: us-east-2
 
 databases:
   - name: fzdigitals-db
