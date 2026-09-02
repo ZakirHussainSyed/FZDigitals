@@ -1,11 +1,12 @@
 services:
   - type: web
     name: fzdigitals
-    env: python
+    runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-file -
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --log-file -
     releaseCommand: python manage.py migrate --noinput
+    env: python
     envVars:
       - key: DEBUG
         value: False
@@ -15,6 +16,8 @@ services:
         value: fzdigitals.onrender.com
       - key: PORT
         value: 10000
+      - key: PYTHON_VERSION
+        value: 3.14.3
 
 databases:
   - name: fzdigitals-db
