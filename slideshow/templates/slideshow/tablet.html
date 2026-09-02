@@ -242,64 +242,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
         
-        // Generate or get device ID for hardware device registration
-        function getDeviceId() {
-            // Try localStorage first (for browsers)
-            let id = localStorage.getItem('fz_device_id');
-            if (!id) {
-                // Generate new ID
-                id = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-                localStorage.setItem('fz_device_id', id);
-            }
-            return id;
-        }
-        
-        // Register device
-        async function registerDevice() {
-            deviceId = getDeviceId();
-            try {
-                const response = await fetch('/api/device/register/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: deviceId,
-                        device_type: 'browser',
-                        name: 'Browser Device'
-                    })
-                });
-                const data = await response.json();
-                console.log('Device registered:', data);
-                return data;
-            } catch (error) {
-                console.error('Device registration failed:', error);
-                return null;
-            }
-        }
-        
-        // Get slideshow for device
-        async function getDeviceSlideshow() {
-            if (!deviceId) return null;
-            try {
-                const response = await fetch(`/api/device/${deviceId}/slideshow/`);
-                // Check if response is OK (status 200-299)
-                if (!response.ok) {
-                    // 404 or other error responses are expected for unassigned devices
-                    return null;
-                }
-                const data = await response.json();
-                if (data.success) {
-                    pairedUserId = data.user_id;
-                    pairedScreen = data.screen;
-                    return data.files;
-                }
-                return null;
-            } catch (error) {
-                // Only log actual network errors
-                console.error('Failed to get device slideshow (network error):', error);
-                return null;
-            }
-        }
-
         const pairingScreen = document.getElementById('pairingScreen');
         const pairingInput = document.getElementById('pairingInput');
         const pairingBtn = document.getElementById('pairingBtn');
@@ -483,31 +425,14 @@
         async function refresh() {
             console.log('refresh: checking slideshow sources');
             
-            // Priority 1: Try device slideshow (hardware device assignment)
-            if (deviceId) {
-                console.log('refresh: trying device slideshow');
-                const deviceFiles = await getDeviceSlideshow();
-                if (deviceFiles && deviceFiles.length > 0) {
-                    console.log('refresh: got device slideshow with', deviceFiles.length, 'files');
-                    media = deviceFiles;
-                    if (current >= media.length) current = 0;
-                    renderSlides();
-                    show(current);
-                    // Ensure autoplay starts
-                    setPaused(false);
-                    startAutoplay();
-                    return;
-                }
-            }
-            
-            // Priority 2: Try URL code pairing (existing system)
+            // Priority 1: Try URL code pairing (existing system)
             if (pairingIdFromUrl && !pairedUserId) {
                 console.log('refresh: trying URL code pairing');
                 await connectPairing(pairingIdFromUrl);
                 return;
             }
             
-            // Priority 3: Use existing pairing if available
+            // Priority 2: Use existing pairing if available
             if (pairedUserId) {
                 console.log('refresh: using existing pairing');
                 const res = await fetch(`/api/media/?user_id=${pairedUserId}&screen=${pairedScreen}`);
@@ -633,11 +558,9 @@
         setInterval(refresh, 8000);
         
         // Initial load
-        console.log('Initial load: starting device registration and refresh');
-        registerDevice().then(() => {
-            refresh();
-            requestAutoFullscreen();
-        });
+        console.log('Initial load: starting refresh');
+        refresh();
+        requestAutoFullscreen();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
