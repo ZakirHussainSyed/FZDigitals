@@ -190,7 +190,9 @@ else:
     print(f"MEDIA_ROOT: {MEDIA_ROOT}")
 
 # Whitenoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# Serve app static dirs directly, so assets work even if collectstatic hasn't run
+WHITENOISE_USE_FINDERS = True
 
 # Run migrations automatically on startup (for Render deployment)
 if os.environ.get('DATABASE_URL'):
