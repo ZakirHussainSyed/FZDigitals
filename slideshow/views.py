@@ -951,9 +951,30 @@ def api_device_assign(request, device_id):
         return JsonResponse({
             'success': True,
             'device_id': device.device_id,
-            'assigned_user': device.user_id,
-            'assigned_screen': device.screen
+            'user_id': device.user_id,
+            'screen': device.screen
         })
     except Exception as e:
         logger.error(f"Error in api_device_assign: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def api_device_delete(request, device_id):
+    """Delete a device (superuser only)"""
+    try:
+        if not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Unauthorized - superuser only'}, status=403)
+        
+        device = get_object_or_404(Device, device_id=device_id)
+        device_id_str = device.device_id
+        device.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'device_id': device_id_str
+        })
+    except Exception as e:
+        logger.error(f"Error in api_device_delete: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

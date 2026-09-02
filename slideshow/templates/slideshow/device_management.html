@@ -167,6 +167,14 @@
         .action-btn.unlink:hover {
             background: rgba(244,67,54,0.3);
         }
+        .action-btn.delete {
+            background: rgba(244,67,54,0.2);
+            border: 1px solid rgba(244,67,54,0.4);
+            color: #f44336;
+        }
+        .action-btn.delete:hover {
+            background: rgba(244,67,54,0.3);
+        }
         .loading {
             text-align: center;
             padding: 40px;
@@ -263,6 +271,61 @@
         .modal-btn.secondary:hover {
             background: rgba(255,255,255,0.15);
         }
+        
+        .filters-section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .filters-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: rgba(232,234,240,0.9);
+        }
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-group label {
+            font-size: 12px;
+            color: rgba(232,234,240,0.7);
+            margin-bottom: 6px;
+        }
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 6px;
+            color: #e8eaf0;
+            font-size: 14px;
+        }
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #7c5cff;
+        }
+        .clear-filters {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #e8eaf0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .clear-filters:hover {
+            background: rgba(255,255,255,0.15);
+        }
     </style>
 </head>
 <body>
@@ -295,6 +358,47 @@
             <div class="section-header">
                 <div class="section-title">All Devices</div>
                 <button class="refresh-btn" onclick="loadDevices()">Refresh</button>
+            </div>
+            
+            <div class="filters-section">
+                <div class="filters-title">Filters</div>
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Device Type</label>
+                        <select id="filterType" onchange="applyFilters()">
+                            <option value="">All Types</option>
+                            <option value="browser">Browser</option>
+                            <option value="usb">USB</option>
+                            <option value="tablet">Tablet</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Status</label>
+                        <select id="filterStatus" onchange="applyFilters()">
+                            <option value="">All Status</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="unassigned">Unassigned</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Screen</label>
+                        <select id="filterScreen" onchange="applyFilters()">
+                            <option value="">All Screens</option>
+                            <option value="1">Slideshow-1</option>
+                            <option value="2">Slideshow-2</option>
+                            <option value="3">Slideshow-3</option>
+                            <option value="4">Slideshow-4</option>
+                            <option value="5">Slideshow-5</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Search Device ID</label>
+                        <input type="text" id="filterSearch" placeholder="Enter device ID..." oninput="applyFilters()">
+                    </div>
+                    <div class="filter-group" style="justify-content: flex-end;">
+                        <button class="clear-filters" onclick="clearFilters()">Clear Filters</button>
+                    </div>
+                </div>
             </div>
             
             <div id="error" class="error" style="display: none;"></div>
@@ -420,14 +524,24 @@
             
             tbody.innerHTML = '';
             
-            if (allDevices.length === 0) {
+            // Apply filters
+            const filteredDevices = applyFiltersToDevices(allDevices);
+            
+            if (filteredDevices.length === 0) {
+                if (allDevices.length === 0) {
+                    emptyState.textContent = 'No devices registered yet.';
+                } else {
+                    emptyState.textContent = 'No devices match the current filters.';
+                }
                 emptyState.style.display = 'block';
+                table.style.display = 'none';
                 return;
             }
             
             table.style.display = 'table';
+            emptyState.style.display = 'none';
             
-            allDevices.forEach(device => {
+            filteredDevices.forEach(device => {
                 const row = document.createElement('tr');
                 
                 const statusClass = device.user_id ? 'assigned' : 'unassigned';
@@ -450,11 +564,58 @@
                             `<button class="action-btn unlink" onclick="unlinkDevice('${device.device_id}')">Unlink</button>` :
                             `<button class="action-btn" onclick="openAssignModal('${device.device_id}')">Link</button>`
                         }
+                        <button class="action-btn delete" onclick="deleteDevice('${device.device_id}')">Delete</button>
                     </td>
                 `;
                 
                 tbody.appendChild(row);
             });
+        }
+        
+        function applyFiltersToDevices(devices) {
+            const filterType = document.getElementById('filterType').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+            const filterScreen = document.getElementById('filterScreen').value;
+            const filterSearch = document.getElementById('filterSearch').value.toLowerCase();
+            
+            return devices.filter(device => {
+                // Filter by device type
+                if (filterType && device.device_type !== filterType) {
+                    return false;
+                }
+                
+                // Filter by status
+                if (filterStatus === 'assigned' && !device.user_id) {
+                    return false;
+                }
+                if (filterStatus === 'unassigned' && device.user_id) {
+                    return false;
+                }
+                
+                // Filter by screen
+                if (filterScreen && device.screen !== parseInt(filterScreen)) {
+                    return false;
+                }
+                
+                // Filter by search
+                if (filterSearch && !device.device_id.toLowerCase().includes(filterSearch)) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        function applyFilters() {
+            renderDevices();
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterScreen').value = '';
+            document.getElementById('filterSearch').value = '';
+            renderDevices();
         }
         
         function updateStats() {
@@ -546,6 +707,28 @@
                 }
             } catch (err) {
                 alert('Failed to unlink device: ' + err.message);
+            }
+        }
+        
+        async function deleteDevice(deviceId) {
+            if (!confirm('Are you sure you want to delete this device? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/device/${deviceId}/delete/`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadDevices();
+                } else {
+                    alert('Failed to delete device: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Failed to delete device: ' + err.message);
             }
         }
         
