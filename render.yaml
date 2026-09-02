@@ -3,11 +3,23 @@ services:
     name: fzdigitals
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn config.wsgi --log-file -
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn config.wsgi:application --log-file -
     releaseCommand: python manage.py migrate --noinput
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: fzdigitals.onrender.com
+
+databases:
+  - name: fzdigitals-db
+    databaseName: fzdigitals
+    user: fzdigitals
 
 crons:
   - name: keep-awake
     schedule: "*/10 * * * *"
-    command: "curl https://fzdigitials.onrender.com/"
+    command: "curl https://fzdigitals.onrender.com/"
