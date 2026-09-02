@@ -193,11 +193,3 @@ else:
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # Serve app static dirs directly, so assets work even if collectstatic hasn't run
 WHITENOISE_USE_FINDERS = True
-
-# Run migrations automatically on startup (for Render deployment)
-if os.environ.get('DATABASE_URL'):
-    try:
-        from django.core.management import call_command
-        call_command('migrate', '--noinput', verbosity=0)
-    except Exception:
-        pass
