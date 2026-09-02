@@ -30,15 +30,23 @@ def django_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
         
-        if user is not None:
-            login(request, user)
-            return redirect(f'/{user.id}/')
-        else:
+        try:
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                login(request, user)
+                return redirect(f'/{user.id}/')
+            else:
+                return render(request, 'slideshow/login.html', {
+                    'form': AuthenticationForm(),
+                    'error': 'Invalid username or password'
+                })
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}", exc_info=True)
             return render(request, 'slideshow/login.html', {
                 'form': AuthenticationForm(),
-                'error': 'Invalid username or password'
+                'error': f'Login error: {str(e)}'
             })
     
     return render(request, 'slideshow/login.html', {'form': AuthenticationForm()})
