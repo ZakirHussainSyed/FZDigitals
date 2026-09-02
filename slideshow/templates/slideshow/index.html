@@ -348,11 +348,6 @@
         <div class="user-info">
             <span>Welcome, {{ user.email }}</span>
             <a href="/accounts/logout/">Logout</a>
-            <span>Plan: {{ subscription.plan|title }}</span>
-            {% if subscription.is_trial %}
-                <span>(Trial - {{ subscription.days_remaining }} days left)</span>
-            {% endif %}
-            <a href="/subscription-plans/">Manage</a>
             {% if user.is_superuser %}
                 <a href="/user-management/">User Management</a>
             {% endif %}

@@ -58,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'slideshow.middleware.SubscriptionMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -171,56 +170,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Stripe Configuration
-STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY', 'pk_test_your_key_here')
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_your_key_here')
-STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_your_webhook_secret')
-STRIPE_PRICE_ID_BASIC = os.environ.get('STRIPE_PRICE_ID_BASIC', 'price_basic_id')
-STRIPE_PRICE_ID_PRO = os.environ.get('STRIPE_PRICE_ID_PRO', 'price_pro_id')
-STRIPE_PRICE_ID_ENTERPRISE = os.environ.get('STRIPE_PRICE_ID_ENTERPRISE', 'price_enterprise_id')
-
-# Subscription Plans
-SUBSCRIPTION_PLANS = {
-    'basic': {
-        'name': 'Basic',
-        'price': 29,
-        'interval': 'month',
-        'features': [
-            '1 tablet included',
-            'Basic slideshow features',
-            'Email support',
-            '5GB storage',
-        ]
-    },
-    'pro': {
-        'name': 'Pro',
-        'price': 49,
-        'interval': 'month',
-        'features': [
-            '5 tablets included',
-            'Advanced slideshow features',
-            'Priority support',
-            '25GB storage',
-            'Custom branding',
-        ]
-    },
-    'enterprise': {
-        'name': 'Enterprise',
-        'price': 99,
-        'interval': 'month',
-        'features': [
-            'Unlimited tablets',
-            'All features included',
-            '24/7 phone support',
-            'Unlimited storage',
-            'Custom branding',
-            'API access',
-            'Dedicated account manager',
-        ]
-    }
-}
-
-# Trial Period (days)
+# Trial Period (in days)
 TRIAL_PERIOD_DAYS = 14
 
 # Media files configuration

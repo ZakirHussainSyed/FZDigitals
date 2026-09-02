@@ -88,59 +88,6 @@ class UserProfile(models.Model):
         return f"{self.user.username} - Profile"
 
 
-class Subscription(models.Model):
-    PLAN_CHOICES = [
-        ('basic', 'Basic - $29/month'),
-        ('pro', 'Pro - $49/month'),
-        ('enterprise', 'Enterprise - Custom'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('trial', 'Trial'),
-        ('active', 'Active'),
-        ('past_due', 'Past Due'),
-        ('cancelled', 'Cancelled'),
-        ('incomplete', 'Incomplete'),
-    ]
-    
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='basic')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='trial')
-    
-    # Stripe fields
-    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
-    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
-    stripe_price_id = models.CharField(max_length=255, blank=True, null=True)
-    
-    # Billing info
-    current_period_start = models.DateTimeField(blank=True, null=True)
-    current_period_end = models.DateTimeField(blank=True, null=True)
-    cancel_at_period_end = models.BooleanField(default=False)
-    
-    # Trial info
-    trial_start = models.DateTimeField(blank=True, null=True)
-    trial_end = models.DateTimeField(blank=True, null=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def is_active(self):
-        return self.status in ['trial', 'active']
-    
-    def is_trial(self):
-        return self.status == 'trial'
-    
-    def days_remaining(self):
-        if self.current_period_end:
-            from django.utils import timezone
-            remaining = self.current_period_end - timezone.now()
-            return max(0, remaining.days)
-        return 0
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.plan} ({self.status})"
-
-
 class Device(models.Model):
     """Hardware device for USB displays"""
     DEVICE_TYPE_CHOICES = [
