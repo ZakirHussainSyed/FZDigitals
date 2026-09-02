@@ -959,6 +959,7 @@ def api_device_assign(request, device_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@csrf_exempt
 @login_required
 @require_http_methods(["DELETE"])
 def api_device_delete(request, device_id):
