@@ -15,6 +15,38 @@ from .models import MediaFile, DevicePairing, UserProfile, Device
 logger = logging.getLogger(__name__)
 
 
+def browser_label(user_agent):
+    """Short human readable name for a browser, e.g. 'Chrome on macOS'"""
+    ua = user_agent or ''
+    browser = 'Browser'
+    for name, token in (
+        ('Edge', 'Edg/'),
+        ('Opera', 'OPR/'),
+        ('Samsung Internet', 'SamsungBrowser'),
+        ('Firefox', 'Firefox/'),
+        ('Chrome', 'Chrome/'),
+        ('Safari', 'Safari/'),
+    ):
+        if token in ua:
+            browser = name
+            break
+
+    platform = 'Unknown OS'
+    for name, token in (
+        ('Android', 'Android'),
+        ('iOS', 'iPhone'),
+        ('iPadOS', 'iPad'),
+        ('Windows', 'Windows'),
+        ('macOS', 'Mac OS X'),
+        ('Linux', 'Linux'),
+    ):
+        if token in ua:
+            platform = name
+            break
+
+    return f'{browser} on {platform}'
+
+
 def index(request):
     """Root URL - shows login page or redirects to user dashboard"""
     if request.user.is_authenticated:
@@ -481,13 +513,20 @@ def api_pairing_lookup(request, pairing_id):
     """Lookup user by pairing ID for tablet connection and auto-create/link device"""
     try:
         pairing = get_object_or_404(DevicePairing, pairing_id=pairing_id.upper())
-        
-        # Auto-create or update device entry when pairing code is used
-        # Use pairing_id as device_id for consistency
+
+        # Identify the paired browser itself when it sends its own id, so that
+        # several browsers sharing a pairing code stay distinct devices
+        browser_id = (request.GET.get('browser_id') or '').strip().upper()[:100]
+        device_key = browser_id or pairing_id.upper()
+        if browser_id:
+            device_name = browser_label(request.META.get('HTTP_USER_AGENT'))
+        else:
+            device_name = f'Paired Device ({device_key})'
+
         device, created = Device.objects.get_or_create(
-            device_id=pairing_id.upper(),
+            device_id=device_key,
             defaults={
-                'name': f'Paired Device ({pairing_id.upper()})',
+                'name': device_name,
                 'device_type': 'browser',
                 'user': pairing.user,
                 'screen': pairing.screen,
@@ -500,6 +539,8 @@ def api_pairing_lookup(request, pairing_id):
             device.user = pairing.user
             device.screen = pairing.screen
             device.is_active = True
+            if browser_id:
+                device.name = device_name
             device.save()
         
         return JsonResponse({

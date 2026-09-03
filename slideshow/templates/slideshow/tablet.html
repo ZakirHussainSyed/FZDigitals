@@ -238,6 +238,20 @@
         let pairedScreen = 1;
         let deviceId = null;
         
+        function getBrowserId() {
+            let id = localStorage.getItem('fz_browser_id');
+            if (!id) {
+                const bytes = new Uint8Array(4);
+                crypto.getRandomValues(bytes);
+                id = 'BR-' + Array.from(bytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('')
+                    .toUpperCase();
+                localStorage.setItem('fz_browser_id', id);
+            }
+            return id;
+        }
+
         // Hybrid approach: Priority 1 - URL code parameter
         const urlParams = new URLSearchParams(window.location.search);
         const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
@@ -464,7 +478,10 @@
 
             try {
                 console.log('Attempting to connect with pairing ID:', id);
-                const res = await fetch(`/api/pairing/${id}/`);
+                deviceId = getBrowserId();
+                const res = await fetch(
+                    `/api/pairing/${id}/?browser_id=${encodeURIComponent(deviceId)}`
+                );
                 const data = await res.json();
                 console.log('Pairing response:', data);
                 
