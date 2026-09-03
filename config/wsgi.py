@@ -19,3 +19,20 @@ application = get_wsgi_application()
 # Apply migrations on startup (for Render deployment)
 if os.environ.get('DATABASE_URL'):
     call_command('migrate', '--noinput')
+
+# Create or reset the superuser named by the environment, for deployments
+# without shell access
+_superuser = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+_superuser_password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+if _superuser and _superuser_password:
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username=_superuser,
+        defaults={'email': os.environ.get('DJANGO_SUPERUSER_EMAIL', '')},
+    )
+    user.is_staff = True
+    user.is_superuser = True
+    user.set_password(_superuser_password)
+    user.save()
