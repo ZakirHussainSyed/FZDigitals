@@ -341,6 +341,7 @@
     </style>
 </head>
 <body data-user-id="{{ user.id }}">
+{% csrf_token %}
     <!-- Header -->
     <header class="header">
         <img src="/static/logo.png" alt="Logo" class="logo" />
@@ -566,6 +567,11 @@
     </div>
 
     <script>
+        function csrfToken() {
+            const field = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            return field ? field.value : '';
+        }
+
         // Screen state management
         const screenStates = {};
         
@@ -645,6 +651,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken(),
                     },
                     body: JSON.stringify({
                         user_id: parseInt(userId),
@@ -812,7 +819,11 @@
                 for (const f of files) fd.append('files', f);
                 fd.append('screen', screen);
 
-                const res = await fetch('/api/upload/', { method: 'POST', body: fd });
+                const res = await fetch('/api/upload/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken() },
+                    body: fd
+                });
                 const data = await res.json();
                 if (!data.success) {
                     alert(data.error || 'Upload failed');
@@ -887,7 +898,10 @@
                 del.addEventListener('click', async () => {
                     const ok = confirm('Delete this file?');
                     if (!ok) return;
-                    const r = await fetch(`/api/media/${f.id}/delete/`, { method: 'POST' });
+                    const r = await fetch(`/api/media/${f.id}/delete/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken() }
+                    });
                     const d = await r.json();
                     if (!d.success) alert(d.error || 'Delete failed');
                     await refresh(screen);
