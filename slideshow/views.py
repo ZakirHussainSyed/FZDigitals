@@ -228,7 +228,7 @@ def user_dashboard(request, user_id):
     if request.user.id != user_id:
         return redirect(f'/{request.user.id}/')
     
-    return render(request, 'slideshow/index.html')
+    return render(request, 'slideshow/index.html', {'user': request.user})
 
 
 def tablet(request):
