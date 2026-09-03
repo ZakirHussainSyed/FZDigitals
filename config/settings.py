@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,13 +23,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-zkc7j@1-b0aat!%ee09@8h0l)7*p)3l%zz(_qa!o)405d4#mea')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is off')
+    SECRET_KEY = 'django-insecure-local-development-key'
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,fzdigitals.onrender.com').split(',')
+
+# Served over HTTPS everywhere except local production-like runs (HTTPS_ONLY=False)
+if not DEBUG and os.environ.get('HTTPS_ONLY', 'True') == 'True':
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS if '.' in host]
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 
 # Application definition
@@ -152,15 +168,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Trial Period (in days)
 TRIAL_PERIOD_DAYS = 14
 
+# Largest media file a customer may upload
+MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_UPLOAD_SIZE_MB', '200'))
+
 # Media files configuration
 # Use S3 for persistent storage in production (Render)
-print(f"=== AWS CONFIG DEBUG ===")
-print(f"AWS_STORAGE_BUCKET_NAME env var: {os.environ.get('AWS_STORAGE_BUCKET_NAME')}")
-print(f"AWS_S3_REGION_NAME env var: {os.environ.get('AWS_S3_REGION_NAME')}")
-print(f"AWS_ACCESS_KEY_ID env var: {os.environ.get('AWS_ACCESS_KEY_ID')}")
-print(f"AWS_SECRET_ACCESS_KEY env var: {'SET' if os.environ.get('AWS_SECRET_ACCESS_KEY') else 'NOT SET'}")
-print(f"========================")
-
 if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     # S3 configuration - set both standard and django-storages environment variables
     AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
@@ -178,16 +190,12 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
-    print(f"=== USING S3 STORAGE ===")
-    print(f"Bucket: {AWS_STORAGE_BUCKET_NAME}")
-    print(f"Region: {AWS_S3_REGION_NAME}")
-    print(f"MEDIA_URL: {MEDIA_URL}")
+    print(f"Media storage: S3 bucket {AWS_STORAGE_BUCKET_NAME} ({AWS_S3_REGION_NAME})")
 else:
     # Local filesystem for development
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
-    print(f"=== USING LOCAL FILESYSTEM ===")
-    print(f"MEDIA_ROOT: {MEDIA_ROOT}")
+    print(f"Media storage: local filesystem at {MEDIA_ROOT}")
 
 # Whitenoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'

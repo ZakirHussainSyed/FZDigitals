@@ -329,6 +329,7 @@
     </style>
 </head>
 <body>
+{% csrf_token %}
     <div class="container">
         <div class="header">
             <h1>Device Management</h1>
@@ -455,6 +456,11 @@
     </div>
     
     <script>
+        function csrfToken() {
+            const field = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            return field ? field.value : '';
+        }
+
         let allDevices = [];
         let allUsers = [];
         
@@ -560,6 +566,8 @@
                     <td>${device.screen ? `Slideshow-${device.screen}` : '-'}</td>
                     <td>${lastSeen}</td>
                     <td>
+                        <button class="action-btn" onclick="openAssignModal('${device.device_id}')">Assign</button>
+                        ${device.user_id ? `<button class="action-btn" onclick="unlinkDevice('${device.device_id}')">Unlink</button>` : ''}
                         <button class="action-btn delete" onclick="deleteDevice('${device.device_id}')">Delete</button>
                     </td>
                 `;
@@ -657,6 +665,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken(),
                     },
                     body: JSON.stringify({
                         user_id: parseInt(userId),
@@ -687,6 +696,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken(),
                     },
                     body: JSON.stringify({
                         user_id: null,
@@ -713,7 +723,8 @@
             
             try {
                 const response = await fetch(`/api/device/${deviceId}/delete/`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken() }
                 });
                 
                 const data = await response.json();
