@@ -28,11 +28,15 @@ if _superuser and _superuser_password:
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
-    user, _ = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         username=_superuser,
         defaults={'email': os.environ.get('DJANGO_SUPERUSER_EMAIL', '')},
     )
     user.is_staff = True
     user.is_superuser = True
+    user.is_active = True
     user.set_password(_superuser_password)
     user.save()
+    print(f"=== SUPERUSER BOOTSTRAP: {'created' if created else 'password reset for'} '{_superuser}' ===")
+else:
+    print("=== SUPERUSER BOOTSTRAP: skipped, DJANGO_SUPERUSER_USERNAME/PASSWORD not both set ===")
