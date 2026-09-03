@@ -518,7 +518,7 @@
             allUsers.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.email} (ID: ${user.id})`;
+                option.textContent = `${user.email || user.username} (ID: ${user.id})`;
                 select.appendChild(option);
             });
         }
@@ -562,7 +562,7 @@
                     <td>${device.name || 'Unnamed'}</td>
                     <td><span class="device-type ${deviceTypeClass}">${device.device_type || 'Unknown'}</span></td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${device.user_email || '-'}</td>
+                    <td>${device.user_label || '-'}</td>
                     <td>${device.screen ? `Slideshow-${device.screen}` : '-'}</td>
                     <td>${lastSeen}</td>
                     <td>

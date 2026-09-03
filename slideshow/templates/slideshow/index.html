@@ -347,7 +347,7 @@
         <img src="/static/logo.png" alt="Logo" class="logo" />
         {% if user.is_authenticated %}
         <div class="user-info">
-            <span>Welcome, {{ user.email }}</span>
+            <span>Welcome, {{ user.email|default:user.username }}</span>
             <a href="/accounts/logout/">Logout</a>
             {% if user.is_superuser %}
                 <a href="/user-management/">User Management</a>
