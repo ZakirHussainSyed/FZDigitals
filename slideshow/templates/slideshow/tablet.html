@@ -667,6 +667,9 @@
             setInterval(refresh, 30000);
             refresh();
             requestAutoFullscreen();
+            if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
+                Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});
+            }
         }
 
         // Keep list updated
