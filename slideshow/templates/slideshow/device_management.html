@@ -512,7 +512,7 @@
             allUsers.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.email} (ID: ${user.id})`;
+                option.textContent = `${user.email || user.username} (ID: ${user.id})`;
                 select.appendChild(option);
             });
         }
