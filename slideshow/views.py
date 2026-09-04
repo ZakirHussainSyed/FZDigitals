@@ -1,4 +1,4 @@
-from django.http import JsonResponse, HttpResponse, FileResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -505,7 +505,20 @@ def api_pairing_info(request):
 def api_pairing_lookup(request, pairing_id):
     """Lookup user by pairing ID for tablet connection and auto-create/link device"""
     try:
-        pairing = get_object_or_404(DevicePairing, pairing_id=pairing_id.upper())
+        pairing_id = pairing_id.upper()
+        pairing = DevicePairing.objects.filter(pairing_id=pairing_id).first()
+
+        if not pairing:
+            # Pairing code no longer exists. If a linked Device still exists with no
+            # assigned user, the user that owned the pairing was likely deleted.
+            if Device.objects.filter(device_id=pairing_id, user__isnull=True).exists():
+                return JsonResponse({
+                    'success': False,
+                    'user_deleted': True,
+                    'contact_email': 'growwithfzdigitals@gmail.com',
+                    'error': 'This pairing code is no longer active. Please contact growwithfzdigitals@gmail.com for service and a new pairing code.'
+                }, status=404)
+            raise Http404("Invalid pairing ID")
 
         # Identify the paired browser itself when it sends its own id, so that
         # several browsers sharing a pairing code stay distinct devices

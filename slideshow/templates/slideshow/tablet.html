@@ -507,6 +507,12 @@
                     const newUrl = `/tablet/${id}/`;
                     window.history.pushState({path: newUrl}, '', newUrl);
                     refresh();
+                } else if (data.user_deleted) {
+                    // User that owned this pairing was deleted; reroute to tablet pairing page
+                    pairingScreen.classList.remove('hidden');
+                    window.history.replaceState(null, '', '/tablet/');
+                    pairingError.innerHTML = data.error || 'This pairing code is no longer active. Please contact <a href="mailto:growwithfzdigitals@gmail.com" style="color:#7c5cff;text-decoration:underline;">growwithfzdigitals@gmail.com</a> for service and a new pairing code.';
+                    pairingError.classList.add('show');
                 } else {
                     if (!pairingId) {
                         pairingError.textContent = data.error || 'Invalid pairing ID';
