@@ -2,10 +2,12 @@ services:
   - type: web
     name: fzdigitals
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
-    releaseCommand: python manage.py migrate --noinput && python create_superuser.py
+    releaseCommand: python manage.py migrate --noinput
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: DEBUG
         value: False
       - key: SECRET_KEY

@@ -8,11 +8,44 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
+from django.utils.crypto import constant_time_compare
 import logging
 
 from .models import MediaFile, DevicePairing, UserProfile, Device
 
 logger = logging.getLogger(__name__)
+
+
+def browser_label(user_agent):
+    """Short human readable name for a browser, e.g. 'Chrome on macOS'"""
+    ua = user_agent or ''
+    browser = 'Browser'
+    for name, token in (
+        ('Edge', 'Edg/'),
+        ('Opera', 'OPR/'),
+        ('Samsung Internet', 'SamsungBrowser'),
+        ('Firefox', 'Firefox/'),
+        ('Chrome', 'Chrome/'),
+        ('Safari', 'Safari/'),
+    ):
+        if token in ua:
+            browser = name
+            break
+
+    platform = 'Unknown OS'
+    for name, token in (
+        ('Android', 'Android'),
+        ('iOS', 'iPhone'),
+        ('iPadOS', 'iPad'),
+        ('Windows', 'Windows'),
+        ('macOS', 'Mac OS X'),
+        ('Linux', 'Linux'),
+    ):
+        if token in ua:
+            platform = name
+            break
+
+    return f'{browser} on {platform}'
 
 
 def index(request):
@@ -267,10 +300,10 @@ def service_worker(request):
     return HttpResponse(js, content_type='application/javascript')
 
 
+@login_required
 @require_http_methods(["GET"])
 def api_media_list(request):
     try:
-        user_id = request.GET.get('user_id')
         screen = request.GET.get('screen', 1)
         
         try:
@@ -280,15 +313,7 @@ def api_media_list(request):
         except ValueError:
             screen = 1
         
-        if user_id:
-            # For tablet pairing - allow filtering by user_id and screen
-            files = MediaFile.objects.filter(user_id=user_id, screen=screen)
-        elif request.user.is_authenticated:
-            # For dashboard - use authenticated user and screen
-            files = MediaFile.objects.filter(user=request.user, screen=screen)
-        else:
-            # No user specified and not authenticated
-            files = MediaFile.objects.none()
+        files = MediaFile.objects.filter(user=request.user, screen=screen)
         return JsonResponse(
             {
                 'success': True,
@@ -309,13 +334,10 @@ def api_media_list(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@csrf_exempt
+@login_required
 @require_http_methods(["POST"])
 def api_upload(request):
     try:
-        from django.conf import settings
-        import os
-        
         uploaded = request.FILES.getlist('files')
         screen = request.POST.get('screen', 1)
         
@@ -326,10 +348,7 @@ def api_upload(request):
         except ValueError:
             screen = 1
         
-        print(f"=== UPLOAD DEBUG ===")
-        print(f"Received {len(uploaded)} files for upload to screen {screen}")
-        print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-        print(f"MEDIA_ROOT exists: {os.path.exists(settings.MEDIA_ROOT)}")
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         
         created = []
         for uf in uploaded:
@@ -338,18 +357,24 @@ def api_upload(request):
             elif uf.content_type.startswith('video/'):
                 ct = 'video'
             else:
-                print(f"Skipping file with unsupported content type: {uf.content_type}")
-                continue
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{uf.name}: only image and video files are allowed',
+                }, status=400)
+
+            if uf.size > max_bytes:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{uf.name} is larger than {settings.MAX_UPLOAD_SIZE_MB} MB',
+                }, status=400)
 
             m = MediaFile.objects.create(
-                user=request.user if request.user.is_authenticated else None,
+                user=request.user,
                 screen=screen,
                 title=uf.name,
                 content_type=ct,
                 file=uf,
             )
-            print(f"Created MediaFile: id={m.id}, title={m.title}, file={m.file.name}, user={m.user}, screen={m.screen}")
-            print(f"File URL: {m.file.url}")
             
             created.append(
                 {
@@ -370,13 +395,13 @@ def api_upload(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-@csrf_exempt
+@login_required
 @require_http_methods(["POST"])
 def api_delete(request, pk: int):
+    obj = MediaFile.objects.filter(pk=pk, user=request.user).first()
+    if obj is None:
+        return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
     try:
-        obj = get_object_or_404(MediaFile, pk=pk)
-        if obj.file and hasattr(obj.file, 'delete'):
-            obj.file.delete(save=False)
         obj.delete()
         return JsonResponse({'success': True})
     except Exception as e:
@@ -481,13 +506,20 @@ def api_pairing_lookup(request, pairing_id):
     """Lookup user by pairing ID for tablet connection and auto-create/link device"""
     try:
         pairing = get_object_or_404(DevicePairing, pairing_id=pairing_id.upper())
-        
-        # Auto-create or update device entry when pairing code is used
-        # Use pairing_id as device_id for consistency
+
+        # Identify the paired browser itself when it sends its own id, so that
+        # several browsers sharing a pairing code stay distinct devices
+        browser_id = (request.GET.get('browser_id') or '').strip().upper()[:100]
+        device_key = browser_id or pairing_id.upper()
+        if browser_id:
+            device_name = browser_label(request.META.get('HTTP_USER_AGENT'))
+        else:
+            device_name = f'Paired Device ({device_key})'
+
         device, created = Device.objects.get_or_create(
-            device_id=pairing_id.upper(),
+            device_id=device_key,
             defaults={
-                'name': f'Paired Device ({pairing_id.upper()})',
+                'name': device_name,
                 'device_type': 'browser',
                 'user': pairing.user,
                 'screen': pairing.screen,
@@ -500,14 +532,16 @@ def api_pairing_lookup(request, pairing_id):
             device.user = pairing.user
             device.screen = pairing.screen
             device.is_active = True
+            if browser_id:
+                device.name = device_name
             device.save()
         
         return JsonResponse({
             'success': True,
             'user_email': pairing.user.email,
-            'user_id': pairing.user.id,
             'screen': pairing.screen,
             'device_id': device.device_id,
+            'device_token': device.token,
             'device_linked': True
         })
     except Exception as e:
@@ -515,7 +549,7 @@ def api_pairing_lookup(request, pairing_id):
         return JsonResponse({'success': False, 'error': 'Invalid pairing ID'}, status=404)
 
 
-@csrf_exempt
+@login_required
 @require_http_methods(["POST"])
 def api_device_register(request):
     """Register a device (browser or USB) for auto-assignment"""
@@ -559,9 +593,13 @@ def api_device_register(request):
 
 @require_http_methods(["GET"])
 def api_device_slideshow(request, device_id):
-    """Get slideshow for a specific device"""
+    """Get slideshow for a specific device, authenticated by its pairing token"""
     try:
         device = get_object_or_404(Device, device_id=device_id)
+
+        token = request.GET.get('token') or request.headers.get('X-Device-Token', '')
+        if not constant_time_compare(token, device.token):
+            return JsonResponse({'success': False, 'error': 'Invalid device token'}, status=403)
         
         if not device.user:
             return JsonResponse({
@@ -707,7 +745,6 @@ def api_device_assign(request, device_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@csrf_exempt
 @login_required
 @require_http_methods(["DELETE"])
 def api_device_delete(request, device_id):

@@ -234,10 +234,24 @@
         let autoplayTimer = null;
         let resumeTimer = null;
         let paused = false;
-        let pairedUserId = null;
+        let deviceToken = localStorage.getItem('fz_device_token');
         let pairedScreen = 1;
         let deviceId = null;
         
+        function getBrowserId() {
+            let id = localStorage.getItem('fz_browser_id');
+            if (!id) {
+                const bytes = new Uint8Array(4);
+                crypto.getRandomValues(bytes);
+                id = 'BR-' + Array.from(bytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('')
+                    .toUpperCase();
+                localStorage.setItem('fz_browser_id', id);
+            }
+            return id;
+        }
+
         // Hybrid approach: Priority 1 - URL code parameter
         const urlParams = new URLSearchParams(window.location.search);
         const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
@@ -426,16 +440,19 @@
             console.log('refresh: checking slideshow sources');
             
             // Priority 1: Try URL code pairing (existing system)
-            if (pairingIdFromUrl && !pairedUserId) {
+            if (pairingIdFromUrl && !deviceToken) {
                 console.log('refresh: trying URL code pairing');
                 await connectPairing(pairingIdFromUrl);
                 return;
             }
             
             // Priority 2: Use existing pairing if available
-            if (pairedUserId) {
+            if (deviceToken) {
                 console.log('refresh: using existing pairing');
-                const res = await fetch(`/api/media/?user_id=${pairedUserId}&screen=${pairedScreen}`);
+                deviceId = deviceId || getBrowserId();
+                const res = await fetch(
+                    `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
+                );
                 const data = await res.json();
                 if (data.success) {
                     media = data.files;
@@ -446,6 +463,16 @@
                     setPaused(false);
                     startAutoplay();
                     return;
+                }
+                if (res.status === 403 || res.status === 404) {
+                    // Device was removed or re-paired elsewhere: pair again
+                    deviceToken = null;
+                    localStorage.removeItem('fz_device_token');
+                    if (pairingIdFromUrl) {
+                        await connectPairing(pairingIdFromUrl);
+                        return;
+                    }
+                    pairingScreen.classList.remove('hidden');
                 }
             }
             
@@ -464,12 +491,16 @@
 
             try {
                 console.log('Attempting to connect with pairing ID:', id);
-                const res = await fetch(`/api/pairing/${id}/`);
+                deviceId = getBrowserId();
+                const res = await fetch(
+                    `/api/pairing/${id}/?browser_id=${encodeURIComponent(deviceId)}`
+                );
                 const data = await res.json();
                 console.log('Pairing response:', data);
                 
                 if (data.success) {
-                    pairedUserId = data.user_id;
+                    deviceToken = data.device_token;
+                    localStorage.setItem('fz_device_token', deviceToken);
                     pairedScreen = data.screen || 1;
                     pairingScreen.classList.add('hidden');
                     // Update URL to include pairing ID

@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 import uuid
-import os
 
 class MediaFile(models.Model):
     CONTENT_TYPE_CHOICES = [
@@ -88,6 +87,10 @@ class UserProfile(models.Model):
         return f"{self.user.username} - Profile"
 
 
+def generate_device_token():
+    return uuid.uuid4().hex
+
+
 class Device(models.Model):
     """Hardware device for USB displays"""
     DEVICE_TYPE_CHOICES = [
@@ -96,6 +99,8 @@ class Device(models.Model):
     ]
     
     device_id = models.CharField(max_length=100, unique=True)  # Hardware ID or localStorage ID
+    # Secret handed to the display when it pairs; required to read its slideshow
+    token = models.CharField(max_length=64, unique=True, default=generate_device_token)
     name = models.CharField(max_length=200, blank=True)
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='browser')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Assigned user
@@ -113,7 +118,6 @@ class Device(models.Model):
 
 @receiver(post_delete, sender=MediaFile)
 def delete_media_file(sender, instance, **kwargs):
-    """Delete file from disk when MediaFile is deleted"""
+    """Delete the stored file when a MediaFile is deleted"""
     if instance.file:
-        if os.path.isfile(instance.file.path):
-            os.remove(instance.file.path)
+        instance.file.delete(save=False)
