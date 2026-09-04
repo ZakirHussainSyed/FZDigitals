@@ -701,6 +701,7 @@ def api_devices_list(request):
                     'user_id': d.user_id,
                     'user_email': d.user.email if d.user else None,
                     'user_name': d.user.username if d.user else None,
+                    'user_label': (d.user.email or d.user.username) if d.user else None,
                     'screen': d.screen,
                     'last_seen': d.last_seen.isoformat() if d.last_seen else None,
                     'is_active': d.is_active,
