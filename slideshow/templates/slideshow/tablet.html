@@ -195,6 +195,23 @@
         }
         .pairing-error.show { display: block; }
 
+        /* Splash screen */
+        .splash-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+        .splash-screen.hidden { display: none; }
+        .splash-screen img {
+            max-width: 70%;
+            max-height: 70%;
+            object-fit: contain;
+        }
+
         /* Big tap area for pause/resume */
         .tap-layer {
             position: absolute;
@@ -208,6 +225,9 @@
     </style>
 </head>
 <body>
+    <div class="splash-screen hidden" id="splashScreen">
+        <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
+    </div>
     <div class="pairing-screen" id="pairingScreen">
         <div class="pairing-title">Enter Pairing ID</div>
         <input type="text" class="pairing-input" id="pairingInput" placeholder="XXXXXXXX" maxlength="8" autocomplete="off">
@@ -235,6 +255,7 @@
         let resumeTimer = null;
         let paused = false;
         let deviceToken = localStorage.getItem('fz_device_token');
+        let savedPairingId = localStorage.getItem('fz_pairing_id') || null;
         let pairedScreen = 1;
         let deviceId = null;
         
@@ -439,14 +460,14 @@
         async function refresh() {
             console.log('refresh: checking slideshow sources');
             
-            // Priority 1: Try URL code pairing (existing system)
+            // Priority 1: Try explicit URL code pairing
             if (pairingIdFromUrl && !deviceToken) {
                 console.log('refresh: trying URL code pairing');
                 await connectPairing(pairingIdFromUrl);
                 return;
             }
             
-            // Priority 2: Use existing pairing if available
+            // Priority 2: Use existing device token
             if (deviceToken) {
                 console.log('refresh: using existing pairing');
                 deviceId = deviceId || getBrowserId();
@@ -472,11 +493,25 @@
                         await connectPairing(pairingIdFromUrl);
                         return;
                     }
+                    if (savedPairingId) {
+                        console.log('refresh: token invalid, trying saved pairing id');
+                        await connectPairing(savedPairingId);
+                        return;
+                    }
                     pairingScreen.classList.remove('hidden');
                 }
+                return;
+            }
+            
+            // Priority 3: Try saved pairing code
+            if (savedPairingId) {
+                console.log('refresh: trying saved pairing id');
+                await connectPairing(savedPairingId);
+                return;
             }
             
             console.log('refresh: no slideshow source available');
+            pairingScreen.classList.remove('hidden');
         }
 
         async function connectPairing(pairingId = null) {
@@ -501,6 +536,8 @@
                 if (data.success) {
                     deviceToken = data.device_token;
                     localStorage.setItem('fz_device_token', deviceToken);
+                    localStorage.setItem('fz_pairing_id', id);
+                    savedPairingId = id;
                     pairedScreen = data.screen || 1;
                     pairingScreen.classList.add('hidden');
                     // Update URL to include pairing ID
@@ -508,19 +545,28 @@
                     window.history.pushState({path: newUrl}, '', newUrl);
                     refresh();
                 } else if (data.user_deleted) {
-                    // User that owned this pairing was deleted; reroute to tablet pairing page
+                    // User that owned this pairing was deleted; clear saved code and show message
+                    if (savedPairingId === id) {
+                        localStorage.removeItem('fz_pairing_id');
+                        savedPairingId = null;
+                    }
                     pairingScreen.classList.remove('hidden');
                     window.history.replaceState(null, '', '/tablet/');
                     pairingError.innerHTML = data.error || 'This pairing code is no longer active. Please contact <a href="mailto:growwithfzdigitals@gmail.com" style="color:#7c5cff;text-decoration:underline;">growwithfzdigitals@gmail.com</a> for service and a new pairing code.';
                     pairingError.classList.add('show');
                 } else {
-                    if (!pairingId) {
-                        pairingError.textContent = data.error || 'Invalid pairing ID';
-                        pairingError.classList.add('show');
+                    // Invalid pairing; clear it if it was saved and show error
+                    if (savedPairingId === id) {
+                        localStorage.removeItem('fz_pairing_id');
+                        savedPairingId = null;
                     }
+                    pairingError.textContent = data.error || 'Invalid pairing ID';
+                    pairingError.classList.add('show');
+                    pairingScreen.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Pairing error:', error);
+                // Don't clear saved pairing on network errors, let retry later
                 if (!pairingId) {
                     pairingError.textContent = 'Connection failed: ' + error.message;
                     pairingError.classList.add('show');
@@ -591,13 +637,39 @@
             return false;
         });
 
+        function showSplash() {
+            const splash = document.getElementById('splashScreen');
+            const logo = document.getElementById('splashLogo');
+            splash.classList.remove('hidden');
+            return new Promise((resolve) => {
+                let minDone = false;
+                let imgDone = false;
+                const maybeFinish = () => {
+                    if (minDone && imgDone) {
+                        splash.classList.add('hidden');
+                        resolve();
+                    }
+                };
+                setTimeout(() => { minDone = true; maybeFinish(); }, 3000);
+                if (logo.complete) {
+                    imgDone = true;
+                    maybeFinish();
+                } else {
+                    logo.onload = () => { imgDone = true; maybeFinish(); };
+                    logo.onerror = () => { imgDone = true; maybeFinish(); };
+                }
+            });
+        }
+
+        function startApp() {
+            console.log('Initial load: starting app after splash');
+            setInterval(refresh, 30000);
+            refresh();
+            requestAutoFullscreen();
+        }
+
         // Keep list updated
-        setInterval(refresh, 30000);
-        
-        // Initial load
-        console.log('Initial load: starting refresh');
-        refresh();
-        requestAutoFullscreen();
+        showSplash().then(startApp);
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
