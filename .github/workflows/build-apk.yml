@@ -39,6 +39,20 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Apply FZDigitals app icon
+        working-directory: mobile
+        run: |
+          LOGO=../slideshow/static/slideshow/logo.png
+          rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            dir=${d%%:*}; size=${d##*:}
+            convert "$LOGO" -resize ${size}x${size} -background black -gravity center -extent ${size}x${size} android/app/src/main/res/mipmap-$dir/ic_launcher.png
+            cp android/app/src/main/res/mipmap-$dir/ic_launcher.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
+          done
+          mkdir -p android/app/src/main/res/drawable-xhdpi
+          convert "$LOGO" -resize 320x180 -background black -gravity center -extent 320x180 android/app/src/main/res/drawable-xhdpi/banner.png
+          sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner"|' android/app/src/main/AndroidManifest.xml
+
       - name: Sync Capacitor
         working-directory: mobile
         run: npx cap sync android

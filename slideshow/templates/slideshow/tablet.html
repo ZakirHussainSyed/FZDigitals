@@ -479,6 +479,7 @@
                 if (data.success) {
                     media = data.files;
                     if (current >= media.length) current = 0;
+                    pairingScreen.classList.add('hidden');
                     renderSlides();
                     show(current);
                     // Ensure autoplay starts
