@@ -33,7 +33,9 @@ if not SECRET_KEY:
         raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is off')
     SECRET_KEY = 'django-insecure-local-development-key'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,fzdigitals.onrender.com,fzscreens.com,www.fzscreens.com').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,fzdigitals.onrender.com').split(',')
+# Always allow the public custom domain even if the ALLOWED_HOSTS env var is set without it
+ALLOWED_HOSTS += [h for h in ('fzscreens.com', 'www.fzscreens.com') if h not in ALLOWED_HOSTS]
 
 # Served over HTTPS everywhere except local production-like runs (HTTPS_ONLY=False)
 if not DEBUG and os.environ.get('HTTPS_ONLY', 'True') == 'True':
