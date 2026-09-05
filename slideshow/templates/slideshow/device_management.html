@@ -326,6 +326,17 @@
         .clear-filters:hover {
             background: rgba(255,255,255,0.15);
         }
+        .table-scroll { overflow-x: auto; }
+        @media (max-width: 700px) {
+            body { padding: 20px 12px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+            h1 { font-size: 24px; }
+            .devices-section { padding: 16px; }
+            .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .devices-table th, .devices-table td { padding: 10px 12px; font-size: 13px; white-space: nowrap; }
+            .stat-card { padding: 16px; }
+            .stat-number { font-size: 28px; }
+        }
     </style>
 </head>
 <body>
@@ -406,6 +417,7 @@
             <div id="loading" class="loading">Loading devices...</div>
             <div id="emptyState" class="empty-state" style="display: none;">No devices registered yet.</div>
             
+            <div class="table-scroll">
             <table class="devices-table" id="devicesTable" style="display: none;">
                 <thead>
                     <tr>
@@ -421,6 +433,7 @@
                 </thead>
                 <tbody id="devicesBody"></tbody>
             </table>
+            </div>
         </div>
     </div>
     
