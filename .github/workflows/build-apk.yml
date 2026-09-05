@@ -39,6 +39,9 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
       - name: Apply FZDigitals app icon
         working-directory: mobile
         run: |
