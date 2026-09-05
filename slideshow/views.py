@@ -49,10 +49,10 @@ def browser_label(user_agent):
 
 
 def index(request):
-    """Root URL - shows login page or redirects to user dashboard"""
+    """Root URL - shows landing page or redirects to user dashboard"""
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
-    return render(request, 'slideshow/login.html')
+    return render(request, 'slideshow/home.html')
 
 
 def django_login(request):
