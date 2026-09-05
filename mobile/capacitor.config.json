@@ -4,7 +4,7 @@
   "webDir": "www",
   "backgroundColor": "#000000",
   "server": {
-    "url": "https://fzdigitals.onrender.com/tablet/"
+    "url": "https://www.fzscreens.com/tablet/"
   },
   "android": {
     "backgroundColor": "#000000"
