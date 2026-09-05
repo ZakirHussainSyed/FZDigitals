@@ -108,8 +108,16 @@
         }
         
         .pairing-code-text {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 12px;
             color: #7c5cff;
-            font-size: 0.75em;
+            background: rgba(124, 92, 255, 0.12);
+            border: 1px solid rgba(124, 92, 255, 0.4);
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.02em;
         }
         
         /* Library */
@@ -551,12 +559,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : ${data.pairing_id} )</span>`;
+                        screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your display screen : ${data.pairing_id} )</span>`;
                     }
                 })
                 .catch(error => {
                     console.error('Failed to load pairing code:', error);
-                    screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your tablet device : Error loading code )</span>`;
+                    screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">( Use this code to pair your display screen : Error loading code )</span>`;
                 });
         }
         
