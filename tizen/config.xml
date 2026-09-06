@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://fzdigitals.com/fzscreens" version="1.0.0" viewmodes="maximized">
+    <tizen:application id="FZScreens1.FZScreens" package="FZScreens1" required_version="2.3"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <icon src="icon.png"/>
+    <name>FZ Screens</name>
+    <access origin="https://www.fzscreens.com" subdomains="true"/>
+    <access origin="https://fzdigitals.onrender.com" subdomains="true"/>
+    <tizen:allow-navigation>www.fzscreens.com fzscreens.com fzdigitals.onrender.com</tizen:allow-navigation>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" hwkey-event="enable"/>
+</widget>
