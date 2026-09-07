@@ -76,3 +76,23 @@ jobs:
         with:
           name: fzdigitals-tablet-debug
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build release AAB
+        working-directory: mobile/android
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Sign AAB
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          jarsigner -keystore /tmp/release.keystore -storetype pkcs12 -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" mobile/android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: fzscreens-release-aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
