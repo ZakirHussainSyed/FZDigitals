@@ -96,3 +96,25 @@ jobs:
         with:
           name: fzscreens-release-aab
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Build release APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Sign release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          BT=$ANDROID_HOME/build-tools/35.0.0
+          $BT/zipalign -p -f 4 mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/app-aligned.apk
+          $BT/apksigner sign --ks /tmp/release.keystore --ks-key-alias "$KEY_ALIAS" --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" --out mobile/android/app/build/outputs/apk/release/app-release-signed.apk /tmp/app-aligned.apk
+
+      - name: Upload signed release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fzscreens-release-apk
+          path: mobile/android/app/build/outputs/apk/release/app-release-signed.apk
