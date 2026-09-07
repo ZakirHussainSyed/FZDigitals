@@ -39,6 +39,14 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Auto-bump app version
+        working-directory: mobile
+        run: |
+          GRADLE=android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" $GRADLE
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" $GRADLE
+          grep -E "versionCode|versionName" $GRADLE
+
       - name: Install ImageMagick
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
