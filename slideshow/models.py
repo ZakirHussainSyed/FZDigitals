@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.contrib.auth.models import User
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -11,16 +11,8 @@ class MediaFile(models.Model):
         ('video', 'Video'),
     ]
     
-    SCREEN_CHOICES = [
-        (1, 'Slideshow-1'),
-        (2, 'Slideshow-2'),
-        (3, 'Slideshow-3'),
-        (4, 'Slideshow-4'),
-        (5, 'Slideshow-5'),
-    ]
-
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    screen = models.IntegerField(choices=SCREEN_CHOICES, default=1)
+    screen = models.IntegerField(default=1, validators=[MinValueValidator(1)])
     title = models.CharField(max_length=255)
     content_type = models.CharField(max_length=10, choices=CONTENT_TYPE_CHOICES)
     file = models.FileField(
@@ -42,16 +34,8 @@ class MediaFile(models.Model):
 
 
 class DevicePairing(models.Model):
-    SCREEN_CHOICES = [
-        (1, 'Slideshow-1'),
-        (2, 'Slideshow-2'),
-        (3, 'Slideshow-3'),
-        (4, 'Slideshow-4'),
-        (5, 'Slideshow-5'),
-    ]
-    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    screen = models.IntegerField(choices=SCREEN_CHOICES, default=1)
+    screen = models.IntegerField(default=1, validators=[MinValueValidator(1)])
     pairing_id = models.CharField(max_length=12, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -108,7 +92,7 @@ class Device(models.Model):
     name = models.CharField(max_length=200, blank=True)
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='browser')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Assigned user
-    screen = models.IntegerField(choices=MediaFile.SCREEN_CHOICES, default=1)  # Assigned screen
+    screen = models.IntegerField(default=1, validators=[MinValueValidator(1)])  # Assigned screen
     last_seen = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -309,10 +309,19 @@ def api_media_list(request):
         
         try:
             screen = int(screen)
-            if screen < 1 or screen > 5:
+            if screen < 1:
                 screen = 1
         except ValueError:
             screen = 1
+        
+        # Respect the user's screen limit; superusers are unrestricted
+        if not request.user.is_superuser:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if screen > profile.max_slideshows:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Screen number must be between 1 and {profile.max_slideshows}',
+                }, status=400)
         
         files = MediaFile.objects.filter(user=request.user, screen=screen)
         return JsonResponse(
