@@ -262,7 +262,13 @@ def user_dashboard(request, user_id):
     if request.user.id != user_id:
         return redirect(f'/{request.user.id}/')
     
-    return render(request, 'slideshow/index.html', {'user': request.user})
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    max_slideshows = profile.max_slideshows
+    return render(request, 'slideshow/index.html', {
+        'user': request.user,
+        'max_slideshows': max_slideshows,
+        'screens': range(1, max_slideshows + 1),
+    })
 
 
 def tablet(request):
