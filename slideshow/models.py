@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
 from django.contrib.auth.models import User
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 import uuid
 
@@ -31,6 +31,7 @@ class MediaFile(models.Model):
             )
         ],
     )
+    file_size = models.PositiveIntegerField(default=0, help_text='File size in bytes')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
@@ -82,6 +83,9 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     security_question = models.CharField(max_length=50, choices=SECURITY_QUESTIONS)
     security_answer = models.CharField(max_length=255)
+    max_slideshows = models.PositiveIntegerField(default=5, help_text='Max number of slideshows this user can create')
+    max_screens_per_slideshow = models.PositiveIntegerField(default=0, help_text='Max devices per slideshow; 0 = unlimited')
+    storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
     
     def __str__(self):
         return f"{self.user.username} - Profile"
@@ -114,6 +118,12 @@ class Device(models.Model):
     
     def __str__(self) -> str:
         return f"{self.device_id} - {self.name or 'Unnamed'} ({self.device_type})"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
 
 
 @receiver(post_delete, sender=MediaFile)

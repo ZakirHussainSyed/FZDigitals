@@ -171,7 +171,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 TRIAL_PERIOD_DAYS = 14
 
 # Largest media file a customer may upload
-MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_UPLOAD_SIZE_MB', '200'))
+MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_UPLOAD_SIZE_MB', '25'))
 
 # Media files configuration
 # Use S3 for persistent storage in production (Render)

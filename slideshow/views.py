@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
 from django.utils.crypto import constant_time_compare
+from django.db.models import Sum
 import logging
 
 from .models import MediaFile, DevicePairing, UserProfile, Device
@@ -343,12 +344,20 @@ def api_upload(request):
         
         try:
             screen = int(screen)
-            if screen < 1 or screen > 5:
-                screen = 1
         except ValueError:
             screen = 1
         
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if screen < 1 or screen > profile.max_slideshows:
+            return JsonResponse({
+                'success': False,
+                'error': f'Screen number must be between 1 and {profile.max_slideshows}',
+            }, status=400)
+        
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        
+        used = MediaFile.objects.filter(user=request.user).aggregate(total=Sum('file_size'))['total'] or 0
+        quota_bytes = profile.storage_quota_mb * 1024 * 1024
         
         created = []
         for uf in uploaded:
@@ -367,6 +376,12 @@ def api_upload(request):
                     'success': False,
                     'error': f'{uf.name} is larger than {settings.MAX_UPLOAD_SIZE_MB} MB',
                 }, status=400)
+            
+            if used + uf.size > quota_bytes:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Uploading {uf.name} would exceed your {profile.storage_quota_mb} MB storage quota',
+                }, status=400)
 
             m = MediaFile.objects.create(
                 user=request.user,
@@ -374,7 +389,9 @@ def api_upload(request):
                 title=uf.name,
                 content_type=ct,
                 file=uf,
+                file_size=uf.size,
             )
+            used += uf.size
             
             created.append(
                 {
@@ -481,10 +498,15 @@ def api_pairing_info(request):
         screen = request.GET.get('screen', 1)
         try:
             screen = int(screen)
-            if screen < 1 or screen > 5:
-                screen = 1
         except ValueError:
             screen = 1
+        
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if screen < 1 or screen > profile.max_slideshows:
+            return JsonResponse({
+                'success': False,
+                'error': f'Screen number must be between 1 and {profile.max_slideshows}',
+            }, status=400)
         
         pairing, created = DevicePairing.objects.get_or_create(
             user=request.user,
@@ -528,6 +550,16 @@ def api_pairing_lookup(request, pairing_id):
             device_name = browser_label(request.META.get('HTTP_USER_AGENT'))
         else:
             device_name = f'Paired Device ({device_key})'
+
+        # Enforce per-screen device limit
+        profile, _ = UserProfile.objects.get_or_create(user=pairing.user)
+        if profile.max_screens_per_slideshow > 0:
+            existing = Device.objects.filter(user=pairing.user, screen=pairing.screen).count()
+            if not Device.objects.filter(device_id=device_key).exists() and existing >= profile.max_screens_per_slideshow:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Slideshow {pairing.screen} is limited to {profile.max_screens_per_slideshow} screens',
+                }, status=403)
 
         device, created = Device.objects.get_or_create(
             device_id=device_key,
