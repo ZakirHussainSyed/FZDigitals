@@ -268,6 +268,7 @@ def user_dashboard(request, user_id):
         'user': request.user,
         'max_slideshows': max_slideshows,
         'screens': range(1, max_slideshows + 1),
+        'max_upload_size_mb': settings.MAX_UPLOAD_SIZE_MB,
     })
 
 

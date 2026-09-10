@@ -462,6 +462,8 @@
 
         // Screen state management
         const maxSlideshows = parseInt("{{ max_slideshows }}", 10) || 5;
+        const maxUploadSizeMB = parseInt("{{ max_upload_size_mb }}", 10) || 25;
+        const maxUploadBytes = maxUploadSizeMB * 1024 * 1024;
         const screenStates = {};
         
         // Initialize state for each screen
@@ -670,6 +672,18 @@
                 const files = state.pendingFiles.length ? state.pendingFiles : Array.from(elements.fileInput.files || []);
                 if (!files.length) {
                     elements.fileInput.click();
+                    return;
+                }
+
+                const tooBig = files.find(f => f.size > maxUploadBytes);
+                if (tooBig) {
+                    alert(`${tooBig.name} is larger than ${maxUploadSizeMB} MB`);
+                    return;
+                }
+
+                const badType = files.find(f => !f.type.startsWith('image/') && !f.type.startsWith('video/'));
+                if (badType) {
+                    alert(`${badType.name}: only Picture, GIF and Video formats are allowed`);
                     return;
                 }
 
