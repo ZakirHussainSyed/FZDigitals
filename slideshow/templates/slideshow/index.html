@@ -699,6 +699,7 @@
                 function clearSelection() {
                     elements.fileInput.value = '';
                     state.pendingFiles = [];
+                    if (elements.selectedInfo) elements.selectedInfo.textContent = '';
                     renderPendingFiles(screen);
                     if (elements.progress) elements.progress.style.display = 'none';
                 }
