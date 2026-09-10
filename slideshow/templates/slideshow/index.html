@@ -617,29 +617,50 @@
 
         function uploadFiles(files, screen, onProgress) {
             return new Promise((resolve, reject) => {
-                const fd = new FormData();
-                for (const f of files) fd.append('files', f);
-                fd.append('screen', screen);
+                let completed = 0;
+                const allCreated = [];
 
-                const xhr = new XMLHttpRequest();
-                xhr.upload.addEventListener('progress', (e) => {
-                    if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 100);
-                        onProgress(pct);
+                function uploadOne(i) {
+                    if (i >= files.length) {
+                        resolve({ success: true, files: allCreated });
+                        return;
                     }
-                });
-                xhr.addEventListener('load', () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve(xhr.response);
-                    } else {
-                        reject(new Error(xhr.response?.error || 'Upload failed'));
-                    }
-                });
-                xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-                xhr.open('POST', '/api/upload/');
-                xhr.setRequestHeader('X-CSRFToken', csrfToken());
-                xhr.responseType = 'json';
-                xhr.send(fd);
+
+                    const fd = new FormData();
+                    fd.append('files', files[i]);
+                    fd.append('screen', screen);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable) {
+                            const current = (e.loaded / e.total);
+                            const pct = Math.round(((completed + current) / files.length) * 100);
+                            onProgress(pct);
+                        }
+                    });
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            const resp = xhr.response;
+                            if (resp && resp.success) {
+                                if (resp.files) allCreated.push(...resp.files);
+                                completed += 1;
+                                onProgress(Math.round((completed / files.length) * 100));
+                                uploadOne(i + 1);
+                            } else {
+                                reject(new Error(resp?.error || 'Upload failed'));
+                            }
+                        } else {
+                            reject(new Error(xhr.response?.error || 'Upload failed'));
+                        }
+                    });
+                    xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+                    xhr.open('POST', '/api/upload/');
+                    xhr.setRequestHeader('X-CSRFToken', csrfToken());
+                    xhr.responseType = 'json';
+                    xhr.send(fd);
+                }
+
+                uploadOne(0);
             });
         }
 

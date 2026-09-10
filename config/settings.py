@@ -173,10 +173,9 @@ TRIAL_PERIOD_DAYS = 14
 # Largest media file a customer may upload
 MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_UPLOAD_SIZE_MB', '25'))
 
-# Allow multipart requests up to slightly above the per-file limit so our upload view
-# can return a clean JSON error for files that exceed the customer limit.
-DATA_UPLOAD_MAX_MEMORY_SIZE = (MAX_UPLOAD_SIZE_MB + 5) * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = (MAX_UPLOAD_SIZE_MB + 5) * 1024 * 1024
+# Stream files larger than 2 MB to disk so multi-file uploads don't fill Render memory.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 
 # Media files configuration
 # Use S3 for persistent storage in production (Render)
