@@ -255,10 +255,10 @@
         let autoplayTimer = null;
         let resumeTimer = null;
         let paused = false;
-        let deviceToken = localStorage.getItem('fz_device_token');
+        let deviceToken = localStorage.getItem('fz_device_token') || null;
         let savedPairingId = localStorage.getItem('fz_pairing_id') || null;
         let pairedScreen = 1;
-        let deviceId = null;
+        let deviceId = localStorage.getItem('fz_device_id') || null;
         
         function getBrowserId() {
             let id = localStorage.getItem('fz_browser_id');
@@ -478,17 +478,18 @@
         async function refresh() {
             console.log('refresh: checking slideshow sources');
             
-            // Priority 1: Try explicit URL code pairing
-            if (pairingIdFromUrl && !deviceToken) {
+            // Priority 1: Try explicit URL code pairing. Re-pair when the URL
+            // code differs from what we stored, or when we lack the per-pairing
+            // device key created by the server.
+            if (pairingIdFromUrl && (pairingIdFromUrl !== savedPairingId || !deviceId || !deviceToken)) {
                 console.log('refresh: trying URL code pairing');
                 await connectPairing(pairingIdFromUrl);
                 return;
             }
             
             // Priority 2: Use existing device token
-            if (deviceToken) {
+            if (deviceToken && deviceId) {
                 console.log('refresh: using existing pairing');
-                deviceId = deviceId || getBrowserId();
                 const res = await fetch(
                     `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
                 );
@@ -543,14 +544,16 @@
 
             try {
                 console.log('Attempting to connect with pairing ID:', id);
-                deviceId = getBrowserId();
+                const browserId = getBrowserId();
                 const res = await fetch(
-                    `/api/pairing/${id}/?browser_id=${encodeURIComponent(deviceId)}`
+                    `/api/pairing/${id}/?browser_id=${encodeURIComponent(browserId)}`
                 );
                 const data = await res.json();
                 console.log('Pairing response:', data);
                 
                 if (data.success) {
+                    deviceId = data.device_id;
+                    localStorage.setItem('fz_device_id', deviceId);
                     deviceToken = data.device_token;
                     localStorage.setItem('fz_device_token', deviceToken);
                     localStorage.setItem('fz_pairing_id', id);

@@ -550,14 +550,12 @@ def api_pairing_lookup(request, pairing_id):
                 }, status=404)
             raise Http404("Invalid pairing ID")
 
-        # Identify the paired browser itself when it sends its own id, so that
-        # several browsers sharing a pairing code stay distinct devices
+        # Identify each (pairing code, browser) pair as a distinct device.
+        # This prevents the same browser opening two different pairing codes
+        # from overwriting the same Device row.
         browser_id = (request.GET.get('browser_id') or '').strip().upper()[:100]
-        device_key = browser_id or pairing_id.upper()
-        if browser_id:
-            device_name = browser_label(request.META.get('HTTP_USER_AGENT'))
-        else:
-            device_name = f'Paired Device ({device_key})'
+        device_key = f"{pairing_id.upper()}-{browser_id}" if browser_id else pairing_id.upper()
+        device_name = browser_label(request.META.get('HTTP_USER_AGENT')) if browser_id else f'Paired Device ({device_key})'
 
         # Enforce per-screen device limit (non-super users only)
         if not pairing.user.is_superuser:
