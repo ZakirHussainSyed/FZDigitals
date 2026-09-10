@@ -347,17 +347,24 @@ def api_upload(request):
         except ValueError:
             screen = 1
         
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        if screen < 1 or screen > profile.max_slideshows:
-            return JsonResponse({
-                'success': False,
-                'error': f'Screen number must be between 1 and {profile.max_slideshows}',
-            }, status=400)
+        is_super = request.user.is_superuser
+        if not is_super:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if screen < 1 or screen > profile.max_slideshows:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Screen number must be between 1 and {profile.max_slideshows}',
+                }, status=400)
         
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         
-        used = MediaFile.objects.filter(user=request.user).aggregate(total=Sum('file_size'))['total'] or 0
-        quota_bytes = profile.storage_quota_mb * 1024 * 1024
+        if not is_super:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            used = MediaFile.objects.filter(user=request.user).aggregate(total=Sum('file_size'))['total'] or 0
+            quota_bytes = profile.storage_quota_mb * 1024 * 1024
+        else:
+            used = 0
+            quota_bytes = 0
         
         created = []
         for uf in uploaded:
@@ -371,13 +378,13 @@ def api_upload(request):
                     'error': f'{uf.name}: only image and video files are allowed',
                 }, status=400)
 
-            if uf.size > max_bytes:
+            if not is_super and uf.size > max_bytes:
                 return JsonResponse({
                     'success': False,
                     'error': f'{uf.name} is larger than {settings.MAX_UPLOAD_SIZE_MB} MB',
                 }, status=400)
             
-            if used + uf.size > quota_bytes:
+            if not is_super and used + uf.size > quota_bytes:
                 return JsonResponse({
                     'success': False,
                     'error': f'Uploading {uf.name} would exceed your {profile.storage_quota_mb} MB storage quota',
@@ -501,12 +508,13 @@ def api_pairing_info(request):
         except ValueError:
             screen = 1
         
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        if screen < 1 or screen > profile.max_slideshows:
-            return JsonResponse({
-                'success': False,
-                'error': f'Screen number must be between 1 and {profile.max_slideshows}',
-            }, status=400)
+        if not request.user.is_superuser:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if screen < 1 or screen > profile.max_slideshows:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Screen number must be between 1 and {profile.max_slideshows}',
+                }, status=400)
         
         pairing, created = DevicePairing.objects.get_or_create(
             user=request.user,
@@ -551,15 +559,16 @@ def api_pairing_lookup(request, pairing_id):
         else:
             device_name = f'Paired Device ({device_key})'
 
-        # Enforce per-screen device limit
-        profile, _ = UserProfile.objects.get_or_create(user=pairing.user)
-        if profile.max_screens_per_slideshow > 0:
-            existing = Device.objects.filter(user=pairing.user, screen=pairing.screen).count()
-            if not Device.objects.filter(device_id=device_key).exists() and existing >= profile.max_screens_per_slideshow:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'Slideshow {pairing.screen} is limited to {profile.max_screens_per_slideshow} screens',
-                }, status=403)
+        # Enforce per-screen device limit (non-super users only)
+        if not pairing.user.is_superuser:
+            profile, _ = UserProfile.objects.get_or_create(user=pairing.user)
+            if profile.max_screens_per_slideshow > 0:
+                existing = Device.objects.filter(user=pairing.user, screen=pairing.screen).count()
+                if not Device.objects.filter(device_id=device_key).exists() and existing >= profile.max_screens_per_slideshow:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Slideshow {pairing.screen} is limited to {profile.max_screens_per_slideshow} screens',
+                    }, status=403)
 
         device, created = Device.objects.get_or_create(
             device_id=device_key,
