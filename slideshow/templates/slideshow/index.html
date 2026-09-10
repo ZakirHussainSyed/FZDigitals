@@ -696,15 +696,24 @@
                     return;
                 }
 
+                function clearSelection() {
+                    elements.fileInput.value = '';
+                    state.pendingFiles = [];
+                    renderPendingFiles(screen);
+                    if (elements.progress) elements.progress.style.display = 'none';
+                }
+
                 const tooBig = files.find(f => f.size > maxUploadBytes);
                 if (tooBig) {
                     alert(`${tooBig.name} is larger than ${maxUploadSizeMB} MB`);
+                    clearSelection();
                     return;
                 }
 
                 const badType = files.find(f => !f.type.startsWith('image/') && !f.type.startsWith('video/'));
                 if (badType) {
                     alert(`${badType.name}: only Picture, GIF and Video formats are allowed`);
+                    clearSelection();
                     return;
                 }
 
@@ -723,6 +732,7 @@
                     });
                     if (!data.success) {
                         alert(data.error || 'Upload failed');
+                        clearSelection();
                         return;
                     }
                     elements.fileInput.value = '';
@@ -736,6 +746,7 @@
                     }
                 } catch (err) {
                     alert(err.message || 'Upload failed');
+                    clearSelection();
                 } finally {
                     if (elements.progress) elements.progress.style.display = 'none';
                 }
