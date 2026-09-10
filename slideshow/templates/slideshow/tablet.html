@@ -324,16 +324,29 @@
         }
 
         function stopAutoplay() {
-            if (autoplayTimer) clearInterval(autoplayTimer);
-            autoplayTimer = null;
+            console.log('stopAutoplay called');
+            if (autoplayTimer) {
+                clearTimeout(autoplayTimer);
+                autoplayTimer = null;
+            }
+            const nodes = slidesEl.querySelectorAll('.slide');
+            const v = nodes[current]?.querySelector('video');
+            if (v) {
+                v.onended = null;
+                v.pause();
+            }
         }
 
         function startAutoplay() {
-            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length, 'autoplayTimer:', autoplayTimer);
-            // Don't restart if already running
+            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length);
             if (autoplayTimer) {
-                console.log('startAutoplay: already running, skipping');
-                return;
+                clearTimeout(autoplayTimer);
+                autoplayTimer = null;
+            }
+            const nodes = slidesEl.querySelectorAll('.slide');
+            const v = nodes[current]?.querySelector('video');
+            if (v) {
+                v.onended = null;
             }
             if (!media.length) {
                 console.log('startAutoplay: no media, returning');
@@ -343,11 +356,17 @@
                 console.log('startAutoplay: paused, returning');
                 return;
             }
-            console.log('startAutoplay: starting interval with 10000ms');
-            autoplayTimer = setInterval(() => {
-                console.log('Autoplay interval fired, showing next slide');
-                show(current + 1);
-            }, 10000);
+            if (media[current].type === 'video') {
+                const video = nodes[current]?.querySelector('video');
+                if (video) {
+                    video.onended = () => { if (!paused) { show(current + 1); } };
+                    video.play().catch(() => {});
+                    console.log('startAutoplay: video slide, will advance on ended');
+                }
+            } else {
+                autoplayTimer = setTimeout(() => { show(current + 1); }, 10000);
+                console.log('startAutoplay: image slide, timeout 10000ms');
+            }
         }
 
         function updateCounter() {
@@ -449,13 +468,11 @@
                 if (!v) return;
                 if (idx !== current) {
                     v.pause();
-                } else {
-                    // try play silently; if blocked, it's okay
-                    v.play().catch(() => {});
                 }
             });
 
             updateCounter();
+            startAutoplay();
         }
 
         async function refresh() {
@@ -482,9 +499,7 @@
                     pairingScreen.classList.add('hidden');
                     renderSlides();
                     show(current);
-                    // Ensure autoplay starts
                     setPaused(false);
-                    startAutoplay();
                     return;
                 }
                 if (res.status === 403 || res.status === 404) {
