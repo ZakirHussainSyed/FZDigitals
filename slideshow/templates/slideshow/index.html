@@ -181,7 +181,7 @@
             .left-panel { overflow-y: visible; padding: 16px; }
             .right-panel { padding: 16px; justify-content: flex-start; }
             .stage { height: 300px; }
-            .tabs { flex-wrap: wrap; }
+            .tabs { flex-wrap: nowrap; }
         }
         .slide {
             position: absolute;
@@ -315,6 +315,13 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .tabs::-webkit-scrollbar {
+            display: none;
         }
         .tab {
             padding: 10px 16px;
@@ -326,6 +333,8 @@
             font-size: 14px;
             font-weight: 600;
             transition: 0.2s;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .tab:hover {
             background: rgba(255,255,255,0.1);
