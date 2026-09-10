@@ -360,7 +360,12 @@
                 const video = nodes[current]?.querySelector('video');
                 if (video) {
                     video.onended = () => { if (!paused) { show(current + 1); } };
-                    video.play().catch(() => {});
+                    video.play()
+                        .then(() => { console.log('video playing:', video.currentSrc); })
+                        .catch((err) => {
+                            console.warn('video play failed:', video.currentSrc, err);
+                            setTimeout(() => show(current + 1), 1000);
+                        });
                     console.log('startAutoplay: video slide, will advance on ended');
                 }
             } else {
@@ -433,6 +438,13 @@
                     vid.controls = false;
                     vid.muted = true;
                     vid.playsInline = true;
+                    vid.setAttribute('playsinline', '');
+                    vid.setAttribute('muted', '');
+                    vid.setAttribute('preload', 'auto');
+                    vid.onerror = () => {
+                        console.warn('video load error:', f.title);
+                        setTimeout(() => show(current + 1), 500);
+                    };
                     wrap.appendChild(vid);
                 }
 
