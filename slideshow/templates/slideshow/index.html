@@ -470,6 +470,17 @@
             });
         });
 
+        // Convert vertical mouse wheel into horizontal tab scrolling
+        const tabsContainer = document.querySelector('.tabs');
+        if (tabsContainer) {
+            tabsContainer.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    tabsContainer.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+        }
+
         // Device pairing code display for all screens
         function loadPairingCode(screen) {
             const screenHeader = document.getElementById(`screenHeader-${screen}`);
