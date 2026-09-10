@@ -570,6 +570,13 @@ def api_pairing_lookup(request, pairing_id):
         if not pairing.user.is_superuser:
             profile, _ = UserProfile.objects.get_or_create(user=pairing.user)
 
+            # The pairing's screen must be within the allowed number of screens
+            if pairing.screen > profile.max_slideshows:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Pairing code is outside the allowed number of screens ({profile.max_slideshows})',
+                }, status=403)
+
             # Global total active screens limit
             if profile.max_active_screens > 0:
                 active_total = Device.objects.filter(user=pairing.user, is_active=True).count()

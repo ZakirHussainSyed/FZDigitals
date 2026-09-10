@@ -67,10 +67,33 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     security_question = models.CharField(max_length=50, choices=SECURITY_QUESTIONS, blank=True, default='')
     security_answer = models.CharField(max_length=255, blank=True, default='')
-    max_slideshows = models.PositiveIntegerField(default=5, help_text='Max number of slideshows this user can create')
-    max_screens_per_slideshow = models.PositiveIntegerField(default=0, help_text='Max devices per slideshow; 0 = unlimited')
-    max_active_screens = models.PositiveIntegerField(default=50, help_text='Total active screens across all slideshows; 0 = unlimited')
+    max_slideshows = models.PositiveIntegerField(
+        default=5,
+        verbose_name='Number of screens',
+        help_text='Number of screens this user is allowed. This also sets the max slideshows and total active screen limit.',
+    )
+    max_screens_per_slideshow = models.PositiveIntegerField(
+        default=0,
+        editable=False,
+        help_text='Max devices per slideshow; 0 = unlimited',
+    )
+    max_active_screens = models.PositiveIntegerField(
+        default=50,
+        editable=False,
+        help_text='Total active screens across all slideshows; 0 = unlimited',
+    )
     storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
+    
+    def save(self, *args, **kwargs):
+        # A single "Number of screens" input drives all screen limits
+        # and pre-creates the pairing codes for screens 1..n.
+        if self.max_slideshows is not None and self.max_slideshows > 0:
+            self.max_screens_per_slideshow = self.max_slideshows
+            self.max_active_screens = self.max_slideshows
+        super().save(*args, **kwargs)
+        if self.user_id and self.max_slideshows and self.max_slideshows > 0:
+            for screen in range(1, self.max_slideshows + 1):
+                DevicePairing.objects.get_or_create(user=self.user, screen=screen)
     
     def __str__(self):
         return f"{self.user.username} - Profile"
