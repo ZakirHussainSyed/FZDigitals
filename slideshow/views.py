@@ -390,7 +390,7 @@ def api_upload(request):
             else:
                 return JsonResponse({
                     'success': False,
-                    'error': f'{uf.name}: only image and video files are allowed',
+                    'error': f'{uf.name}: only Picture, GIF and Video formats are allowed',
                 }, status=400)
 
             if not is_super and uf.size > max_bytes:
