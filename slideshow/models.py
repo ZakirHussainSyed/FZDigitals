@@ -69,7 +69,7 @@ class UserProfile(models.Model):
     security_answer = models.CharField(max_length=255, blank=True, default='')
     max_slideshows = models.PositiveIntegerField(default=5, help_text='Max number of slideshows this user can create')
     max_screens_per_slideshow = models.PositiveIntegerField(default=0, help_text='Max devices per slideshow; 0 = unlimited')
-    max_active_screens = models.PositiveIntegerField(default=500, help_text='Total active screens across all slideshows; 0 = unlimited')
+    max_active_screens = models.PositiveIntegerField(default=50, help_text='Total active screens across all slideshows; 0 = unlimited')
     storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
     
     def __str__(self):
