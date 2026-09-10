@@ -8,7 +8,7 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Plan Limits'
-    fields = ('max_slideshows', 'max_screens_per_slideshow', 'storage_quota_mb')
+    fields = ('max_slideshows', 'max_screens_per_slideshow', 'max_active_screens', 'storage_quota_mb')
 
 
 class UserAdmin(BaseUserAdmin):

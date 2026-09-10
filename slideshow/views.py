@@ -566,9 +566,20 @@ def api_pairing_lookup(request, pairing_id):
         device_key = f"{pairing_id.upper()}-{browser_id}" if browser_id else pairing_id.upper()
         device_name = browser_label(request.META.get('HTTP_USER_AGENT')) if browser_id else f'Paired Device ({device_key})'
 
-        # Enforce per-screen device limit (non-super users only)
+        # Enforce plan limits (non-super users only)
         if not pairing.user.is_superuser:
             profile, _ = UserProfile.objects.get_or_create(user=pairing.user)
+
+            # Global total active screens limit
+            if profile.max_active_screens > 0:
+                active_total = Device.objects.filter(user=pairing.user, is_active=True).count()
+                if not Device.objects.filter(device_id=device_key).exists() and active_total >= profile.max_active_screens:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Active screen limit reached ({profile.max_active_screens})',
+                    }, status=403)
+
+            # Per-screen (per-slideshow) device limit
             if profile.max_screens_per_slideshow > 0:
                 existing = Device.objects.filter(user=pairing.user, screen=pairing.screen).count()
                 if not Device.objects.filter(device_id=device_key).exists() and existing >= profile.max_screens_per_slideshow:
