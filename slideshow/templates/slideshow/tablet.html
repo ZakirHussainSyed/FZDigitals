@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="/static/slideshow/icon.svg" />
 
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta http-equiv="Cache-Control" content="no-store, must-revalidate, no-cache" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; background: #000; }
@@ -738,10 +739,10 @@
 
         function showQrImage(setupUrl) {
             if (!setupUrl) return;
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(setupUrl)}`;
+            qrImg.src = `/api/qr/?data=${encodeURIComponent(setupUrl)}`;
             qrImg.onerror = () => {
-                // Try Google Chart API as a fallback if the first provider fails
-                qrImg.src = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(setupUrl)}`;
+                console.error('Failed to load same-origin QR image');
+                qrImg.alt = 'Scan with your phone to link';
             };
             qrImg.onload = () => { qrWrap.style.display = 'block'; };
             qrWrap.style.display = 'block';

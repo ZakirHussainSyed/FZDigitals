@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils.crypto import constant_time_compare
 from django.db.models import Sum
 import logging
+from io import BytesIO
 
 from .models import MediaFile, DevicePairing, UserProfile, Device
 
@@ -274,12 +275,16 @@ def user_dashboard(request, user_id):
 
 def tablet(request):
     """Tablet pairing page"""
-    return render(request, 'slideshow/tablet.html')
+    response = render(request, 'slideshow/tablet.html')
+    response['Cache-Control'] = 'no-store, must-revalidate'
+    return response
 
 
 def tablet_slideshow(request, pairing_id):
     """Tablet slideshow after pairing"""
-    return render(request, 'slideshow/tablet.html', {'pairing_id': pairing_id})
+    response = render(request, 'slideshow/tablet.html', {'pairing_id': pairing_id})
+    response['Cache-Control'] = 'no-store, must-revalidate'
+    return response
 
 
 def manifest(request):
@@ -992,3 +997,35 @@ def my_screens(request):
         'error': error,
         'message': message,
     })
+
+
+@require_http_methods(["GET"])
+def api_qr_svg(request):
+    """Return an SVG QR code for the given data parameter."""
+    data = request.GET.get('data', '')
+    if not data:
+        return HttpResponse('', status=400)
+    try:
+        import qrcode
+        from qrcode.image.svg import SvgImage
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(image_factory=SvgImage)
+        stream = BytesIO()
+        img.save(stream)
+        stream.seek(0)
+        return HttpResponse(
+            stream.getvalue(),
+            content_type='image/svg+xml',
+            headers={'Cache-Control': 'no-store'}
+        )
+    except Exception as e:
+        logger.error(f"Error in api_qr_svg: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

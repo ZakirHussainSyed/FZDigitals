@@ -31,4 +31,5 @@ urlpatterns = [
     path('setup/', views.setup_pairing, name='setup-pairing'),
     path('api/pairing/new/', views.api_pairing_new, name='api-pairing-new'),
     path('screens/', views.my_screens, name='my-screens'),
+    path('api/qr/', views.api_qr_svg, name='api-qr-svg'),
 ]
