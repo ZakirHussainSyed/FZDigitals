@@ -384,6 +384,7 @@
         {% if user.is_authenticated %}
         <div class="user-info">
             <span>Welcome, {{ user.email|default:user.username }}</span>
+            <a href="/screens/">My Screens</a>
             <a href="/accounts/logout/">Logout</a>
             {% if user.is_superuser %}
                 <a href="/user-management/">User Management</a>

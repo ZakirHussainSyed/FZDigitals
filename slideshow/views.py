@@ -952,3 +952,43 @@ def setup_pairing(request):
         'screens': range(1, max_screens + 1),
         'default_name': f'Display {device.screen}',
     })
+
+
+@login_required
+def my_screens(request):
+    """List and manage the current user's screens/displays."""
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    max_screens = profile.max_slideshows
+    error = None
+    message = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        device_id = request.POST.get('device_id', '').strip()
+        device = Device.objects.filter(device_id=device_id).first()
+
+        if not device or (device.user != request.user and not request.user.is_superuser):
+            error = 'Display not found.'
+        elif action == 'update':
+            try:
+                screen = int(request.POST.get('screen', 1))
+                if 1 <= screen <= max_screens:
+                    device.screen = screen
+                device.name = request.POST.get('name', '').strip() or device.name
+                device.save()
+                message = 'Display updated.'
+            except ValueError:
+                error = 'Invalid screen.'
+        elif action == 'delete':
+            device_id_str = device.device_id
+            device.delete()
+            message = f'Display {device_id_str} removed.'
+
+    devices = Device.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'slideshow/screens.html', {
+        'devices': devices,
+        'screens': range(1, max_screens + 1),
+        'max_screens': max_screens,
+        'error': error,
+        'message': message,
+    })

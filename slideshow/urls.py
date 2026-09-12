@@ -30,4 +30,5 @@ urlpatterns = [
     path('api/device/<str:device_id>/delete/', views.api_device_delete, name='api-device-delete'),
     path('setup/', views.setup_pairing, name='setup-pairing'),
     path('api/pairing/new/', views.api_pairing_new, name='api-pairing-new'),
+    path('screens/', views.my_screens, name='my-screens'),
 ]
