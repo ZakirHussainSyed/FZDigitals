@@ -231,7 +231,8 @@
     </div>
     <div class="pairing-screen" id="pairingScreen">
         <div class="pairing-title" id="pairingTitle">Link This Display</div>
-        <div id="qrWrap" style="margin: 16px 0; display: none;">
+        <div id="qrWrap" style="margin: 16px 0; display: block;">
+            <p id="qrStatus" style="color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin-bottom: 8px;">Creating display...</p>
             <img id="qrImg" style="width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 12px; display: block; margin: 0 auto;" alt="QR code">
             <div style="color: rgba(255,255,255,0.7); font-size: 13px; text-align: center; margin-top: 10px;">Scan with your phone to link</div>
         </div>
@@ -290,6 +291,7 @@
         const pairingError = document.getElementById('pairingError');
         const qrWrap = document.getElementById('qrWrap');
         const qrImg = document.getElementById('qrImg');
+        const qrStatus = document.getElementById('qrStatus');
 
         console.log('Pairing elements found:', {
             pairingScreen: !!pairingScreen,
@@ -739,16 +741,19 @@
 
         function showQrImage(setupUrl) {
             if (!setupUrl) return;
+            if (qrStatus) qrStatus.textContent = 'Loading QR code...';
             qrImg.src = `/api/qr/?data=${encodeURIComponent(setupUrl)}`;
+            qrImg.onload = () => {
+                if (qrStatus) qrStatus.textContent = 'Scan with your phone to link';
+            };
             qrImg.onerror = () => {
                 console.error('Failed to load same-origin QR image');
-                qrImg.alt = 'Scan with your phone to link';
+                if (qrStatus) qrStatus.textContent = 'Could not load QR. Use manual code or refresh.';
             };
-            qrImg.onload = () => { qrWrap.style.display = 'block'; };
-            qrWrap.style.display = 'block';
         }
 
         async function requestQrPairing() {
+            if (qrStatus) qrStatus.textContent = 'Creating display...';
             const existingQr = deviceId && deviceToken && deviceId.startsWith('QR-');
             if (!existingQr) {
                 const browserId = getBrowserId();
@@ -763,9 +768,12 @@
                         console.log('QR pairing created:', deviceId);
                     } else {
                         console.warn('QR pairing failed:', data.error);
+                        if (qrStatus) qrStatus.textContent = `Create failed: ${data.error}`;
+                        return;
                     }
                 } catch (err) {
                     console.error('QR pairing error:', err);
+                    if (qrStatus) qrStatus.textContent = `Create error: ${err.message}`;
                     return;
                 }
             }
@@ -773,7 +781,7 @@
             const setupUrl = deviceToken
                 ? `${window.location.origin}/setup/?device_id=${encodeURIComponent(deviceId)}&token=${encodeURIComponent(deviceToken)}`
                 : '';
-            showQrImage(setupUrl);
+            await showQrImage(setupUrl);
         }
 
         function startApp() {

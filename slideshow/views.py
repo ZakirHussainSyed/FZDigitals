@@ -11,7 +11,6 @@ from django.conf import settings
 from django.utils.crypto import constant_time_compare
 from django.db.models import Sum
 import logging
-from io import BytesIO
 
 from .models import MediaFile, DevicePairing, UserProfile, Device
 
@@ -1001,31 +1000,32 @@ def my_screens(request):
 
 @require_http_methods(["GET"])
 def api_qr_svg(request):
-    """Return an SVG QR code for the given data parameter."""
+    """Proxy a QR image for the tablet so the browser/TV never calls an external image host."""
     data = request.GET.get('data', '')
     if not data:
         return HttpResponse('', status=400)
     try:
-        import qrcode
-        from qrcode.image.svg import SvgImage
-
-        qr = qrcode.QRCode(
-            version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(data)
-        qr.make(fit=True)
-        img = qr.make_image(image_factory=SvgImage)
-        stream = BytesIO()
-        img.save(stream)
-        stream.seek(0)
-        return HttpResponse(
-            stream.getvalue(),
-            content_type='image/svg+xml',
-            headers={'Cache-Control': 'no-store'}
-        )
+        import requests
+        providers = [
+            f'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={requests.utils.quote(data, safe="")}',
+            f'https://chart.googleapis.com/chart?cht=qr&chs=300x300&chld=M|0&chl={requests.utils.quote(data, safe="")}',
+        ]
+        for url in providers:
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code == 200:
+                    content_type = r.headers.get('Content-Type', 'image/png')
+                    if 'png' not in content_type.lower() and 'svg' not in content_type.lower():
+                        content_type = 'image/png'
+                    return HttpResponse(
+                        r.content,
+                        content_type=content_type,
+                        headers={'Cache-Control': 'no-store'}
+                    )
+            except Exception as provider_err:
+                logger.warning(f"QR provider failed {url}: {provider_err}")
+                continue
+        return JsonResponse({'success': False, 'error': 'QR generation unavailable'}, status=503)
     except Exception as e:
         logger.error(f"Error in api_qr_svg: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
