@@ -359,7 +359,30 @@
             if (media[current].type === 'video') {
                 const video = nodes[current]?.querySelector('video');
                 if (video) {
+                    video.loop = false;
                     video.onended = () => { if (!paused) { show(current + 1); } };
+                    video.onerror = () => {
+                        console.warn('video error, skipping:', video.currentSrc);
+                        setTimeout(() => show(current + 1), 500);
+                    };
+
+                    const scheduleFallback = () => {
+                        if (autoplayTimer) clearTimeout(autoplayTimer);
+                        const duration = isFinite(video.duration) ? video.duration : 0;
+                        if (duration > 0) {
+                            autoplayTimer = setTimeout(() => {
+                                if (!paused) show(current + 1);
+                            }, duration * 1000 + 1000);
+                        }
+                    };
+
+                    if (video.readyState >= 1) {
+                        scheduleFallback();
+                    } else {
+                        video.onloadedmetadata = scheduleFallback;
+                    }
+
+                    if (video.ended) video.currentTime = 0;
                     video.play()
                         .then(() => { console.log('video playing:', video.currentSrc); })
                         .catch((err) => {
@@ -438,6 +461,7 @@
                     vid.controls = false;
                     vid.muted = true;
                     vid.playsInline = true;
+                    vid.loop = false;
                     vid.setAttribute('playsinline', '');
                     vid.setAttribute('muted', '');
                     vid.setAttribute('preload', 'auto');
