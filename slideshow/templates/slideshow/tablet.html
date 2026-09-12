@@ -531,6 +531,12 @@
                 );
                 const data = await res.json();
                 if (data.success) {
+                    const currentIds = JSON.stringify(media.map(f => f.id));
+                    const newIds = JSON.stringify(data.files.map(f => f.id));
+                    if (currentIds === newIds && media.length === data.files.length) {
+                        // No change; don't re-render, keep current playback running
+                        return;
+                    }
                     media = data.files;
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
