@@ -882,15 +882,19 @@ def api_pairing_new(request):
             device.token = generate_device_token()
             device.save()
 
-        return JsonResponse({
+        response = JsonResponse({
             'success': True,
             'device_id': device.device_id,
             'token': device.token,
             'setup_url': request.build_absolute_uri(f'/setup/?device_id={device_id}&token={device.token}'),
         })
+        response['Cache-Control'] = 'no-store, must-revalidate'
+        return response
     except Exception as e:
         logger.error(f"Error in api_pairing_new: {str(e)}", exc_info=True)
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        response = JsonResponse({'success': False, 'error': str(e)}, status=500)
+        response['Cache-Control'] = 'no-store, must-revalidate'
+        return response
 
 
 @login_required
