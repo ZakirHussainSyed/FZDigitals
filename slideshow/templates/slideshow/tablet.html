@@ -736,8 +736,20 @@
             });
         }
 
+        function showQrImage(setupUrl) {
+            if (!setupUrl) return;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(setupUrl)}`;
+            qrImg.onerror = () => {
+                // Try Google Chart API as a fallback if the first provider fails
+                qrImg.src = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(setupUrl)}`;
+            };
+            qrImg.onload = () => { qrWrap.style.display = 'block'; };
+            qrWrap.style.display = 'block';
+        }
+
         async function requestQrPairing() {
-            if (!deviceId || !deviceToken || !deviceId.startsWith('QR-')) {
+            const existingQr = deviceId && deviceToken && deviceId.startsWith('QR-');
+            if (!existingQr) {
                 const browserId = getBrowserId();
                 try {
                     const res = await fetch(`/api/pairing/new/?browser_id=${encodeURIComponent(browserId)}`);
@@ -747,35 +759,47 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
-
-                        const qrUrl = data.setup_url;
-                        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
-                        qrImg.onload = () => { qrWrap.style.display = 'block'; };
                         console.log('QR pairing created:', deviceId);
                     } else {
                         console.warn('QR pairing failed:', data.error);
                     }
                 } catch (err) {
                     console.error('QR pairing error:', err);
+                    return;
                 }
-            } else {
-                const qrUrl = `${window.location.origin}/setup/?device_id=${encodeURIComponent(deviceId)}&token=${encodeURIComponent(deviceToken)}`;
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
-                qrImg.onload = () => { qrWrap.style.display = 'block'; };
             }
+
+            const setupUrl = deviceToken
+                ? `${window.location.origin}/setup/?device_id=${encodeURIComponent(deviceId)}&token=${encodeURIComponent(deviceToken)}`
+                : '';
+            showQrImage(setupUrl);
         }
 
         function startApp() {
             console.log('Initial load: starting app after splash');
 
-            if (!deviceToken && !pairingIdFromUrl && !savedPairingId) {
+            if (pairingIdFromUrl) {
+                // Explicit pairing code in URL: use manual flow
+                setInterval(refresh, 30000);
+                refresh();
+            } else if (deviceId && deviceToken && deviceId.startsWith('QR-')) {
+                // Already have an unclaimed QR device: show its QR and keep polling
                 requestQrPairing().then(() => {
                     setInterval(refresh, 30000);
                     refresh();
                 });
             } else {
-                setInterval(refresh, 30000);
-                refresh();
+                // Clear any stale manual pairing and start fresh with a QR code
+                localStorage.removeItem('fz_device_token');
+                localStorage.removeItem('fz_device_id');
+                localStorage.removeItem('fz_pairing_id');
+                deviceToken = null;
+                deviceId = null;
+                savedPairingId = null;
+                requestQrPairing().then(() => {
+                    setInterval(refresh, 30000);
+                    refresh();
+                });
             }
 
             requestAutoFullscreen();
