@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils.crypto import constant_time_compare
 from django.db.models import Sum
 import logging
+import secrets
 
 from .models import MediaFile, DevicePairing, UserProfile, Device
 
@@ -862,8 +863,8 @@ def api_pairing_new(request):
     """Create an unclaimed browser device and return its QR-pairing info."""
     try:
         browser_id = (request.GET.get('browser_id') or '').strip().upper()[:100]
-        if not browser_id or not browser_id.startswith('BR-'):
-            return JsonResponse({'success': False, 'error': 'Missing browser_id'}, status=400)
+        if not browser_id or not browser_id.startswith('BR-') or len(browser_id) < 6:
+            browser_id = 'BR-' + secrets.token_hex(4).upper()
 
         device_id = f'QR-{browser_id}'
         device, created = Device.objects.get_or_create(
