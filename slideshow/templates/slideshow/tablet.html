@@ -229,10 +229,15 @@
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
     </div>
     <div class="pairing-screen" id="pairingScreen">
-        <div class="pairing-title">Enter Pairing ID</div>
+        <div class="pairing-title" id="pairingTitle">Link This Display</div>
+        <div id="qrWrap" style="margin: 16px 0; display: none;">
+            <img id="qrImg" style="width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 12px; display: block; margin: 0 auto;" alt="QR code">
+            <div style="color: rgba(255,255,255,0.7); font-size: 13px; text-align: center; margin-top: 10px;">Scan with your phone to link</div>
+        </div>
+        <div style="color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin: 16px 0;">Or enter your 8-character pairing ID below</div>
         <input type="text" class="pairing-input" id="pairingInput" placeholder="XXXXXXXX" maxlength="8" autocomplete="off">
         <button class="pairing-btn" id="pairingBtn">Connect</button>
-        <a href="https://www.fzscreens.com" target="_blank" style="color:#7c5cff;font-size:13px;margin-top:16px;display:inline-block;text-decoration:none;">Visit <span style="text-decoration:underline;">www.fzscreens.com</span> to get Display code</a>
+        <a href="https://www.fzscreens.com" target="_blank" style="color:#7c5cff;font-size:13px;margin-top:16px;display:inline-block;text-decoration:none;">Visit <span style="text-decoration:underline;">www.fzscreens.com</span></a>
         <div class="pairing-error" id="pairingError">Invalid pairing ID</div>
     </div>
     
@@ -282,6 +287,8 @@
         const pairingInput = document.getElementById('pairingInput');
         const pairingBtn = document.getElementById('pairingBtn');
         const pairingError = document.getElementById('pairingError');
+        const qrWrap = document.getElementById('qrWrap');
+        const qrImg = document.getElementById('qrImg');
 
         console.log('Pairing elements found:', {
             pairingScreen: !!pairingScreen,
@@ -546,9 +553,12 @@
                     return;
                 }
                 if (res.status === 403 || res.status === 404) {
-                    // Device was removed or re-paired elsewhere: pair again
-                    deviceToken = null;
-                    localStorage.removeItem('fz_device_token');
+                    const isQr = deviceId && deviceId.startsWith('QR-');
+                    if (!isQr) {
+                        // Device was removed or re-paired elsewhere: pair again
+                        deviceToken = null;
+                        localStorage.removeItem('fz_device_token');
+                    }
                     if (pairingIdFromUrl) {
                         await connectPairing(pairingIdFromUrl);
                         return;
@@ -559,6 +569,9 @@
                         return;
                     }
                     pairingScreen.classList.remove('hidden');
+                    if (isQr) {
+                        qrWrap.style.display = 'block';
+                    }
                 }
                 return;
             }
@@ -723,10 +736,48 @@
             });
         }
 
+        async function requestQrPairing() {
+            if (!deviceId || !deviceToken || !deviceId.startsWith('QR-')) {
+                const browserId = getBrowserId();
+                try {
+                    const res = await fetch(`/api/pairing/new/?browser_id=${encodeURIComponent(browserId)}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        deviceId = data.device_id;
+                        deviceToken = data.token;
+                        localStorage.setItem('fz_device_id', deviceId);
+                        localStorage.setItem('fz_device_token', deviceToken);
+
+                        const qrUrl = data.setup_url;
+                        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+                        qrImg.onload = () => { qrWrap.style.display = 'block'; };
+                        console.log('QR pairing created:', deviceId);
+                    } else {
+                        console.warn('QR pairing failed:', data.error);
+                    }
+                } catch (err) {
+                    console.error('QR pairing error:', err);
+                }
+            } else {
+                const qrUrl = `${window.location.origin}/setup/?device_id=${encodeURIComponent(deviceId)}&token=${encodeURIComponent(deviceToken)}`;
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+                qrImg.onload = () => { qrWrap.style.display = 'block'; };
+            }
+        }
+
         function startApp() {
             console.log('Initial load: starting app after splash');
-            setInterval(refresh, 30000);
-            refresh();
+
+            if (!deviceToken && !pairingIdFromUrl && !savedPairingId) {
+                requestQrPairing().then(() => {
+                    setInterval(refresh, 30000);
+                    refresh();
+                });
+            } else {
+                setInterval(refresh, 30000);
+                refresh();
+            }
+
             requestAutoFullscreen();
             if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
                 Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});

@@ -851,3 +851,104 @@ def api_device_delete(request, device_id):
     except Exception as e:
         logger.error(f"Error in api_device_delete: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_pairing_new(request):
+    """Create an unclaimed browser device and return its QR-pairing info."""
+    try:
+        browser_id = (request.GET.get('browser_id') or '').strip().upper()[:100]
+        if not browser_id or not browser_id.startswith('BR-'):
+            return JsonResponse({'success': False, 'error': 'Missing browser_id'}, status=400)
+
+        device_id = f'QR-{browser_id}'
+        device, created = Device.objects.get_or_create(
+            device_id=device_id,
+            defaults={
+                'name': 'Unclaimed display',
+                'device_type': 'browser',
+                'user': None,
+                'screen': 1,
+                'is_active': True,
+            }
+        )
+
+        if not device.token:
+            device.token = generate_device_token()
+            device.save()
+
+        return JsonResponse({
+            'success': True,
+            'device_id': device.device_id,
+            'token': device.token,
+            'setup_url': request.build_absolute_uri(f'/setup/?device_id={device_id}&token={device.token}'),
+        })
+    except Exception as e:
+        logger.error(f"Error in api_pairing_new: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def setup_pairing(request):
+    """Web page scanned from the QR code to assign an unclaimed device to a user."""
+    device_id = (request.GET.get('device_id') or '').strip()
+    token = (request.GET.get('token') or '').strip()
+
+    if not device_id or not token:
+        return render(request, 'slideshow/setup.html', {
+            'error': 'Invalid setup link. Please scan the QR code again.'
+        })
+
+    device = Device.objects.filter(device_id=device_id, token=token).first()
+    if not device:
+        return render(request, 'slideshow/setup.html', {
+            'error': 'Display not found or link expired.'
+        })
+
+    if device.user and device.user != request.user and not request.user.is_superuser:
+        return render(request, 'slideshow/setup.html', {
+            'error': 'This display is already linked to another account.'
+        })
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    max_screens = profile.max_slideshows
+
+    if request.method == 'POST':
+        try:
+            screen = int(request.POST.get('screen', 1))
+            if screen < 1 or screen > max_screens:
+                return render(request, 'slideshow/setup.html', {
+                    'device_id': device_id,
+                    'token': token,
+                    'screens': range(1, max_screens + 1),
+                    'error': f'Screen must be between 1 and {max_screens}',
+                })
+
+            name = request.POST.get('name', '').strip() or f'Display {screen}'
+
+            device.user = request.user
+            device.screen = screen
+            device.name = name
+            device.is_active = True
+            device.save()
+
+            return render(request, 'slideshow/setup.html', {
+                'success': True,
+                'name': name,
+                'screen': screen,
+            })
+        except Exception as e:
+            logger.error(f"Error in setup_pairing: {str(e)}", exc_info=True)
+            return render(request, 'slideshow/setup.html', {
+                'device_id': device_id,
+                'token': token,
+                'screens': range(1, max_screens + 1),
+                'error': f'Something went wrong: {str(e)}',
+            })
+
+    return render(request, 'slideshow/setup.html', {
+        'device_id': device_id,
+        'token': token,
+        'screens': range(1, max_screens + 1),
+        'default_name': f'Display {device.screen}',
+    })

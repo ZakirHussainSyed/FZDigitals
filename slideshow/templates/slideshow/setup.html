@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Display - FZDigitals</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 420px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 12px; }
+        .code { color: #7c5cff; font-weight: 800; word-break: break-all; }
+        .hint { color: rgba(255,255,255,0.6); font-size: 14px; margin: 12px 0 20px; }
+        label { display: block; margin: 16px 0 6px; font-size: 14px; color: rgba(255,255,255,0.8); }
+        input, select {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            color: #fff;
+            font-size: 16px;
+        }
+        input:focus, select:focus { outline: none; border-color: #7c5cff; }
+        button {
+            width: 100%;
+            margin-top: 24px;
+            background: #7c5cff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+        .success { color: #4ade80; margin-top: 12px; }
+        .error { color: #ff4444; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        {% if success %}
+            <h1>Display linked</h1>
+            <p class="success">{{ name }} is now assigned to Slideshow-{{ screen }}.</p>
+            <p class="hint">The screen will start showing content shortly.</p>
+        {% else %}
+            <h1>Link Display</h1>
+            <p class="hint">You are setting up display <span class="code">{{ device_id }}</span>.</p>
+
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% else %}
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="device_id" value="{{ device_id }}">
+                    <input type="hidden" name="token" value="{{ token }}">
+
+                    <label for="screen">Slideshow</label>
+                    <select id="screen" name="screen">
+                        {% for s in screens %}
+                        <option value="{{ s }}" {% if s == 1 %}selected{% endif %}>Slideshow-{{ s }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="name">Display name</label>
+                    <input id="name" name="name" type="text" value="{{ default_name }}" placeholder="e.g. Store Entrance">
+
+                    <button type="submit">Link Display</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

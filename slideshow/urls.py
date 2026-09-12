@@ -28,4 +28,6 @@ urlpatterns = [
     path('api/users/', views.api_users_list, name='api-users-list'),
     path('api/device/<str:device_id>/assign/', views.api_device_assign, name='api-device-assign'),
     path('api/device/<str:device_id>/delete/', views.api_device_delete, name='api-device-delete'),
+    path('setup/', views.setup_pairing, name='setup-pairing'),
+    path('api/pairing/new/', views.api_pairing_new, name='api-pairing-new'),
 ]
