@@ -404,6 +404,12 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label>Assigned User</label>
+                        <select id="filterUser" onchange="applyFilters()">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label>Search Device ID</label>
                         <input type="text" id="filterSearch" placeholder="Enter device ID..." oninput="applyFilters()">
                     </div>
@@ -518,6 +524,7 @@
                 if (data.success) {
                     allUsers = data.users;
                     populateUserSelect();
+                    populateUserFilter();
                 }
             } catch (err) {
                 console.error('Failed to load users:', err);
@@ -527,6 +534,18 @@
         function populateUserSelect() {
             const select = document.getElementById('assignUser');
             select.innerHTML = '<option value="">Select User</option>';
+            
+            allUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.email || user.username} (ID: ${user.id})`;
+                select.appendChild(option);
+            });
+        }
+        
+        function populateUserFilter() {
+            const select = document.getElementById('filterUser');
+            select.innerHTML = '<option value="">All Users</option>';
             
             allUsers.forEach(user => {
                 const option = document.createElement('option');
@@ -579,8 +598,6 @@
                     <td>${device.screen ? `Slideshow-${device.screen}` : '-'}</td>
                     <td>${lastSeen}</td>
                     <td>
-                        <button class="action-btn" onclick="openAssignModal('${device.device_id}')">Assign</button>
-                        ${device.user_id ? `<button class="action-btn" onclick="unlinkDevice('${device.device_id}')">Unlink</button>` : ''}
                         <button class="action-btn delete" onclick="deleteDevice('${device.device_id}')">Delete</button>
                     </td>
                 `;
@@ -593,6 +610,7 @@
             const filterType = document.getElementById('filterType').value;
             const filterStatus = document.getElementById('filterStatus').value;
             const filterScreen = document.getElementById('filterScreen').value;
+            const filterUser = document.getElementById('filterUser').value;
             const filterSearch = document.getElementById('filterSearch').value.toLowerCase();
             
             return devices.filter(device => {
@@ -614,6 +632,11 @@
                     return false;
                 }
                 
+                // Filter by assigned user
+                if (filterUser && device.user_id !== parseInt(filterUser)) {
+                    return false;
+                }
+                
                 // Filter by search
                 if (filterSearch && !device.device_id.toLowerCase().includes(filterSearch)) {
                     return false;
@@ -631,6 +654,7 @@
             document.getElementById('filterType').value = '';
             document.getElementById('filterStatus').value = '';
             document.getElementById('filterScreen').value = '';
+            document.getElementById('filterUser').value = '';
             document.getElementById('filterSearch').value = '';
             renderDevices();
         }
