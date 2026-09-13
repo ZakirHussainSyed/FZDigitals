@@ -556,6 +556,7 @@
                     media = data.files;
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
+                    stage.style.display = '';
                     renderSlides();
                     show(current);
                     setPaused(false);
@@ -563,11 +564,24 @@
                 }
                 if (res.status === 403 || res.status === 404) {
                     const isQr = deviceId && deviceId.startsWith('QR-');
-                    if (!isQr) {
-                        // Device was removed or re-paired elsewhere: pair again
+                    stopAutoplay();
+                    stage.style.display = 'none';
+                    pairingScreen.classList.remove('hidden');
+                    qrWrap.style.display = 'block';
+
+                    if (isQr) {
+                        // QR-paired display was deleted; force a new QR code
+                        console.log('refresh: QR display removed, regenerating QR');
                         deviceToken = null;
                         localStorage.removeItem('fz_device_token');
+                        await requestQrPairing();
+                        return;
                     }
+
+                    // Device was removed or re-paired elsewhere: pair again
+                    deviceToken = null;
+                    localStorage.removeItem('fz_device_token');
+
                     if (pairingIdFromUrl) {
                         await connectPairing(pairingIdFromUrl);
                         return;
@@ -576,10 +590,6 @@
                         console.log('refresh: token invalid, trying saved pairing id');
                         await connectPairing(savedPairingId);
                         return;
-                    }
-                    pairingScreen.classList.remove('hidden');
-                    if (isQr) {
-                        qrWrap.style.display = 'block';
                     }
                 }
                 return;
