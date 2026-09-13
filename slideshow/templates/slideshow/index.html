@@ -409,7 +409,7 @@
 
             {% for screen in screens %}
             <div class="tab-content{% if forloop.first %} active{% endif %}" id="screen-{{ screen }}">
-                <h1 id="screenHeader-{{ screen }}">Slideshow-{{ screen }} ( Use this code to pair your tablet device : Loading... )</h1>
+                <h1 id="screenHeader-{{ screen }}">Slideshow-{{ screen }}</h1>
                 
                 <div class="drop" id="drop-{{ screen }}">
                     <div style="font-weight:800; margin-bottom:6px;">Click or Drag & Drop</div>
@@ -496,9 +496,6 @@
                 tab.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
                 
-                // Load pairing code for the active screen
-                loadPairingCode(activeScreen);
-                
                 // Update right panel slideshow for active screen
                 updateRightPanelSlideshow(activeScreen);
             });
@@ -515,28 +512,7 @@
             }, { passive: false });
         }
 
-        // Device pairing code display for all screens
-        function loadPairingCode(screen) {
-            const screenHeader = document.getElementById(`screenHeader-${screen}`);
-            if (!screenHeader) return;
-            
-            fetch(`/api/pairing/?screen=${screen}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">Use this code to pair your display screen : <span class="pairing-code">${data.pairing_id}</span></span>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Failed to load pairing code:', error);
-                    screenHeader.innerHTML = `Slideshow-${screen}<br><span class="pairing-code-text">Use this code to pair your display screen : <span class="pairing-code">Error loading code</span></span>`;
-                });
-        }
-        
-        // Load pairing codes for all screens on page load
-        for (let i = 1; i <= maxSlideshows; i++) {
-            loadPairingCode(i);
-        }
+        // Pairing code display removed; QR-only linking
 
         // Update right panel slideshow for active screen
         function updateRightPanelSlideshow(screen) {

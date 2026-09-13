@@ -155,46 +155,17 @@
         .pairing-screen.hidden { display: none; }
         .pairing-title {
             color: #fff;
-            font-size: 24px;
+            font-size: clamp(48px, 12vw, 120px);
             font-weight: 800;
             margin-bottom: 24px;
-        }
-        .pairing-input {
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 16px 20px;
-            font-size: 20px;
-            color: #fff;
-            text-align: center;
             letter-spacing: 4px;
-            width: 280px;
-            margin-bottom: 16px;
-            text-transform: uppercase;
         }
-        .pairing-input:focus {
-            outline: none;
-            border-color: #7c5;
-        }
-        .pairing-btn {
-            background: #7c5cff;
-            border: none;
-            border-radius: 12px;
-            padding: 16px 32px;
-            font-size: 18px;
-            font-weight: 700;
-            color: #fff;
-            cursor: pointer;
-            min-width: 200px;
-        }
-        .pairing-btn:active { opacity: 0.8; }
-        .pairing-error {
-            color: #ff4444;
+        .pairing-hint {
+            color: rgba(255,255,255,0.7);
             font-size: 14px;
-            margin-top: 12px;
-            display: none;
+            text-align: center;
+            margin-top: 16px;
         }
-        .pairing-error.show { display: block; }
 
         /* Splash screen */
         .splash-screen {
@@ -230,17 +201,12 @@
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
     </div>
     <div class="pairing-screen" id="pairingScreen">
-        <div class="pairing-title" id="pairingTitle">Link This Display</div>
+        <div class="pairing-title" id="pairingTitle">FZ Screen</div>
         <div id="qrWrap" style="margin: 16px 0; display: block;">
             <p id="qrStatus" style="color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin-bottom: 8px;">Creating display...</p>
-            <img id="qrImg" style="width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 12px; display: block; margin: 0 auto;" alt="QR code">
-            <div style="color: rgba(255,255,255,0.7); font-size: 13px; text-align: center; margin-top: 10px;">Scan with your phone to link</div>
+            <img id="qrImg" style="width: 220px; height: 220px; background: #fff; padding: 12px; border-radius: 16px; display: block; margin: 0 auto;" alt="QR code">
+            <p class="pairing-hint" id="qrHint">Scan to link this display</p>
         </div>
-        <div style="color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin: 16px 0;">Or enter your 8-character pairing ID below</div>
-        <input type="text" class="pairing-input" id="pairingInput" placeholder="XXXXXXXX" maxlength="8" autocomplete="off">
-        <button class="pairing-btn" id="pairingBtn">Connect</button>
-        <a href="https://www.fzscreens.com" target="_blank" style="color:#7c5cff;font-size:13px;margin-top:16px;display:inline-block;text-decoration:none;">Visit <span style="text-decoration:underline;">www.fzscreens.com</span></a>
-        <div class="pairing-error" id="pairingError">Invalid pairing ID</div>
     </div>
     
     <div class="stage" id="stage">
@@ -263,7 +229,6 @@
         let resumeTimer = null;
         let paused = false;
         let deviceToken = localStorage.getItem('fz_device_token') || null;
-        let savedPairingId = localStorage.getItem('fz_pairing_id') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
         
@@ -287,23 +252,14 @@
             return id;
         }
 
-        // Hybrid approach: Priority 1 - URL code parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const pairingIdFromUrl = urlParams.get('id') || '{{ pairing_id|default:"" }}';
-        
         const pairingScreen = document.getElementById('pairingScreen');
-        const pairingInput = document.getElementById('pairingInput');
-        const pairingBtn = document.getElementById('pairingBtn');
-        const pairingError = document.getElementById('pairingError');
         const qrWrap = document.getElementById('qrWrap');
         const qrImg = document.getElementById('qrImg');
         const qrStatus = document.getElementById('qrStatus');
+        const qrHint = document.getElementById('qrHint');
 
         console.log('Pairing elements found:', {
-            pairingScreen: !!pairingScreen,
-            pairingInput: !!pairingInput,
-            pairingBtn: !!pairingBtn,
-            pairingError: !!pairingError
+            pairingScreen: !!pairingScreen
         });
 
         const stage = document.getElementById('stage');
@@ -529,17 +485,7 @@
 
         async function refresh() {
             console.log('refresh: checking slideshow sources');
-            
-            // Priority 1: Try explicit URL code pairing. Re-pair when the URL
-            // code differs from what we stored, or when we lack the per-pairing
-            // device key created by the server.
-            if (pairingIdFromUrl && (pairingIdFromUrl !== savedPairingId || !deviceId || !deviceToken)) {
-                console.log('refresh: trying URL code pairing');
-                await connectPairing(pairingIdFromUrl);
-                return;
-            }
-            
-            // Priority 2: Use existing device token
+
             if (deviceToken && deviceId) {
                 console.log('refresh: using existing pairing');
                 const res = await fetch(
@@ -563,128 +509,62 @@
                     return;
                 }
                 if (res.status === 403 || res.status === 404) {
-                    const isQr = deviceId && deviceId.startsWith('QR-');
+                    console.log('refresh: device token invalid, showing QR');
                     stopAutoplay();
                     stage.style.display = 'none';
                     pairingScreen.classList.remove('hidden');
                     qrWrap.style.display = 'block';
-
-                    if (isQr) {
-                        // QR-paired display was deleted; force a new QR code
-                        console.log('refresh: QR display removed, regenerating QR');
-                        deviceToken = null;
-                        localStorage.removeItem('fz_device_token');
-                        await requestQrPairing();
-                        return;
-                    }
-
-                    // Device was removed or re-paired elsewhere: pair again
                     deviceToken = null;
                     localStorage.removeItem('fz_device_token');
-
-                    if (pairingIdFromUrl) {
-                        await connectPairing(pairingIdFromUrl);
-                        return;
-                    }
-                    if (savedPairingId) {
-                        console.log('refresh: token invalid, trying saved pairing id');
-                        await connectPairing(savedPairingId);
-                        return;
-                    }
+                    await requestQrPairing();
+                    return;
                 }
                 return;
             }
-            
-            // Priority 3: Try saved pairing code
-            if (savedPairingId) {
-                console.log('refresh: trying saved pairing id');
-                await connectPairing(savedPairingId);
-                return;
-            }
-            
-            console.log('refresh: no slideshow source available');
+
+            console.log('refresh: no device token, showing QR');
             pairingScreen.classList.remove('hidden');
+            qrWrap.style.display = 'block';
+            await requestQrPairing();
         }
 
-        async function connectPairing(pairingId = null) {
-            const id = pairingId || pairingInput.value.trim().toUpperCase();
-            if (!id || id.length !== 8) {
-                if (!pairingId) {
-                    pairingError.textContent = 'Please enter 8-character ID';
-                    pairingError.classList.add('show');
-                }
-                return;
-            }
-
-            try {
-                console.log('Attempting to connect with pairing ID:', id);
+        async function requestQrPairing() {
+            if (qrStatus) qrStatus.textContent = 'Creating display...';
+            const existingQr = deviceId && deviceToken && deviceId.startsWith('QR-');
+            if (!existingQr) {
                 const browserId = getBrowserId();
-                const res = await fetch(
-                    `/api/pairing/${id}/?browser_id=${encodeURIComponent(browserId)}`
-                );
-                const data = await res.json();
-                console.log('Pairing response:', data);
-                
-                if (data.success) {
-                    deviceId = data.device_id;
-                    localStorage.setItem('fz_device_id', deviceId);
-                    deviceToken = data.device_token;
-                    localStorage.setItem('fz_device_token', deviceToken);
-                    localStorage.setItem('fz_pairing_id', id);
-                    savedPairingId = id;
-                    pairedScreen = data.screen || 1;
-                    pairingScreen.classList.add('hidden');
-                    // Update URL to include pairing ID
-                    const newUrl = `/tablet/${id}/`;
-                    window.history.pushState({path: newUrl}, '', newUrl);
-                    refresh();
-                } else if (data.user_deleted) {
-                    // User that owned this pairing was deleted; clear saved code and show message
-                    if (savedPairingId === id) {
-                        localStorage.removeItem('fz_pairing_id');
-                        savedPairingId = null;
+                try {
+                    const res = await fetch(`/api/pairing/new/?browser_id=${encodeURIComponent(browserId)}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        deviceId = data.device_id;
+                        deviceToken = data.token;
+                        localStorage.setItem('fz_device_id', deviceId);
+                        localStorage.setItem('fz_device_token', deviceToken);
+                        console.log('QR pairing created:', deviceId);
+                    } else {
+                        console.warn('QR pairing failed:', data.error);
+                        if (qrStatus) qrStatus.textContent = `Create failed: ${data.error}`;
+                        return;
                     }
-                    pairingScreen.classList.remove('hidden');
-                    window.history.replaceState(null, '', '/tablet/');
-                    pairingError.innerHTML = data.error || 'This pairing code is no longer active. Please contact <a href="mailto:growwithfzdigitals@gmail.com" style="color:#7c5cff;text-decoration:underline;">growwithfzdigitals@gmail.com</a> for service and a new pairing code.';
-                    pairingError.classList.add('show');
-                } else {
-                    // Invalid pairing; clear it if it was saved and show error
-                    if (savedPairingId === id) {
-                        localStorage.removeItem('fz_pairing_id');
-                        savedPairingId = null;
-                    }
-                    pairingError.textContent = data.error || 'Invalid pairing ID';
-                    pairingError.classList.add('show');
-                    pairingScreen.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Pairing error:', error);
-                // Don't clear saved pairing on network errors, let retry later
-                if (!pairingId) {
-                    pairingError.textContent = 'Connection failed: ' + error.message;
-                    pairingError.classList.add('show');
+                } catch (err) {
+                    console.error('QR pairing error:', err);
+                    if (qrStatus) qrStatus.textContent = `Create error: ${err.message}`;
+                    return;
                 }
             }
-        }
 
-        pairingBtn.addEventListener('click', () => {
-            console.log('Connect button clicked');
-            connectPairing();
-        });
-        pairingInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                console.log('Enter key pressed');
-                connectPairing();
-            }
-        });
+            const setupUrl = deviceToken
+                ? `${window.location.origin}/setup/?device_id=${encodeURIComponent(deviceId)}&token=${encodeURIComponent(deviceToken)}`
+                : '';
+            await showQrImage(setupUrl);
+        }
 
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             show(current - 1);
             scheduleResume();
         });
-
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             show(current + 1);
@@ -760,11 +640,11 @@
             if (qrStatus) qrStatus.textContent = 'Loading QR code...';
             qrImg.src = `/api/qr/?data=${encodeURIComponent(setupUrl)}`;
             qrImg.onload = () => {
-                if (qrStatus) qrStatus.textContent = 'Scan with your phone to link';
+                if (qrStatus) qrStatus.textContent = '';
             };
             qrImg.onerror = () => {
                 console.error('Failed to load same-origin QR image');
-                if (qrStatus) qrStatus.textContent = 'Could not load QR. Use manual code or refresh.';
+                if (qrStatus) qrStatus.textContent = 'Could not load QR. Please refresh.';
             };
         }
 
@@ -803,24 +683,19 @@
         function startApp() {
             console.log('Initial load: starting app after splash');
 
-            if (pairingIdFromUrl) {
-                // Explicit pairing code in URL: use manual flow
-                setInterval(refresh, 30000);
-                refresh();
-            } else if (deviceId && deviceToken && deviceId.startsWith('QR-')) {
+            if (deviceId && deviceToken && deviceId.startsWith('QR-')) {
                 // Already have an unclaimed QR device: show its QR and keep polling
                 requestQrPairing().then(() => {
                     setInterval(refresh, 30000);
                     refresh();
                 });
             } else {
-                // Clear any stale manual pairing and start fresh with a QR code
+                // Start fresh with a QR code
                 localStorage.removeItem('fz_device_token');
                 localStorage.removeItem('fz_device_id');
                 localStorage.removeItem('fz_pairing_id');
                 deviceToken = null;
                 deviceId = null;
-                savedPairingId = null;
                 requestQrPairing().then(() => {
                     setInterval(refresh, 30000);
                     refresh();
