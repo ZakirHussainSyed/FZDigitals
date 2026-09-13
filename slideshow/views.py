@@ -686,7 +686,10 @@ def api_device_register(request):
 def api_device_slideshow(request, device_id):
     """Get slideshow for a specific device, authenticated by its pairing token"""
     try:
-        device = get_object_or_404(Device, device_id=device_id)
+        try:
+            device = Device.objects.get(device_id=device_id)
+        except Device.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Device not found'}, status=404)
 
         token = request.GET.get('token') or request.headers.get('X-Device-Token', '')
         if not constant_time_compare(token, device.token):
