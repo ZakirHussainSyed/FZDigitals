@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/upload/', views.api_upload, name='api-upload'),
     path('api/media/<int:pk>/delete/', views.api_delete, name='api-delete'),
     path('api/pairing/', views.api_pairing_info, name='api-pairing-info'),
+    path('api/pairing/new/', views.api_pairing_new, name='api-pairing-new'),
     path('api/pairing/<str:pairing_id>/', views.api_pairing_lookup, name='api-pairing-lookup'),
     path('api/device/register/', views.api_device_register, name='api-device-register'),
     path('api/device/<str:device_id>/slideshow/', views.api_device_slideshow, name='api-device-slideshow'),
@@ -29,7 +30,6 @@ urlpatterns = [
     path('api/device/<str:device_id>/assign/', views.api_device_assign, name='api-device-assign'),
     path('api/device/<str:device_id>/delete/', views.api_device_delete, name='api-device-delete'),
     path('setup/', views.setup_pairing, name='setup-pairing'),
-    path('api/pairing/new/', views.api_pairing_new, name='api-pairing-new'),
     path('screens/', views.my_screens, name='my-screens'),
     path('api/qr/', views.api_qr_svg, name='api-qr-svg'),
 ]
