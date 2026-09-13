@@ -153,12 +153,13 @@
             padding: 24px;
         }
         .pairing-screen.hidden { display: none; }
-        .pairing-title {
-            color: #fff;
-            font-size: clamp(48px, 12vw, 120px);
-            font-weight: 800;
+        .pairing-logo {
             margin-bottom: 24px;
-            letter-spacing: 4px;
+        }
+        .pairing-logo img {
+            width: 110px;
+            height: auto;
+            display: block;
         }
         .pairing-hint {
             color: rgba(255,255,255,0.7);
@@ -201,7 +202,9 @@
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
     </div>
     <div class="pairing-screen" id="pairingScreen">
-        <div class="pairing-title" id="pairingTitle">FZ Screen</div>
+        <div class="pairing-logo" id="pairingLogo">
+            <img src="/static/slideshow/logo.png" alt="FZ Screen">
+        </div>
         <div id="qrWrap" style="margin: 16px 0; display: block;">
             <p id="qrStatus" style="color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin-bottom: 8px;">Creating display...</p>
             <img id="qrImg" style="width: 220px; height: 220px; background: #fff; padding: 12px; border-radius: 16px; display: block; margin: 0 auto;" alt="QR code">
