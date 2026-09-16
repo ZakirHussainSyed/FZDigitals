@@ -310,7 +310,87 @@ def manifest(request):
 
 
 def service_worker(request):
-    js = """self.addEventListener('install', (event) => {\n  self.skipWaiting();\n});\n\nself.addEventListener('activate', (event) => {\n  event.waitUntil(self.clients.claim());\n});\n"""
+    media_domain = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', '')
+    js = """const CACHE_NAME = 'fz-media-v1';
+const MEDIA_DOMAIN = '%(media_domain)s';
+
+function isMediaUrl(url) {
+    try {
+        return new URL(url).hostname === MEDIA_DOMAIN;
+    } catch (e) {
+        return false;
+    }
+}
+
+function isSlideshowApi(url) {
+    return url.includes('/api/device/') && url.includes('/slideshow/');
+}
+
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'CACHE_MEDIA') {
+        event.waitUntil(cacheMedia(event.data.urls));
+    }
+});
+
+async function cacheMedia(urls) {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(urls.map(async (url) => {
+        try {
+            const req = new Request(url, {mode: 'no-cors'});
+            const res = await fetch(req);
+            if (res) {
+                await cache.put(req, res);
+            }
+        } catch (err) {
+            console.error('Cache media failed:', url, err);
+        }
+    }));
+}
+
+self.addEventListener('fetch', (event) => {
+    const {request} = event;
+    const url = request.url;
+
+    if (request.method !== 'GET') {
+        return;
+    }
+
+    if (isMediaUrl(url)) {
+        event.respondWith(
+            caches.match(request).then((cached) => {
+                if (cached) return cached;
+                return fetch(request).then((response) => {
+                    const resClone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, resClone).catch(() => {});
+                    }).catch(() => {});
+                    return response;
+                });
+            })
+        );
+    } else if (isSlideshowApi(url)) {
+        event.respondWith(
+            fetch(request).then((response) => {
+                const resClone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(request, resClone).catch(() => {});
+                }).catch(() => {});
+                return response;
+            }).catch(() => {
+                return caches.match(request);
+            })
+        );
+    }
+});
+""" % {'media_domain': media_domain}
     return HttpResponse(js, content_type='application/javascript')
 
 

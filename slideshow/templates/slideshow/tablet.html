@@ -234,6 +234,34 @@
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
+
+        async function cacheMediaUrls(urls) {
+            if (!('serviceWorker' in navigator)) return;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                if (reg.active) {
+                    reg.active.postMessage({type: 'CACHE_MEDIA', urls: urls});
+                }
+            } catch (err) {
+                console.error('cacheMediaUrls error:', err);
+            }
+        }
+
+        function loadCachedMedia() {
+            const saved = localStorage.getItem('fz_media');
+            if (!saved) return null;
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveCachedMedia(files) {
+            if (files && files.length) {
+                localStorage.setItem('fz_media', JSON.stringify(files));
+            }
+        }
         
         function getBrowserId() {
             let id = localStorage.getItem('fz_browser_id');
@@ -487,7 +515,20 @@
         }
 
         async function refresh() {
-            console.log('refresh: checking slideshow sources');
+            console.log('refresh: checking slideshow sources, online:', navigator.onLine);
+
+            if (!navigator.onLine) {
+                const cached = loadCachedMedia();
+                if (cached && cached.length) {
+                    media = cached;
+                    if (current >= media.length) current = 0;
+                    pairingScreen.classList.add('hidden');
+                    stage.style.display = '';
+                    renderSlides();
+                    show(current);
+                }
+                return;
+            }
 
             if (deviceToken && deviceId) {
                 console.log('refresh: using existing pairing');
@@ -503,6 +544,8 @@
                         return;
                     }
                     media = data.files;
+                    saveCachedMedia(media);
+                    cacheMediaUrls(media.map(f => f.url));
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';
@@ -690,6 +733,7 @@
                 // Already have an unclaimed QR device: show its QR and keep polling
                 requestQrPairing().then(() => {
                     setInterval(refresh, 30000);
+                    setInterval(() => { if (navigator.onLine) refresh(); }, 24 * 60 * 60 * 1000);
                     refresh();
                 });
             } else {
@@ -697,13 +741,18 @@
                 localStorage.removeItem('fz_device_token');
                 localStorage.removeItem('fz_device_id');
                 localStorage.removeItem('fz_pairing_id');
+                localStorage.removeItem('fz_media');
                 deviceToken = null;
                 deviceId = null;
                 requestQrPairing().then(() => {
                     setInterval(refresh, 30000);
+                    setInterval(() => { if (navigator.onLine) refresh(); }, 24 * 60 * 60 * 1000);
                     refresh();
                 });
             }
+
+            window.addEventListener('online', () => { console.log('online, syncing...'); refresh(); });
+            window.addEventListener('offline', () => { console.log('offline, using cached media'); });
 
             requestAutoFullscreen();
             if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
