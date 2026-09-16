@@ -8,12 +8,13 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.conf import settings
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.db.models import Sum
 import logging
 import secrets
 
-from .models import MediaFile, DevicePairing, UserProfile, Device
+from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, MosqueSlide
 
 logger = logging.getLogger(__name__)
 
@@ -461,23 +462,110 @@ def api_users_list(request):
     try:
         if not request.user.is_superuser:
             return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
-        
+
         users = User.objects.all()
+        result = []
+        for u in users:
+            try:
+                profile = u.userprofile
+                vertical = profile.vertical
+            except UserProfile.DoesNotExist:
+                vertical = 'bank'
+            result.append({
+                'id': u.id,
+                'email': u.email,
+                'username': u.username,
+                'is_active': u.is_active,
+                'vertical': vertical,
+                'date_joined': u.date_joined.isoformat() if u.date_joined else None,
+            })
+        return JsonResponse({'success': True, 'users': result})
+    except Exception as e:
+        logger.error(f"Error in api_users_list: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_user_profile(request):
+    """Return the current user's profile including customer vertical"""
+    try:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'vertical': 'bank'}
+        )
         return JsonResponse({
             'success': True,
-            'users': [
-                {
-                    'id': u.id,
-                    'email': u.email,
-                    'username': u.username,
-                    'is_active': u.is_active,
-                    'date_joined': u.date_joined.isoformat() if u.date_joined else None,
+            'id': request.user.id,
+            'email': request.user.email,
+            'username': request.user.username,
+            'vertical': profile.vertical,
+            'max_slideshows': profile.max_slideshows,
+            'storage_quota_mb': profile.storage_quota_mb,
+        })
+    except Exception as e:
+        logger.error(f"Error in api_user_profile: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_mosques(request):
+    """Return active mosques for the current user with today's prayer times"""
+    try:
+        mosques = Mosque.objects.filter(user=request.user, is_active=True)
+        today = timezone.now().date()
+        data = []
+        for m in mosques:
+            try:
+                pt = m.prayer_times.get(date=today)
+                prayer_times = {
+                    'fajr': pt.fajr.strftime('%H:%M') if pt.fajr else None,
+                    'dhuhr': pt.dhuhr.strftime('%H:%M') if pt.dhuhr else None,
+                    'asr': pt.asr.strftime('%H:%M') if pt.asr else None,
+                    'maghrib': pt.maghrib.strftime('%H:%M') if pt.maghrib else None,
+                    'isha': pt.isha.strftime('%H:%M') if pt.isha else None,
+                    'jummah': pt.jummah.strftime('%H:%M') if pt.jummah else None,
                 }
-                for u in users
+            except PrayerTime.DoesNotExist:
+                prayer_times = {}
+            data.append({
+                'id': m.id,
+                'name': m.name,
+                'address': m.address,
+                'latitude': str(m.latitude) if m.latitude else None,
+                'longitude': str(m.longitude) if m.longitude else None,
+                'prayer_times': prayer_times,
+            })
+        return JsonResponse({'success': True, 'mosques': data})
+    except Exception as e:
+        logger.error(f"Error in api_mosques: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_mosque_slides(request, mosque_id):
+    """Return active slides for a mosque"""
+    try:
+        mosque = get_object_or_404(Mosque, id=mosque_id, user=request.user)
+        slides = mosque.slides.filter(is_active=True)
+        return JsonResponse({
+            'success': True,
+            'mosque_id': mosque.id,
+            'mosque_name': mosque.name,
+            'files': [
+                {
+                    'id': s.id,
+                    'title': s.title,
+                    'url': s.file.url,
+                    'order': s.order,
+                }
+                for s in slides
             ]
         })
     except Exception as e:
-        logger.error(f"Error in api_users_list: {str(e)}", exc_info=True)
+        logger.error(f"Error in api_mosque_slides: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
