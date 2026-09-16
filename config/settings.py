@@ -189,8 +189,13 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     # Also set django-storages specific variables
     AWS_S3_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
     AWS_S3_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
+    AWS_S3_ADDRESSING_STYLE = os.environ.get('AWS_S3_ADDRESSING_STYLE', 'path')
     
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get(
+        'AWS_S3_CUSTOM_DOMAIN',
+        f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    )
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None  # bucket has ACLs disabled; public access is via bucket policy
     AWS_QUERYSTRING_AUTH = False
