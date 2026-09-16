@@ -102,6 +102,15 @@ def signup(request):
         security_answer = request.POST.get('security_answer')
         vertical = request.POST.get('vertical', 'bank')
 
+        try:
+            num_slideshows = int(request.POST.get('num_slideshows', '5'))
+            if num_slideshows < 1:
+                num_slideshows = 1
+            if num_slideshows > 20:
+                num_slideshows = 20
+        except ValueError:
+            num_slideshows = 5
+
         if vertical not in dict(UserProfile.VERTICAL_CHOICES):
             return render(request, 'slideshow/signup.html', {
                 'error': 'Invalid customer type selected',
@@ -136,6 +145,7 @@ def signup(request):
             security_question=security_question,
             security_answer=security_answer.lower(),
             vertical=vertical,
+            max_slideshows=num_slideshows,
         )
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect(f'/{user.id}/')
