@@ -100,36 +100,49 @@ def signup(request):
         confirm_password = request.POST.get('confirm_password')
         security_question = request.POST.get('security_question')
         security_answer = request.POST.get('security_answer')
-        
+        vertical = request.POST.get('vertical', 'bank')
+
+        if vertical not in dict(UserProfile.VERTICAL_CHOICES):
+            return render(request, 'slideshow/signup.html', {
+                'error': 'Invalid customer type selected',
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'vertical_choices': UserProfile.VERTICAL_CHOICES,
+            })
+
         if password != confirm_password:
             return render(request, 'slideshow/signup.html', {
                 'error': 'Passwords do not match',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'vertical_choices': UserProfile.VERTICAL_CHOICES,
             })
-        
+
         if User.objects.filter(username=username).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Username already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'vertical_choices': UserProfile.VERTICAL_CHOICES,
             })
-        
+
         if User.objects.filter(email=email).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Email already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'vertical_choices': UserProfile.VERTICAL_CHOICES,
             })
-        
+
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
             security_question=security_question,
-            security_answer=security_answer.lower()
+            security_answer=security_answer.lower(),
+            vertical=vertical,
         )
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect(f'/{user.id}/')
-    
+
     return render(request, 'slideshow/signup.html', {
-        'security_questions': UserProfile.SECURITY_QUESTIONS
+        'security_questions': UserProfile.SECURITY_QUESTIONS,
+        'vertical_choices': UserProfile.VERTICAL_CHOICES,
     })
 
 

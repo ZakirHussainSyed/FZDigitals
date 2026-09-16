@@ -161,6 +161,14 @@
                 <label for="id_security_answer">Security Answer</label>
                 <input type="text" name="security_answer" id="id_security_answer" class="form-input" placeholder="Your answer" required>
             </div>
+            <div class="form-group">
+                <label for="id_vertical">Customer Type</label>
+                <select name="vertical" id="id_vertical" class="form-select" required>
+                    {% for value, text in vertical_choices %}
+                    <option value="{{ value }}">{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <button type="submit" class="submit-btn">Create Account</button>
         </form>
         
