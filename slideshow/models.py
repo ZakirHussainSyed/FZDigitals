@@ -83,8 +83,8 @@ class UserProfile(models.Model):
     )
     max_slideshows = models.PositiveIntegerField(
         default=5,
-        verbose_name='Number of screens',
-        help_text='Number of screens this user is allowed. This also sets the max slideshows and total active screen limit.',
+        verbose_name='Number of slideshows',
+        help_text='Number of slideshows this user is allowed.',
     )
     max_screens_per_slideshow = models.PositiveIntegerField(
         default=0,
