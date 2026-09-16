@@ -93,17 +93,13 @@ class UserProfile(models.Model):
     )
     max_active_screens = models.PositiveIntegerField(
         default=50,
-        editable=False,
-        help_text='Total active screens across all slideshows; 0 = unlimited',
+        verbose_name='Number of screens',
+        help_text='Upper limit of total active screens for this user. 0 = unlimited.',
     )
     storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
     
     def save(self, *args, **kwargs):
-        # A single "Number of screens" input drives all screen limits
-        # and pre-creates the pairing codes for screens 1..n.
-        if self.max_slideshows is not None and self.max_slideshows > 0:
-            self.max_screens_per_slideshow = self.max_slideshows
-            self.max_active_screens = self.max_slideshows
+        # Pre-create the pairing codes for screens 1..n.
         super().save(*args, **kwargs)
         if self.user_id and self.max_slideshows and self.max_slideshows > 0:
             for screen in range(1, self.max_slideshows + 1):
