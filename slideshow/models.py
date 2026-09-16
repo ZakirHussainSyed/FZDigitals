@@ -65,7 +65,7 @@ class UserProfile(models.Model):
     ]
 
     VERTICAL_CHOICES = [
-        ('bank', 'Slideshow'),
+        ('bank', 'Bank'),
         ('mosque', 'Mosque'),
         ('restaurant', 'Restaurant'),
         ('hospital', 'Hospital'),
