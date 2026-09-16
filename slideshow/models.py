@@ -63,10 +63,24 @@ class UserProfile(models.Model):
         ('mother', 'What is your mother\'s maiden name?'),
         ('job', 'What was your first job?'),
     ]
-    
+
+    VERTICAL_CHOICES = [
+        ('bank', 'Bank'),
+        ('mosque', 'Mosque'),
+        ('restaurant', 'Restaurant'),
+        ('hospital', 'Hospital'),
+        ('retail', 'Retail'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     security_question = models.CharField(max_length=50, choices=SECURITY_QUESTIONS, blank=True, default='')
     security_answer = models.CharField(max_length=255, blank=True, default='')
+    vertical = models.CharField(
+        max_length=20,
+        choices=VERTICAL_CHOICES,
+        default='bank',
+        help_text='Customer vertical that controls dashboard and display features',
+    )
     max_slideshows = models.PositiveIntegerField(
         default=5,
         verbose_name='Number of screens',
@@ -128,8 +142,72 @@ class Device(models.Model):
         return f"{self.device_id} - {self.name or 'Unnamed'} ({self.device_type})"
 
 
+class Mosque(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    address = models.TextField(blank=True, default='')
+    latitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class PrayerTime(models.Model):
+    mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='prayer_times')
+    date = models.DateField()
+    fajr = models.TimeField()
+    dhuhr = models.TimeField()
+    asr = models.TimeField()
+    maghrib = models.TimeField()
+    isha = models.TimeField()
+    jummah = models.TimeField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ['mosque', 'date']
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.mosque.name} - {self.date}"
+
+
+class MosqueSlide(models.Model):
+    mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='slides')
+    title = models.CharField(max_length=255)
+    file = models.FileField(
+        upload_to='mosque_slides/',
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi']
+            )
+        ],
+    )
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
 @receiver(post_delete, sender=MediaFile)
 def delete_media_file(sender, instance, **kwargs):
     """Delete the stored file when a MediaFile is deleted"""
+    if instance.file:
+        instance.file.delete(save=False)
+
+
+@receiver(post_delete, sender=MosqueSlide)
+def delete_mosque_slide_file(sender, instance, **kwargs):
+    """Delete the stored mosque slide file when a MosqueSlide is deleted"""
     if instance.file:
         instance.file.delete(save=False)
