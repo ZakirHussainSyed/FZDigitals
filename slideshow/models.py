@@ -83,8 +83,8 @@ class UserProfile(models.Model):
     )
     max_slideshows = models.PositiveIntegerField(
         default=5,
-        verbose_name='Number of slideshows',
-        help_text='Number of slideshows this user is allowed.',
+        verbose_name='Number of screens',
+        help_text='Number of screens this user is allowed. This also sets the max slideshows and total active screen limit.',
     )
     max_screens_per_slideshow = models.PositiveIntegerField(
         default=0,
@@ -93,13 +93,17 @@ class UserProfile(models.Model):
     )
     max_active_screens = models.PositiveIntegerField(
         default=50,
-        verbose_name='Number of screens',
-        help_text='Upper limit of total active screens for this user. 0 = unlimited.',
+        editable=False,
+        help_text='Total active screens across all slideshows; 0 = unlimited',
     )
     storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
     
     def save(self, *args, **kwargs):
-        # Pre-create the pairing codes for screens 1..n.
+        # A single "Number of screens" input drives all screen limits
+        # and pre-creates the pairing codes for screens 1..n.
+        if self.max_slideshows is not None and self.max_slideshows > 0:
+            self.max_screens_per_slideshow = self.max_slideshows
+            self.max_active_screens = self.max_slideshows
         super().save(*args, **kwargs)
         if self.user_id and self.max_slideshows and self.max_slideshows > 0:
             for screen in range(1, self.max_slideshows + 1):

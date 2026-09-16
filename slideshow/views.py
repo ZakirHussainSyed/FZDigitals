@@ -100,67 +100,36 @@ def signup(request):
         confirm_password = request.POST.get('confirm_password')
         security_question = request.POST.get('security_question')
         security_answer = request.POST.get('security_answer')
-        vertical = request.POST.get('vertical', 'bank')
-
-        try:
-            num_slideshows = int(request.POST.get('num_slideshows', '5'))
-            if num_slideshows < 1:
-                num_slideshows = 1
-            if num_slideshows > 20:
-                num_slideshows = 20
-        except ValueError:
-            num_slideshows = 5
-
-        try:
-            num_screens = int(request.POST.get('num_screens', str(num_slideshows)))
-            if num_screens < 0:
-                num_screens = 0
-        except ValueError:
-            num_screens = num_slideshows
-
-        if vertical not in dict(UserProfile.VERTICAL_CHOICES):
-            return render(request, 'slideshow/signup.html', {
-                'error': 'Invalid customer type selected',
-                'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'vertical_choices': UserProfile.VERTICAL_CHOICES,
-            })
-
+        
         if password != confirm_password:
             return render(request, 'slideshow/signup.html', {
                 'error': 'Passwords do not match',
-                'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'vertical_choices': UserProfile.VERTICAL_CHOICES,
+                'security_questions': UserProfile.SECURITY_QUESTIONS
             })
-
+        
         if User.objects.filter(username=username).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Username already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'vertical_choices': UserProfile.VERTICAL_CHOICES,
+                'security_questions': UserProfile.SECURITY_QUESTIONS
             })
-
+        
         if User.objects.filter(email=email).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Email already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'vertical_choices': UserProfile.VERTICAL_CHOICES,
+                'security_questions': UserProfile.SECURITY_QUESTIONS
             })
-
+        
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
             security_question=security_question,
-            security_answer=security_answer.lower(),
-            vertical=vertical,
-            max_slideshows=num_slideshows,
-            max_active_screens=num_screens,
+            security_answer=security_answer.lower()
         )
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect(f'/{user.id}/')
-
+    
     return render(request, 'slideshow/signup.html', {
-        'security_questions': UserProfile.SECURITY_QUESTIONS,
-        'vertical_choices': UserProfile.VERTICAL_CHOICES,
+        'security_questions': UserProfile.SECURITY_QUESTIONS
     })
 
 
