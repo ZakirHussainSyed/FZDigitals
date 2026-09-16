@@ -81,10 +81,15 @@ class UserProfile(models.Model):
         default='bank',
         help_text='Customer vertical that controls dashboard and display features',
     )
-    max_slideshows = models.PositiveIntegerField(
+    number_of_screens = models.PositiveIntegerField(
         default=5,
         verbose_name='Number of screens',
-        help_text='Number of screens this user is allowed. This also sets the max slideshows and total active screen limit.',
+        help_text='Upper limit of live screens this user is allowed.',
+    )
+    max_slideshows = models.PositiveIntegerField(
+        default=5,
+        verbose_name='Number of slideshows',
+        help_text='Number of slideshows (screen slots) to display in the dashboard.',
     )
     max_screens_per_slideshow = models.PositiveIntegerField(
         default=0,
@@ -97,13 +102,13 @@ class UserProfile(models.Model):
         help_text='Total active screens across all slideshows; 0 = unlimited',
     )
     storage_quota_mb = models.PositiveIntegerField(default=100, help_text='Total upload quota in MB')
-    
+
     def save(self, *args, **kwargs):
-        # A single "Number of screens" input drives all screen limits
-        # and pre-creates the pairing codes for screens 1..n.
-        if self.max_slideshows is not None and self.max_slideshows > 0:
-            self.max_screens_per_slideshow = self.max_slideshows
-            self.max_active_screens = self.max_slideshows
+        # Number of screens drives the live/active screen limits.
+        # Number of slideshows drives the dashboard screen slots and pairing codes.
+        if self.number_of_screens is not None and self.number_of_screens > 0:
+            self.max_screens_per_slideshow = self.number_of_screens
+            self.max_active_screens = self.number_of_screens
         super().save(*args, **kwargs)
         if self.user_id and self.max_slideshows and self.max_slideshows > 0:
             for screen in range(1, self.max_slideshows + 1):

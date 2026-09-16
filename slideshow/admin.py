@@ -8,7 +8,7 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Plan & Vertical'
-    fields = ('vertical', 'max_slideshows', 'storage_quota_mb')
+    fields = ('vertical', 'number_of_screens', 'max_slideshows', 'storage_quota_mb')
 
 
 class UserAdmin(BaseUserAdmin):

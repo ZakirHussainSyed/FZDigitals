@@ -500,6 +500,7 @@ def api_user_profile(request):
             'email': request.user.email,
             'username': request.user.username,
             'vertical': profile.vertical,
+            'number_of_screens': profile.number_of_screens,
             'max_slideshows': profile.max_slideshows,
             'storage_quota_mb': profile.storage_quota_mb,
         })
