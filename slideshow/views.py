@@ -14,9 +14,32 @@ from django.db.models import Sum
 import logging
 import secrets
 
+import requests
+
 from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, MosqueSlide
 
 logger = logging.getLogger(__name__)
+
+
+def purge_cloudflare_cache(url):
+    zone_id = getattr(settings, 'CLOUDFLARE_ZONE_ID', '')
+    token = getattr(settings, 'CLOUDFLARE_API_TOKEN', '')
+    if not zone_id or not token:
+        return
+    try:
+        response = requests.post(
+            f'https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+            },
+            json={'files': [url]},
+            timeout=10,
+        )
+        if not response.ok:
+            logger.warning(f'Cloudflare purge failed for {url}: {response.status_code} {response.text}')
+    except Exception as e:
+        logger.warning(f'Cloudflare purge error for {url}: {e}')
 
 
 def browser_label(user_agent):
@@ -528,7 +551,10 @@ def api_delete(request, pk: int):
     if obj is None:
         return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
     try:
+        file_url = obj.file.url if obj.file and hasattr(obj.file, 'url') else ''
         obj.delete()
+        if file_url:
+            purge_cloudflare_cache(file_url)
         return JsonResponse({'success': True})
     except Exception as e:
         logger.error(f"Error in api_delete: {str(e)}", exc_info=True)

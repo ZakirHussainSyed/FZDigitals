@@ -217,3 +217,7 @@ else:
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # Serve app static dirs directly, so assets work even if collectstatic hasn't run
 WHITENOISE_USE_FINDERS = True
+
+# Cloudflare cache purge credentials (optional, used on media delete)
+CLOUDFLARE_ZONE_ID = os.environ.get('CLOUDFLARE_ZONE_ID', '')
+CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN', '')
