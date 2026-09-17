@@ -16,6 +16,7 @@ import secrets
 
 import requests
 from datetime import datetime, timedelta
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from suntime import Sun
@@ -99,6 +100,12 @@ def django_login(request):
             
             if user is not None:
                 login(request, user)
+                try:
+                    profile = user.userprofile
+                    if profile.vertical == 'mosque':
+                        return redirect('prayer-times')
+                except UserProfile.DoesNotExist:
+                    pass
                 return redirect(f'/{user.id}/')
             else:
                 return render(request, 'slideshow/login.html', {
@@ -116,7 +123,7 @@ def django_login(request):
 
 
 def signup(request):
-    """User registration with security question"""
+    """User registration with security question and mosque details"""
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
     
@@ -127,36 +134,65 @@ def signup(request):
         confirm_password = request.POST.get('confirm_password')
         security_question = request.POST.get('security_question')
         security_answer = request.POST.get('security_answer')
+        vertical = request.POST.get('vertical', 'bank')
+        mosque_name = request.POST.get('mosque_name', '').strip()
+        mosque_address = request.POST.get('mosque_address', '').strip()
+        mosque_latitude = request.POST.get('mosque_latitude', '').strip()
+        mosque_longitude = request.POST.get('mosque_longitude', '').strip()
         
         if password != confirm_password:
             return render(request, 'slideshow/signup.html', {
                 'error': 'Passwords do not match',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'verticals': UserProfile.VERTICAL_CHOICES
             })
         
         if User.objects.filter(username=username).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Username already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'verticals': UserProfile.VERTICAL_CHOICES
             })
         
         if User.objects.filter(email=email).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Email already exists',
-                'security_questions': UserProfile.SECURITY_QUESTIONS
+                'security_questions': UserProfile.SECURITY_QUESTIONS,
+                'verticals': UserProfile.VERTICAL_CHOICES
             })
         
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
             security_question=security_question,
-            security_answer=security_answer.lower()
+            security_answer=security_answer.lower(),
+            vertical=vertical
         )
+
+        if vertical == 'mosque':
+            try:
+                Mosque.objects.create(
+                    user=user,
+                    name=mosque_name or username,
+                    address=mosque_address,
+                    latitude=Decimal(mosque_latitude) if mosque_latitude else None,
+                    longitude=Decimal(mosque_longitude) if mosque_longitude else None,
+                )
+            except Exception as e:
+                logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
+
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        try:
+            profile = user.userprofile
+            if profile.vertical == 'mosque':
+                return redirect('prayer-times')
+        except UserProfile.DoesNotExist:
+            pass
         return redirect(f'/{user.id}/')
     
     return render(request, 'slideshow/signup.html', {
-        'security_questions': UserProfile.SECURITY_QUESTIONS
+        'security_questions': UserProfile.SECURITY_QUESTIONS,
+        'verticals': UserProfile.VERTICAL_CHOICES
     })
 
 
@@ -1323,3 +1359,51 @@ def api_public_mosques(request):
 def mosque_map(request):
     """Public map page showing mosques with prayer times."""
     return render(request, 'slideshow/mosque_map.html')
+
+
+@login_required
+def prayer_times(request):
+    """Mosque users can add or update today's prayer times."""
+    if request.method == 'GET':
+        try:
+            profile = request.user.userprofile
+            if profile.vertical != 'mosque':
+                return redirect(f'/{request.user.id}/')
+        except UserProfile.DoesNotExist:
+            return redirect(f'/{request.user.id}/')
+
+    mosque = Mosque.objects.filter(user=request.user).first()
+    if not mosque:
+        messages.error(request, 'No mosque is associated with your account.')
+        return redirect(f'/{request.user.id}/')
+
+    today = timezone.now().date()
+    prayer_time, _ = PrayerTime.objects.get_or_create(
+        mosque=mosque,
+        date=today,
+        defaults={
+            'fajr': datetime.strptime('05:00', '%H:%M').time(),
+            'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+            'asr': datetime.strptime('16:00', '%H:%M').time(),
+            'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+            'isha': datetime.strptime('20:00', '%H:%M').time(),
+        }
+    )
+
+    if request.method == 'POST':
+        fields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah']
+        for field in fields:
+            value = request.POST.get(field, '').strip()
+            if value:
+                setattr(prayer_time, field, datetime.strptime(value, '%H:%M').time())
+            elif field == 'jummah':
+                setattr(prayer_time, field, None)
+        prayer_time.save()
+        messages.success(request, 'Prayer times updated.')
+        return redirect('prayer-times')
+
+    return render(request, 'slideshow/prayer_times.html', {
+        'mosque': mosque,
+        'prayer_time': prayer_time,
+        'today': today,
+    })

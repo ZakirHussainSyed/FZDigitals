@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prayer Times - FZDigitals</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #0b1020;
+            color: #e8eaf0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 8px; }
+        .subtitle {
+            color: rgba(232,234,240,0.7);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: rgba(232,234,240,0.8);
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #e8eaf0;
+            font-size: 14px;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #7c5cff;
+        }
+        .form-input::placeholder { color: rgba(232,234,240,0.4); }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #7c5cff;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .submit-btn:hover { background: #6a4ce6; }
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .message.success { background: rgba(76,175,80,0.15); color: #c8e6c9; }
+        .message.error { background: rgba(244,67,54,0.15); color: #ffcdd2; }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(232,234,240,0.7);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { color: #e8eaf0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prayer Times</h1>
+        <p class="subtitle">{{ mosque.name }} - {{ today }}</p>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_fajr">Fajr</label>
+                <input type="time" name="fajr" id="id_fajr" class="form-input" value="{{ prayer_time.fajr|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="id_dhuhr">Dhuhr</label>
+                <input type="time" name="dhuhr" id="id_dhuhr" class="form-input" value="{{ prayer_time.dhuhr|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="id_asr">Asr</label>
+                <input type="time" name="asr" id="id_asr" class="form-input" value="{{ prayer_time.asr|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="id_maghrib">Maghrib</label>
+                <input type="time" name="maghrib" id="id_maghrib" class="form-input" value="{{ prayer_time.maghrib|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="id_isha">Isha</label>
+                <input type="time" name="isha" id="id_isha" class="form-input" value="{{ prayer_time.isha|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="id_jummah">Jummah (optional)</label>
+                <input type="time" name="jummah" id="id_jummah" class="form-input" value="{% if prayer_time.jummah %}{{ prayer_time.jummah|time:'H:i' }}{% endif %}">
+            </div>
+            <button type="submit" class="submit-btn">Save Prayer Times</button>
+        </form>
+
+        <a href="/{{ request.user.id }}/" class="back-link">Back to Dashboard</a>
+    </div>
+</body>
+</html>

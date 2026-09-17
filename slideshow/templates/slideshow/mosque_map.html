@@ -102,10 +102,63 @@
             font-size: 16px;
         }
         .leaflet-popup-content { margin: 0; }
+        .search-bar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 1001;
+            display: flex;
+            gap: 8px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            outline: none;
+        }
+        .search-btn, .near-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: #1a237e;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            white-space: nowrap;
+        }
+        .near-btn { background: #0d47a1; }
+        .search-btn:hover, .near-btn:hover { opacity: 0.92; }
+        .status-msg {
+            position: absolute;
+            top: 66px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="loader" class="loader">Loading mosques...</div>
+    <div class="search-bar">
+        <input type="text" id="search-input" class="search-input" placeholder="Enter zipcode or city name">
+        <button id="search-btn" class="search-btn">Search</button>
+        <button id="near-btn" class="near-btn">Near Me</button>
+    </div>
+    <div id="status-msg" class="status-msg"></div>
     <div id="map"></div>
 
     <div id="modal" class="modal-overlay" aria-hidden="true">
@@ -132,6 +185,15 @@
             const loader = document.getElementById('loader');
             const modal = document.getElementById('modal');
             const closeBtn = modal.querySelector('.close');
+            const statusMsg = document.getElementById('status-msg');
+
+            function showStatus(text, seconds) {
+                statusMsg.textContent = text;
+                statusMsg.style.display = 'block';
+                if (seconds) {
+                    setTimeout(function() { statusMsg.style.display = 'none'; }, seconds * 1000);
+                }
+            }
 
             function closeModal() {
                 modal.classList.remove('open');
@@ -163,6 +225,102 @@
                 modal.setAttribute('aria-hidden', 'false');
             }
 
+            function haversine(lat1, lon1, lat2, lon2) {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+
+            function createIcon(m) {
+                const nextLabel = m.next_salah && m.next_salah.name
+                    ? `${m.next_salah.name}: ${m.next_salah.time}`
+                    : '';
+                const html = `<strong>${m.name}</strong>${nextLabel ? '<br>' + nextLabel : ''}`;
+                return L.divIcon({
+                    className: '',
+                    html: `<div class="mosque-pin">${html}</div>`,
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                });
+            }
+
+            let allMosques = [];
+            let markers = L.layerGroup();
+
+            function clearMarkers() {
+                markers.clearLayers();
+            }
+
+            function renderMosques(mosques) {
+                clearMarkers();
+                const bounds = [];
+                mosques.forEach(function(m) {
+                    bounds.push([m.latitude, m.longitude]);
+                    const marker = L.marker([m.latitude, m.longitude], {icon: createIcon(m)});
+                    marker.on('click', function() { openModal(m); });
+                    markers.addLayer(marker);
+                });
+                if (mosques.length > 0) {
+                    map.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
+                }
+            }
+
+            function filterByDistance(centerLat, centerLon, radiusKm) {
+                const filtered = allMosques.filter(function(m) {
+                    return haversine(centerLat, centerLon, m.latitude, m.longitude) <= radiusKm;
+                }).sort(function(a, b) {
+                    return haversine(centerLat, centerLon, a.latitude, a.longitude) -
+                           haversine(centerLat, centerLon, b.latitude, b.longitude);
+                });
+                if (filtered.length === 0) {
+                    showStatus('No mosques found within ' + radiusKm + ' km of this area.', 4);
+                } else {
+                    statusMsg.style.display = 'none';
+                }
+                renderMosques(filtered);
+            }
+
+            async function geocodeAndFocus(query) {
+                if (!query.trim()) return;
+                try {
+                    const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query);
+                    const res = await fetch(url, {headers: {'Accept-Language': 'en'}});
+                    const results = await res.json();
+                    if (!results || !results.length) {
+                        showStatus('Location not found.', 3);
+                        return;
+                    }
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+                    map.setView([lat, lon], 13);
+                    filterByDistance(lat, lon, 50);
+                } catch (err) {
+                    console.error('Geocode error:', err);
+                    showStatus('Search failed. Please try again.', 3);
+                }
+            }
+
+            function onNearMe() {
+                if (!navigator.geolocation) {
+                    showStatus('Geolocation is not supported by your browser.', 3);
+                    return;
+                }
+                showStatus('Finding your location...', 5);
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    statusMsg.style.display = 'none';
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    map.setView([lat, lon], 13);
+                    filterByDistance(lat, lon, 50);
+                }, function() {
+                    showStatus('Could not get your location.', 3);
+                });
+            }
+
             let map;
             try {
                 const res = await fetch('/api/public/mosques/');
@@ -175,34 +333,24 @@
                     return;
                 }
 
-                const mosques = data.mosques;
-                map = L.map('map').setView([mosques[0].latitude, mosques[0].longitude], 12);
+                allMosques = data.mosques;
+                map = L.map('map').setView([20, 0], 2);
+                markers.addTo(map);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
 
-                const bounds = [];
-                mosques.forEach(function(m) {
-                    bounds.push([m.latitude, m.longitude]);
-                    const nextLabel = m.next_salah && m.next_salah.name
-                        ? `${m.next_salah.name}: ${m.next_salah.time}`
-                        : '';
-                    const html = `<strong>${m.name}</strong>${nextLabel ? '<br>' + nextLabel : ''}`;
-                    const icon = L.divIcon({
-                        className: '',
-                        html: `<div class="mosque-pin">${html}</div>`,
-                        iconSize: null,
-                        iconAnchor: [0, 0]
-                    });
-                    const marker = L.marker([m.latitude, m.longitude], {icon: icon}).addTo(map);
-                    marker.on('click', function() { openModal(m); });
-                });
+                renderMosques(allMosques);
 
-                if (bounds.length > 1) {
-                    map.fitBounds(bounds, {padding: [40, 40]});
-                }
+                document.getElementById('search-btn').addEventListener('click', function() {
+                    geocodeAndFocus(document.getElementById('search-input').value);
+                });
+                document.getElementById('search-input').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') geocodeAndFocus(e.target.value);
+                });
+                document.getElementById('near-btn').addEventListener('click', onNearMe);
             } catch (err) {
                 console.error('Map load error:', err);
                 loader.textContent = 'Error loading map.';

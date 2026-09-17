@@ -112,18 +112,19 @@
             font-size: 14px;
         }
         .back-link:hover { color: #e8eaf0; }
+        .mosque-fields { display: none; }
     </style>
 </head>
 <body>
     <div class="signup-container">
         <img src="/static/logo.png" alt="FZDigitals" class="logo" />
         <h1>Create Account</h1>
-        <p class="subtitle">Sign up to manage your slideshows</p>
-        
+        <p class="subtitle">Sign up to manage your screens or mosque</p>
+
         {% if error %}
         <div class="error-message">{{ error }}</div>
         {% endif %}
-        
+
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
@@ -161,6 +162,34 @@
                 <label for="id_security_answer">Security Answer</label>
                 <input type="text" name="security_answer" id="id_security_answer" class="form-input" placeholder="Your answer" required>
             </div>
+            <div class="form-group">
+                <label for="id_vertical">Account Type</label>
+                <select name="vertical" id="id_vertical" class="form-select" onchange="toggleMosqueFields(this.value)" required>
+                    {% for value, text in verticals %}
+                    <option value="{{ value }}" {% if value == 'bank' %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="mosque-fields" class="mosque-fields">
+                <div class="form-group">
+                    <label for="id_mosque_name">Mosque Name</label>
+                    <input type="text" name="mosque_name" id="id_mosque_name" class="form-input" placeholder="Mosque name">
+                </div>
+                <div class="form-group">
+                    <label for="id_mosque_address">Mosque Address</label>
+                    <input type="text" name="mosque_address" id="id_mosque_address" class="form-input" placeholder="Street address">
+                </div>
+                <div class="form-group">
+                    <label for="id_mosque_latitude">Latitude</label>
+                    <input type="number" step="any" name="mosque_latitude" id="id_mosque_latitude" class="form-input" placeholder="e.g. 17.4065">
+                </div>
+                <div class="form-group">
+                    <label for="id_mosque_longitude">Longitude</label>
+                    <input type="number" step="any" name="mosque_longitude" id="id_mosque_longitude" class="form-input" placeholder="e.g. 78.4772">
+                </div>
+            </div>
+
             <button type="submit" class="submit-btn">Create Account</button>
         </form>
         
@@ -178,6 +207,24 @@
                 button.textContent = 'Show';
             }
         }
+
+        function toggleMosqueFields(vertical) {
+            const mosqueFields = document.getElementById('mosque-fields');
+            const inputs = mosqueFields.querySelectorAll('input');
+            if (vertical === 'mosque') {
+                mosqueFields.style.display = 'block';
+                inputs.forEach(function(input) {
+                    if (input.name === 'mosque_name' || input.name === 'mosque_latitude' || input.name === 'mosque_longitude') {
+                        input.required = true;
+                    }
+                });
+            } else {
+                mosqueFields.style.display = 'none';
+                inputs.forEach(function(input) { input.required = false; });
+            }
+        }
+
+        toggleMosqueFields(document.getElementById('id_vertical').value);
     </script>
 </body>
 </html>
