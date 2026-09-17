@@ -50,17 +50,19 @@ jobs:
           sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" $GRADLE
           grep -E "versionCode|versionName" $GRADLE
 
-      - name: Install ImageMagick
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: Install ImageMagick and SVG support
+        run: sudo apt-get update && sudo apt-get install -y imagemagick librsvg2-bin
 
-      - name: Apply FZDigitals app icon
+      - name: Apply mosque map logo
         working-directory: mobile-phone
         run: |
-          LOGO=../slideshow/static/slideshow/logo.png
+          LOGO=../slideshow/static/slideshow/phone-map.svg
           rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          mkdir -p /tmp/logo
+          rsvg-convert -w 1024 -h 1024 -o /tmp/logo/logo.png "$LOGO"
           for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
             dir=${d%%:*}; size=${d##*:}
-            convert "$LOGO" -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} android/app/src/main/res/mipmap-$dir/ic_launcher.png
+            convert /tmp/logo/logo.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} android/app/src/main/res/mipmap-$dir/ic_launcher.png
             cp android/app/src/main/res/mipmap-$dir/ic_launcher.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
           done
 
