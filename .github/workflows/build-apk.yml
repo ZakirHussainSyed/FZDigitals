@@ -24,12 +24,15 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools build-tools;35.0.0 platforms;android-35'
+          packages: ''
+
+      - name: Install Android SDK platform and build tools
+        run: sdkmanager --install 'platform-tools' 'build-tools;34.0.0' 'platforms;android-34'
 
       - name: Install Capacitor dependencies
         working-directory: mobile
@@ -117,7 +120,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
-          BT=$ANDROID_HOME/build-tools/35.0.0
+          BT=$ANDROID_HOME/build-tools/34.0.0
           $BT/zipalign -p -f 4 mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/app-aligned.apk
           $BT/apksigner sign --ks /tmp/release.keystore --ks-key-alias "$KEY_ALIAS" --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" --out mobile/android/app/build/outputs/apk/release/app-release-signed.apk /tmp/app-aligned.apk
 
