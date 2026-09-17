@@ -11,8 +11,15 @@ class UserProfileInline(admin.StackedInline):
     fields = ('vertical', 'number_of_screens', 'max_slideshows', 'storage_quota_mb')
 
 
+class MosqueInline(admin.StackedInline):
+    model = Mosque
+    extra = 1
+    verbose_name_plural = 'Mosque Details'
+    fields = ('name', 'address', 'latitude', 'longitude', 'is_active')
+
+
 class UserAdmin(BaseUserAdmin):
-    inlines = (UserProfileInline,)
+    inlines = (UserProfileInline, MosqueInline)
 
 
 if admin.site.is_registered(User):
