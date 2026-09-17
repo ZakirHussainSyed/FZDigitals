@@ -123,10 +123,10 @@ def django_login(request):
 
 
 def signup(request):
-    """User registration with security question and mosque details"""
+    """User registration with security question"""
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
-    
+
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -134,65 +134,37 @@ def signup(request):
         confirm_password = request.POST.get('confirm_password')
         security_question = request.POST.get('security_question')
         security_answer = request.POST.get('security_answer')
-        vertical = request.POST.get('vertical', 'bank')
-        mosque_name = request.POST.get('mosque_name', '').strip()
-        mosque_address = request.POST.get('mosque_address', '').strip()
-        mosque_latitude = request.POST.get('mosque_latitude', '').strip()
-        mosque_longitude = request.POST.get('mosque_longitude', '').strip()
-        
+
         if password != confirm_password:
             return render(request, 'slideshow/signup.html', {
                 'error': 'Passwords do not match',
                 'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'verticals': UserProfile.VERTICAL_CHOICES
             })
-        
+
         if User.objects.filter(username=username).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Username already exists',
                 'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'verticals': UserProfile.VERTICAL_CHOICES
             })
-        
+
         if User.objects.filter(email=email).exists():
             return render(request, 'slideshow/signup.html', {
                 'error': 'Email already exists',
                 'security_questions': UserProfile.SECURITY_QUESTIONS,
-                'verticals': UserProfile.VERTICAL_CHOICES
             })
-        
+
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
             security_question=security_question,
             security_answer=security_answer.lower(),
-            vertical=vertical
         )
 
-        if vertical == 'mosque':
-            try:
-                Mosque.objects.create(
-                    user=user,
-                    name=mosque_name or username,
-                    address=mosque_address,
-                    latitude=Decimal(mosque_latitude) if mosque_latitude else None,
-                    longitude=Decimal(mosque_longitude) if mosque_longitude else None,
-                )
-            except Exception as e:
-                logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
-
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        try:
-            profile = user.userprofile
-            if profile.vertical == 'mosque':
-                return redirect('prayer-times')
-        except UserProfile.DoesNotExist:
-            pass
         return redirect(f'/{user.id}/')
-    
+
     return render(request, 'slideshow/signup.html', {
         'security_questions': UserProfile.SECURITY_QUESTIONS,
-        'verticals': UserProfile.VERTICAL_CHOICES
     })
 
 
@@ -263,9 +235,66 @@ def user_management(request):
     """User management page - only for superusers"""
     if not request.user.is_superuser:
         return redirect(f'/{request.user.id}/')
-    
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        vertical = request.POST.get('vertical', 'bank')
+        mosque_name = request.POST.get('mosque_name', '').strip()
+        mosque_address = request.POST.get('mosque_address', '').strip()
+        mosque_latitude = request.POST.get('mosque_latitude', '').strip()
+        mosque_longitude = request.POST.get('mosque_longitude', '').strip()
+
+        context = {
+            'users': User.objects.all().order_by('-id'),
+            'verticals': UserProfile.VERTICAL_CHOICES,
+        }
+
+        if not username or not email or not password:
+            context['error'] = 'Username, email, and password are required.'
+            return render(request, 'slideshow/user_management.html', context)
+
+        if password != confirm_password:
+            context['error'] = 'Passwords do not match.'
+            return render(request, 'slideshow/user_management.html', context)
+
+        if User.objects.filter(username=username).exists():
+            context['error'] = 'Username already exists.'
+            return render(request, 'slideshow/user_management.html', context)
+
+        if User.objects.filter(email=email).exists():
+            context['error'] = 'Email already exists.'
+            return render(request, 'slideshow/user_management.html', context)
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        UserProfile.objects.create(
+            user=user,
+            vertical=vertical
+        )
+
+        if vertical == 'mosque':
+            try:
+                Mosque.objects.create(
+                    user=user,
+                    name=mosque_name or username,
+                    address=mosque_address,
+                    latitude=Decimal(mosque_latitude) if mosque_latitude else None,
+                    longitude=Decimal(mosque_longitude) if mosque_longitude else None,
+                )
+            except Exception as e:
+                logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
+
+        context['success'] = f'User {username} created successfully.'
+        context['users'] = User.objects.all().order_by('-id')
+        return render(request, 'slideshow/user_management.html', context)
+
     users = User.objects.all().order_by('-id')
-    return render(request, 'slideshow/user_management.html', {'users': users})
+    return render(request, 'slideshow/user_management.html', {
+        'users': users,
+        'verticals': UserProfile.VERTICAL_CHOICES,
+    })
 
 
 @login_required
