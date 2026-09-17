@@ -327,13 +327,6 @@
                 const data = await res.json();
                 loader.style.display = 'none';
 
-                if (!data.success || !data.mosques || !data.mosques.length) {
-                    loader.textContent = 'No mosques found.';
-                    loader.style.display = 'flex';
-                    return;
-                }
-
-                allMosques = data.mosques;
                 map = L.map('map').setView([20, 0], 2);
                 markers.addTo(map);
 
@@ -342,8 +335,6 @@
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
 
-                renderMosques(allMosques);
-
                 document.getElementById('search-btn').addEventListener('click', function() {
                     geocodeAndFocus(document.getElementById('search-input').value);
                 });
@@ -351,6 +342,14 @@
                     if (e.key === 'Enter') geocodeAndFocus(e.target.value);
                 });
                 document.getElementById('near-btn').addEventListener('click', onNearMe);
+
+                if (!data.success || !data.mosques || !data.mosques.length) {
+                    showStatus('No mosques found.', 4);
+                    return;
+                }
+
+                allMosques = data.mosques;
+                renderMosques(allMosques);
             } catch (err) {
                 console.error('Map load error:', err);
                 loader.textContent = 'Error loading map.';
