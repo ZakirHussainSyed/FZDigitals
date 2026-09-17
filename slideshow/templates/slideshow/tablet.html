@@ -457,6 +457,12 @@
                     const img = document.createElement('img');
                     img.src = f.url;
                     img.alt = f.title;
+                    img.onerror = () => {
+                        console.warn('image load error:', f.title);
+                        if (img.parentElement && img.parentElement.classList.contains('active')) {
+                            setTimeout(() => show(current + 1), 500);
+                        }
+                    };
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
@@ -470,7 +476,9 @@
                     vid.setAttribute('preload', 'auto');
                     vid.onerror = () => {
                         console.warn('video load error:', f.title);
-                        setTimeout(() => show(current + 1), 500);
+                        if (vid.parentElement && vid.parentElement.classList.contains('active')) {
+                            setTimeout(() => show(current + 1), 500);
+                        }
                     };
                     wrap.appendChild(vid);
                 }
@@ -545,7 +553,7 @@
                     }
                     media = data.files;
                     saveCachedMedia(media);
-                    cacheMediaUrls(media.map(f => f.url));
+                    cacheMediaUrls(media.filter(f => f.type && f.type.startsWith('image')).map(f => f.url));
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';

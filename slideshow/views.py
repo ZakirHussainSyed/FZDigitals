@@ -455,6 +455,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // HTML5 video requests use byte-range requests; serving a full cached
+    // 200 response for a 206 request breaks playback on Android WebView.
+    if (request.headers.has('range')) {
+        return;
+    }
+
     if (isMediaUrl(url)) {
         event.respondWith(
             caches.match(request).then((cached) => {
@@ -465,7 +471,7 @@ self.addEventListener('fetch', (event) => {
                         cache.put(request, resClone).catch(() => {});
                     }).catch(() => {});
                     return response;
-                });
+                }).catch(() => caches.match(request));
             })
         );
     } else if (isSlideshowApi(url)) {
