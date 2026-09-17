@@ -1387,7 +1387,10 @@ def api_public_mosques(request):
 
 def mosque_map(request):
     """Public map page showing mosques with prayer times."""
-    return render(request, 'slideshow/mosque_map.html')
+    return render(request, 'slideshow/mosque_map.html', {
+        'tile_url': getattr(settings, 'MAP_TILE_URL', 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'),
+        'attribution': getattr(settings, 'MAP_ATTRIBUTION', '&copy; OpenStreetMap contributors'),
+    })
 
 
 @login_required

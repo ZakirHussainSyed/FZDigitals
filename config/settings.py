@@ -159,6 +159,17 @@ TIME_ZONE = 'UTC'
 # Timezone for mosque prayer time comparisons (can be overridden per region)
 MOSQUE_TIMEZONE = os.environ.get('MOSQUE_TIMEZONE', 'Asia/Kolkata')
 
+# Map tile URL and attribution for the mosque map.
+# Default uses OSM France tiles (no API key). Override for Mapbox/Stadia/etc.
+MAP_TILE_URL = os.environ.get(
+    'MAP_TILE_URL',
+    'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+)
+MAP_ATTRIBUTION = os.environ.get(
+    'MAP_ATTRIBUTION',
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.openstreetmap.fr/">OSM-FR</a>'
+)
+
 USE_I18N = True
 
 USE_TZ = True

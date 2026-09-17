@@ -330,10 +330,10 @@
                 map = L.map('map').setView([20, 0], 2);
                 markers.addTo(map);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+                L.tileLayer('{{ tile_url }}', {
                     maxZoom: 19,
                     subdomains: 'a,b,c',
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.openstreetmap.fr/">OSM-FR</a>'
+                    attribution: '{{ attribution|safe }}'
                 }).addTo(map);
 
                 document.getElementById('search-btn').addEventListener('click', function() {
