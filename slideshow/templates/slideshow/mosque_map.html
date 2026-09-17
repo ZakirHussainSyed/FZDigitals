@@ -66,6 +66,12 @@
             position: relative;
         }
         .modal-header h2 { font-size: 20px; margin: 0; padding-right: 32px; }
+        .modal-distance {
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+            margin-top: 4px;
+            display: none;
+        }
         .modal-header .close {
             position: absolute;
             top: 14px;
@@ -178,6 +184,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-title">Mosque</h2>
+                <div class="modal-distance" id="modal-distance"></div>
                 <button class="close" aria-label="Close">&times;</button>
             </div>
             <div class="modal-body">
@@ -219,6 +226,27 @@
                 if (e.target === modal) closeModal();
             });
 
+            function setUserLocation(lat, lon) {
+                userLat = lat;
+                userLon = lon;
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+                userMarker = L.circleMarker([lat, lon], {
+                    radius: 8,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: '#2196F3',
+                    fillOpacity: 1,
+                    opacity: 1
+                }).addTo(map);
+                userMarker.bindTooltip('You are here', {direction: 'top', offset: [0, -8]});
+
+                allMosques.forEach(function(m) {
+                    m.distance_km = haversine(lat, lon, m.latitude, m.longitude);
+                });
+            }
+
             function openModal(mosque) {
                 document.getElementById('modal-title').textContent = mosque.name;
                 const addrEl = document.getElementById('modal-address');
@@ -236,6 +264,17 @@
                 document.getElementById('t-sunset').textContent = timings.sunset || '-';
                 document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
                 document.getElementById('t-isha').textContent = timings.isha || '-';
+
+                const distEl = document.getElementById('modal-distance');
+                if (userLat !== null && userLon !== null) {
+                    const km = mosque.distance_km || haversine(userLat, userLon, mosque.latitude, mosque.longitude);
+                    const mi = km * 0.621371;
+                    distEl.textContent = 'Distance: ' + km.toFixed(1) + ' km (' + mi.toFixed(1) + ' mi)';
+                    distEl.style.display = 'block';
+                } else {
+                    distEl.style.display = 'none';
+                }
+
                 modal.classList.add('open');
                 modal.setAttribute('aria-hidden', 'false');
             }
@@ -265,6 +304,9 @@
 
             let allMosques = [];
             let markers = L.layerGroup();
+            let userLat = null;
+            let userLon = null;
+            let userMarker = null;
 
             function clearMarkers() {
                 markers.clearLayers();
@@ -329,6 +371,7 @@
                     statusMsg.style.display = 'none';
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
+                    setUserLocation(lat, lon);
                     map.setView([lat, lon], 13);
                     filterByDistance(lat, lon, 50);
                 }, function() {
@@ -366,6 +409,12 @@
 
                 allMosques = data.mosques;
                 renderMosques(allMosques);
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        setUserLocation(position.coords.latitude, position.coords.longitude);
+                    });
+                }
             } catch (err) {
                 console.error('Map load error:', err);
                 loader.textContent = 'Error loading map.';
