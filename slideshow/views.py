@@ -1308,7 +1308,7 @@ def _format_prayer_time(t):
         return ''
     s = t.strftime('%I:%M %p')
     s = s.lstrip('0')
-    return s.replace(' AM', 'am').replace(' PM', 'pm').replace('am', 'am').replace('pm', 'pm')
+    return s.replace(' AM', ' am').replace(' PM', ' pm')
 
 
 def _next_salah(prayer_time, now, tz):
