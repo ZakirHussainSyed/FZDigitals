@@ -4,7 +4,7 @@
   "webDir": "www",
   "backgroundColor": "#ffffff",
   "server": {
-    "url": "https://www.fzscreens.com/mosque-map/?v=1"
+    "url": "https://www.fzscreens.com/mosque-map/?v=2"
   },
   "android": {
     "backgroundColor": "#ffffff"
