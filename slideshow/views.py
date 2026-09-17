@@ -15,6 +15,10 @@ import logging
 import secrets
 
 import requests
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from suntime import Sun
 
 from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, MosqueSlide
 
@@ -1232,3 +1236,90 @@ def api_qr_svg(request):
     except Exception as e:
         logger.error(f"Error in api_qr_svg: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def _format_prayer_time(t):
+    if not t:
+        return ''
+    s = t.strftime('%I:%M %p')
+    s = s.lstrip('0')
+    return s.replace(' AM', 'am').replace(' PM', 'pm').replace('am', 'am').replace('pm', 'pm')
+
+
+def _next_salah(prayer_time, now, tz):
+    if not prayer_time:
+        return {'name': None, 'time': ''}
+    today_prayers = [
+        ('Fajr', prayer_time.fajr),
+        ('Dhuhr', prayer_time.dhuhr),
+        ('Asr', prayer_time.asr),
+        ('Maghrib', prayer_time.maghrib),
+        ('Isha', prayer_time.isha),
+    ]
+    for name, t in today_prayers:
+        if not t:
+            continue
+        dt = datetime.combine(prayer_time.date, t).replace(tzinfo=tz)
+        if dt > now:
+            return {'name': name, 'time': _format_prayer_time(t)}
+    if prayer_time.fajr:
+        return {'name': 'Fajr', 'time': _format_prayer_time(prayer_time.fajr)}
+    return {'name': None, 'time': ''}
+
+
+def _sunrise_time(latitude, longitude, d, tz):
+    if latitude is None or longitude is None:
+        return ''
+    try:
+        sun = Sun(float(latitude), float(longitude))
+        sr = sun.get_sunrise_time(d)
+        if not sr.tzinfo:
+            sr = sr.replace(tzinfo=ZoneInfo('UTC'))
+        sr = sr.astimezone(tz)
+        return _format_prayer_time(sr.time())
+    except Exception as e:
+        logger.warning(f"Sunrise calc failed for {latitude},{longitude}: {e}")
+        return ''
+
+
+@require_http_methods(["GET"])
+def api_public_mosques(request):
+    """Public list of mosques with today's prayer times, sunrise, and next salah."""
+    try:
+        today = timezone.now().date()
+        tz = ZoneInfo(getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
+        now = datetime.now(tz)
+        mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+        data = []
+        for m in mosques:
+            prayer_time = m.prayer_times.filter(date=today).first()
+            timings = {}
+            if prayer_time:
+                timings = {
+                    'fajr': _format_prayer_time(prayer_time.fajr),
+                    'dhuhr': _format_prayer_time(prayer_time.dhuhr),
+                    'asr': _format_prayer_time(prayer_time.asr),
+                    'maghrib': _format_prayer_time(prayer_time.maghrib),
+                    'isha': _format_prayer_time(prayer_time.isha),
+                    'jummah': _format_prayer_time(prayer_time.jummah),
+                }
+            timings['sunrise'] = _sunrise_time(m.latitude, m.longitude, today, tz)
+            next_salah = _next_salah(prayer_time, now, tz)
+            data.append({
+                'id': m.id,
+                'name': m.name,
+                'address': m.address,
+                'latitude': float(m.latitude),
+                'longitude': float(m.longitude),
+                'next_salah': next_salah,
+                'timings': timings,
+            })
+        return JsonResponse({'success': True, 'mosques': data})
+    except Exception as e:
+        logger.error(f"Error in api_public_mosques: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def mosque_map(request):
+    """Public map page showing mosques with prayer times."""
+    return render(request, 'slideshow/mosque_map.html')

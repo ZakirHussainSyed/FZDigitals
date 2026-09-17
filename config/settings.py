@@ -156,6 +156,9 @@ LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
+# Timezone for mosque prayer time comparisons (can be overridden per region)
+MOSQUE_TIMEZONE = os.environ.get('MOSQUE_TIMEZONE', 'Asia/Kolkata')
+
 USE_I18N = True
 
 USE_TZ = True
