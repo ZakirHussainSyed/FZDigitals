@@ -196,6 +196,7 @@
                 <div class="timing-row"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
+                <div class="timing-row"><span class="timing-label">Jummah</span><span class="timing-value" id="t-jummah">-</span></div>
             </div>
         </div>
     </div>
@@ -264,6 +265,7 @@
                 document.getElementById('t-sunset').textContent = timings.sunset || '-';
                 document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
                 document.getElementById('t-isha').textContent = timings.isha || '-';
+                document.getElementById('t-jummah').textContent = timings.jummah || '-';
 
                 const distEl = document.getElementById('modal-distance');
                 if (userLat !== null && userLon !== null) {

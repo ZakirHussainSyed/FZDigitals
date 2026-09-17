@@ -1467,9 +1467,8 @@ def prayer_times(request):
             return datetime.strptime(f'{h:02d}:{m:02d}', '%H:%M').time()
 
         try:
-            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'sunset']:
+            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'sunset', 'jummah']:
                 setattr(prayer_time, field, _parse(field))
-            prayer_time.jummah = _parse('jummah', optional=True)
             prayer_time.save()
             messages.success(request, 'Prayer times updated.')
             return redirect('prayer-times')
@@ -1485,7 +1484,7 @@ def prayer_times(request):
         ('sunset', 'Sunset'),
         ('maghrib', 'Maghrib'),
         ('isha', 'Isha'),
-        ('jummah', 'Jummah (optional)'),
+        ('jummah', 'Jummah'),
     ]:
         t = getattr(prayer_time, field)
         if t:
