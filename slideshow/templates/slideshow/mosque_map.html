@@ -186,6 +186,7 @@
                 <div class="timing-row"><span class="timing-label">Sunrise</span><span class="timing-value" id="t-sunrise">-</span></div>
                 <div class="timing-row"><span class="timing-label">Dhuhr</span><span class="timing-value" id="t-dhuhr">-</span></div>
                 <div class="timing-row"><span class="timing-label">Asr</span><span class="timing-value" id="t-asr">-</span></div>
+                <div class="timing-row"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
             </div>
@@ -232,6 +233,7 @@
                 document.getElementById('t-sunrise').textContent = timings.sunrise || '-';
                 document.getElementById('t-dhuhr').textContent = timings.dhuhr || '-';
                 document.getElementById('t-asr').textContent = timings.asr || '-';
+                document.getElementById('t-sunset').textContent = timings.sunset || '-';
                 document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
                 document.getElementById('t-isha').textContent = timings.isha || '-';
                 modal.classList.add('open');

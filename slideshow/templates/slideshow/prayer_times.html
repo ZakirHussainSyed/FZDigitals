@@ -39,20 +39,27 @@
             font-size: 13px;
             color: rgba(232,234,240,0.8);
         }
-        .form-input {
-            width: 100%;
+        .time-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .time-row input, .time-row select {
             padding: 12px;
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.15);
             border-radius: 8px;
             color: #e8eaf0;
             font-size: 14px;
+            text-align: center;
         }
-        .form-input:focus {
+        .time-row input { width: 60px; }
+        .time-row select { width: 70px; }
+        .time-row input:focus, .time-row select:focus {
             outline: none;
             border-color: #7c5cff;
         }
-        .form-input::placeholder { color: rgba(232,234,240,0.4); }
+        .colon { color: #e8eaf0; font-size: 16px; }
         .submit-btn {
             width: 100%;
             padding: 12px;
@@ -98,30 +105,20 @@
 
         <form method="post">
             {% csrf_token %}
+            {% for f in prayer_fields %}
             <div class="form-group">
-                <label for="id_fajr">Fajr</label>
-                <input type="time" name="fajr" id="id_fajr" class="form-input" value="{{ prayer_time.fajr|time:'H:i' }}" required>
+                <label for="id_{{ f.name }}_hour">{{ f.label }}</label>
+                <div class="time-row">
+                    <input type="number" name="{{ f.name }}_hour" id="id_{{ f.name }}_hour" min="1" max="12" placeholder="HH" value="{{ f.hour }}">
+                    <span class="colon">:</span>
+                    <input type="number" name="{{ f.name }}_minute" id="id_{{ f.name }}_minute" min="0" max="59" placeholder="MM" value="{{ f.minute }}">
+                    <select name="{{ f.name }}_ampm" id="id_{{ f.name }}_ampm">
+                        <option value="AM" {% if f.ampm == 'AM' %}selected{% endif %}>AM</option>
+                        <option value="PM" {% if f.ampm == 'PM' %}selected{% endif %}>PM</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="id_dhuhr">Dhuhr</label>
-                <input type="time" name="dhuhr" id="id_dhuhr" class="form-input" value="{{ prayer_time.dhuhr|time:'H:i' }}" required>
-            </div>
-            <div class="form-group">
-                <label for="id_asr">Asr</label>
-                <input type="time" name="asr" id="id_asr" class="form-input" value="{{ prayer_time.asr|time:'H:i' }}" required>
-            </div>
-            <div class="form-group">
-                <label for="id_maghrib">Maghrib</label>
-                <input type="time" name="maghrib" id="id_maghrib" class="form-input" value="{{ prayer_time.maghrib|time:'H:i' }}" required>
-            </div>
-            <div class="form-group">
-                <label for="id_isha">Isha</label>
-                <input type="time" name="isha" id="id_isha" class="form-input" value="{{ prayer_time.isha|time:'H:i' }}" required>
-            </div>
-            <div class="form-group">
-                <label for="id_jummah">Jummah (optional)</label>
-                <input type="time" name="jummah" id="id_jummah" class="form-input" value="{% if prayer_time.jummah %}{{ prayer_time.jummah|time:'H:i' }}{% endif %}">
-            </div>
+            {% endfor %}
             <button type="submit" class="submit-btn">Save Prayer Times</button>
         </form>
 

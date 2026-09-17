@@ -172,6 +172,7 @@ class PrayerTime(models.Model):
     asr = models.TimeField()
     maghrib = models.TimeField()
     isha = models.TimeField()
+    sunset = models.TimeField(blank=True, null=True)
     jummah = models.TimeField(blank=True, null=True)
 
     class Meta:

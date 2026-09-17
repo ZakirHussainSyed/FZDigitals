@@ -1334,17 +1334,32 @@ def _next_salah(prayer_time, now, tz):
 
 def _sunrise_time(latitude, longitude, d, tz):
     if latitude is None or longitude is None:
-        return ''
+        return None
     try:
         sun = Sun(float(latitude), float(longitude))
         sr = sun.get_sunrise_time(d)
         if not sr.tzinfo:
             sr = sr.replace(tzinfo=ZoneInfo('UTC'))
         sr = sr.astimezone(tz)
-        return _format_prayer_time(sr.time())
+        return sr.time()
     except Exception as e:
         logger.warning(f"Sunrise calc failed for {latitude},{longitude}: {e}")
-        return ''
+        return None
+
+
+def _sunset_time(latitude, longitude, d, tz):
+    if latitude is None or longitude is None:
+        return None
+    try:
+        sun = Sun(float(latitude), float(longitude))
+        ss = sun.get_sunset_time(d)
+        if not ss.tzinfo:
+            ss = ss.replace(tzinfo=ZoneInfo('UTC'))
+        ss = ss.astimezone(tz)
+        return ss.time()
+    except Exception as e:
+        logger.warning(f"Sunset calc failed for {latitude},{longitude}: {e}")
+        return None
 
 
 @require_http_methods(["GET"])
@@ -1366,9 +1381,10 @@ def api_public_mosques(request):
                     'asr': _format_prayer_time(prayer_time.asr),
                     'maghrib': _format_prayer_time(prayer_time.maghrib),
                     'isha': _format_prayer_time(prayer_time.isha),
+                    'sunset': _format_prayer_time(prayer_time.sunset),
                     'jummah': _format_prayer_time(prayer_time.jummah),
                 }
-            timings['sunrise'] = _sunrise_time(m.latitude, m.longitude, today, tz)
+            timings['sunrise'] = _format_prayer_time(_sunrise_time(m.latitude, m.longitude, today, tz))
             next_salah = _next_salah(prayer_time, now, tz)
             data.append({
                 'id': m.id,
@@ -1410,6 +1426,7 @@ def prayer_times(request):
         return redirect(f'/{request.user.id}/')
 
     today = timezone.now().date()
+    tz = ZoneInfo(getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
     prayer_time, _ = PrayerTime.objects.get_or_create(
         mosque=mosque,
         date=today,
@@ -1422,20 +1439,68 @@ def prayer_times(request):
         }
     )
 
+    # Default sunset based on the mosque's location.
+    if prayer_time.sunset is None and mosque.latitude is not None and mosque.longitude is not None:
+        try:
+            computed_sunset = _sunset_time(mosque.latitude, mosque.longitude, today, tz)
+            if computed_sunset:
+                prayer_time.sunset = computed_sunset
+                prayer_time.save(update_fields=['sunset'])
+        except Exception as e:
+            logger.warning(f"Sunset default failed: {e}")
+
     if request.method == 'POST':
-        fields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah']
-        for field in fields:
-            value = request.POST.get(field, '').strip()
-            if value:
-                setattr(prayer_time, field, datetime.strptime(value, '%H:%M').time())
-            elif field == 'jummah':
-                setattr(prayer_time, field, None)
-        prayer_time.save()
-        messages.success(request, 'Prayer times updated.')
-        return redirect('prayer-times')
+        def _parse(field, optional=False):
+            hour = request.POST.get(f'{field}_hour', '').strip()
+            minute = request.POST.get(f'{field}_minute', '').strip()
+            ampm = request.POST.get(f'{field}_ampm', '').strip()
+            if not hour or not minute:
+                if optional:
+                    return None
+                raise ValueError(f'{field.capitalize()} time is required')
+            h = int(hour)
+            m = int(minute)
+            if ampm.upper() == 'PM' and h != 12:
+                h += 12
+            elif ampm.upper() == 'AM' and h == 12:
+                h = 0
+            return datetime.strptime(f'{h:02d}:{m:02d}', '%H:%M').time()
+
+        try:
+            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'sunset']:
+                setattr(prayer_time, field, _parse(field))
+            prayer_time.jummah = _parse('jummah', optional=True)
+            prayer_time.save()
+            messages.success(request, 'Prayer times updated.')
+            return redirect('prayer-times')
+        except Exception as e:
+            messages.error(request, f'Invalid prayer time: {e}')
+            return redirect('prayer-times')
+
+    prayer_fields = []
+    for field, label in [
+        ('fajr', 'Fajr'),
+        ('dhuhr', 'Dhuhr'),
+        ('asr', 'Asr'),
+        ('sunset', 'Sunset'),
+        ('maghrib', 'Maghrib'),
+        ('isha', 'Isha'),
+        ('jummah', 'Jummah (optional)'),
+    ]:
+        t = getattr(prayer_time, field)
+        if t:
+            hour = t.strftime('%I').lstrip('0')
+            minute = t.strftime('%M')
+            ampm = t.strftime('%p')
+        else:
+            hour = ''
+            minute = ''
+            ampm = 'AM'
+        prayer_fields.append({'name': field, 'label': label, 'hour': hour, 'minute': minute, 'ampm': ampm})
 
     return render(request, 'slideshow/prayer_times.html', {
         'mosque': mosque,
         'prayer_time': prayer_time,
+        'prayer_fields': prayer_fields,
         'today': today,
     })
