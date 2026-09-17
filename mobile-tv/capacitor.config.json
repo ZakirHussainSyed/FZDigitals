@@ -1,0 +1,18 @@
+{
+  "appId": "com.fzdigitals.mosquetv",
+  "appName": "Mosque TV",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "server": {
+    "url": "https://www.fzscreens.com/mosque-tv/"
+  },
+  "android": {
+    "backgroundColor": "#000000"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true
+    }
+  }
+}

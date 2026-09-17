@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>{{ mosque.name }} - Mosque TV</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta http-equiv="Cache-Control" content="no-store, must-revalidate, no-cache" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; background: #000; overflow: hidden; }
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+        .tv-layout {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+        .prayer-panel {
+            background: linear-gradient(90deg, #0d1b3e, #1a237e);
+            color: #fff;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+        .prayer-header h1 {
+            font-size: 26px;
+            margin: 0 0 6px;
+        }
+        .prayer-header .next-salah {
+            font-size: 15px;
+            color: rgba(255,255,255,0.85);
+        }
+        .timings {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 15px;
+        }
+        .timing {
+            text-align: center;
+            min-width: 62px;
+        }
+        .timing .name {
+            color: rgba(255,255,255,0.65);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .timing .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .stage {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 1000ms ease, transform 1000ms ease;
+        }
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+        .slide img, .slide video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .empty {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 18px;
+            text-align: center;
+        }
+        .empty.show { display: flex; }
+        .clock {
+            font-size: 16px;
+            color: rgba(255,255,255,0.85);
+            min-width: 80px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="tv-layout">
+        <div class="prayer-panel">
+            <div class="prayer-header">
+                <h1>{{ mosque.name }}</h1>
+                {% if next_salah and next_salah.name %}
+                    <div class="next-salah">Next: {{ next_salah.name }} - {{ next_salah.time }}</div>
+                {% else %}
+                    <div class="next-salah">Today's Prayer Timings</div>
+                {% endif %}
+            </div>
+            <div class="timings">
+                <div class="timing"><div class="name">Fajr</div><div class="value">{{ timings.fajr }}</div></div>
+                <div class="timing"><div class="name">Sunrise</div><div class="value">{{ timings.sunrise }}</div></div>
+                <div class="timing"><div class="name">Dhuhr</div><div class="value">{{ timings.dhuhr }}</div></div>
+                <div class="timing"><div class="name">Asr</div><div class="value">{{ timings.asr }}</div></div>
+                <div class="timing"><div class="name">Sunset</div><div class="value">{{ timings.sunset }}</div></div>
+                <div class="timing"><div class="name">Maghrib</div><div class="value">{{ timings.maghrib }}</div></div>
+                <div class="timing"><div class="name">Isha</div><div class="value">{{ timings.isha }}</div></div>
+                <div class="timing"><div class="name">Jummah</div><div class="value">{{ timings.jummah }}</div></div>
+            </div>
+            <div class="clock" id="clock">--:--</div>
+        </div>
+        <div class="stage" id="stage">
+            <div class="empty" id="empty">No media uploaded yet.</div>
+            <div id="slides"></div>
+        </div>
+    </div>
+
+    <script type="application/json" id="media-data">{{ media_files|safe }}</script>
+    <script>
+        const media = JSON.parse(document.getElementById('media-data').textContent);
+        let current = 0;
+        let autoplayTimer = null;
+
+        const slidesEl = document.getElementById('slides');
+        const emptyEl = document.getElementById('empty');
+        const clockEl = document.getElementById('clock');
+
+        function updateClock() {
+            const now = new Date();
+            clockEl.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function renderSlides() {
+            slidesEl.innerHTML = '';
+            if (!media.length) {
+                emptyEl.classList.add('show');
+                return;
+            }
+            emptyEl.classList.remove('show');
+
+            media.forEach((f, idx) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'slide' + (idx === current ? ' active' : '');
+
+                if (f.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = f.url;
+                    img.alt = f.title;
+                    wrap.appendChild(img);
+                } else {
+                    const vid = document.createElement('video');
+                    vid.src = f.url;
+                    vid.controls = false;
+                    vid.muted = true;
+                    vid.playsInline = true;
+                    vid.loop = false;
+                    vid.setAttribute('playsinline', '');
+                    vid.setAttribute('muted', '');
+                    vid.setAttribute('preload', 'auto');
+                    wrap.appendChild(vid);
+                }
+
+                slidesEl.appendChild(wrap);
+            });
+        }
+
+        function show(i) {
+            if (!media.length) return;
+            const prev = current;
+            current = (i + media.length) % media.length;
+
+            const nodes = slidesEl.querySelectorAll('.slide');
+            nodes.forEach((n, idx) => {
+                n.classList.remove('active', 'prev');
+                if (idx === current) n.classList.add('active');
+                else if (idx === prev) n.classList.add('prev');
+            });
+
+            const prevVideo = nodes[prev]?.querySelector('video');
+            if (prevVideo) prevVideo.pause();
+
+            playCurrent();
+        }
+
+        function playCurrent() {
+            if (autoplayTimer) {
+                clearTimeout(autoplayTimer);
+                autoplayTimer = null;
+            }
+            const nodes = slidesEl.querySelectorAll('.slide');
+            const video = nodes[current]?.querySelector('video');
+            if (video) {
+                video.onended = () => show(current + 1);
+                video.onerror = () => setTimeout(() => show(current + 1), 500);
+                video.currentTime = 0;
+                video.play().catch(() => setTimeout(() => show(current + 1), 1000));
+            } else {
+                autoplayTimer = setTimeout(() => show(current + 1), 10000);
+            }
+        }
+
+        renderSlides();
+        playCurrent();
+
+        if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
+            Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+name: Build Mosque TV APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile-tv/**'
+      - 'slideshow/**'
+      - '.github/workflows/build-mosque-tv.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: Install Android SDK platform and build tools
+        run: sdkmanager --install 'platform-tools' 'build-tools;34.0.0' 'platforms;android-34'
+
+      - name: Install Capacitor dependencies
+        working-directory: mobile-tv
+        run: npm install
+
+      - name: Add Android platform
+        working-directory: mobile-tv
+        run: npx cap add android
+
+      - name: Auto-bump app version
+        working-directory: mobile-tv
+        run: |
+          GRADLE=android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" $GRADLE
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" $GRADLE
+          grep -E "versionCode|versionName" $GRADLE
+
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      - name: Apply FZDigitals app icon
+        working-directory: mobile-tv
+        run: |
+          LOGO=../slideshow/static/slideshow/logo.png
+          rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            dir=${d%%:*}; size=${d##*:}
+            convert "$LOGO" -resize ${size}x${size} -background black -gravity center -extent ${size}x${size} android/app/src/main/res/mipmap-$dir/ic_launcher.png
+            cp android/app/src/main/res/mipmap-$dir/ic_launcher.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
+          done
+          mkdir -p android/app/src/main/res/drawable-xhdpi
+          convert "$LOGO" -resize 320x180 -background black -gravity center -extent 320x180 android/app/src/main/res/drawable-xhdpi/banner.png
+          sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner"|' android/app/src/main/AndroidManifest.xml
+
+      - name: Enable Android TV launcher
+        working-directory: mobile-tv
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<category android:name="android.intent.category.LAUNCHER" />|<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />\n                <category android:name="android.intent.category.HOME" />\n                <category android:name="android.intent.category.DEFAULT" />|' $MANIFEST
+          sed -i 's|</manifest>|    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
+
+      - name: Sync Capacitor
+        working-directory: mobile-tv
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: mobile-tv/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fzdigitals-mosquetv-debug
+          path: mobile-tv/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build release AAB
+        working-directory: mobile-tv/android
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Sign AAB
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          jarsigner -keystore /tmp/release.keystore -storetype pkcs12 -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" mobile-tv/android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: fzscreens-mosquetv-release-aab
+          path: mobile-tv/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Build release APK
+        working-directory: mobile-tv/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Sign release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          BT=$ANDROID_HOME/build-tools/34.0.0
+          $BT/zipalign -p -f 4 mobile-tv/android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/app-aligned.apk
+          $BT/apksigner sign --ks /tmp/release.keystore --ks-key-alias "$KEY_ALIAS" --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" --out mobile-tv/android/app/build/outputs/apk/release/app-release-signed.apk /tmp/app-aligned.apk
+
+      - name: Upload signed release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fzscreens-mosquetv-release-apk
+          path: mobile-tv/android/app/build/outputs/apk/release/app-release-signed.apk

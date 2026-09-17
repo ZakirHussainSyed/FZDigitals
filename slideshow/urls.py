@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/public/mosques/', views.api_public_mosques, name='api-public-mosques'),
     path('mosque-map/', views.mosque_map, name='mosque-map'),
     path('prayer-times/', views.prayer_times, name='prayer-times'),
+    path('mosque-tv/', views.mosque_tv, name='mosque-tv'),
     path('api/device/<str:device_id>/assign/', views.api_device_assign, name='api-device-assign'),
     path('api/device/<str:device_id>/delete/', views.api_device_delete, name='api-device-delete'),
     path('setup/', views.setup_pairing, name='setup-pairing'),

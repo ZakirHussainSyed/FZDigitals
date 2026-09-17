@@ -1503,3 +1503,62 @@ def prayer_times(request):
         'prayer_fields': prayer_fields,
         'today': today,
     })
+
+
+@login_required
+def mosque_tv(request):
+    """Mosque TV view showing prayer times and the user's slideshow."""
+    try:
+        profile = request.user.userprofile
+        if profile.vertical != 'mosque':
+            return redirect(f'/{request.user.id}/')
+    except UserProfile.DoesNotExist:
+        return redirect(f'/{request.user.id}/')
+
+    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
+    if not mosque:
+        messages.error(request, 'No mosque is associated with your account.')
+        return redirect('prayer-times')
+
+    today = timezone.now().date()
+    tz = ZoneInfo(mosque.timezone or 'UTC')
+    prayer_time, _ = PrayerTime.objects.get_or_create(
+        mosque=mosque,
+        date=today,
+        defaults={
+            'fajr': datetime.strptime('05:00', '%H:%M').time(),
+            'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+            'asr': datetime.strptime('16:00', '%H:%M').time(),
+            'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+            'isha': datetime.strptime('20:00', '%H:%M').time(),
+            'jummah': datetime.strptime('13:30', '%H:%M').time(),
+            'sunset': _sunset_time(mosque.latitude, mosque.longitude, today, tz),
+        }
+    )
+
+    timings = {
+        'fajr': _format_prayer_time(prayer_time.fajr),
+        'sunrise': _format_prayer_time(_sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
+        'dhuhr': _format_prayer_time(prayer_time.dhuhr),
+        'asr': _format_prayer_time(prayer_time.asr),
+        'sunset': _format_prayer_time(prayer_time.sunset),
+        'maghrib': _format_prayer_time(prayer_time.maghrib),
+        'isha': _format_prayer_time(prayer_time.isha),
+        'jummah': _format_prayer_time(prayer_time.jummah),
+    }
+    now = timezone.now().astimezone(tz)
+    next_salah = _next_salah(prayer_time, now, tz)
+
+    media = MediaFile.objects.filter(user=request.user, screen=1).order_by('created_at')
+    media_files = [
+        {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
+        for m in media
+    ]
+
+    return render(request, 'slideshow/mosque_tv.html', {
+        'mosque': mosque,
+        'timings': timings,
+        'next_salah': next_salah,
+        'media_files': media_files,
+        'today': today,
+    })

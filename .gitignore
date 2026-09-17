@@ -55,6 +55,9 @@ mobile/package-lock.json
 mobile-phone/node_modules/
 mobile-phone/android/
 mobile-phone/package-lock.json
+mobile-tv/node_modules/
+mobile-tv/android/
+mobile-tv/package-lock.json
 *.keystore
 tizen/.manifest.tmp
 tizen/*.wgt
