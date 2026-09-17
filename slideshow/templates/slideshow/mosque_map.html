@@ -72,6 +72,14 @@
             font-size: 14px;
             margin-bottom: 18px;
         }
+        .maps-link {
+            color: #1a237e;
+            text-decoration: underline;
+            word-break: break-word;
+        }
+        .maps-link:hover, .maps-link:active {
+            color: #0d47a1;
+        }
         .timing-row {
             display: flex;
             justify-content: space-between;
@@ -137,7 +145,13 @@
 
             function openModal(mosque) {
                 document.getElementById('modal-title').textContent = mosque.name;
-                document.getElementById('modal-address').textContent = mosque.address || '';
+                const addrEl = document.getElementById('modal-address');
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mosque.latitude + ',' + mosque.longitude)}`;
+                if (mosque.address) {
+                    addrEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">${mosque.address}</a>`;
+                } else {
+                    addrEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">Get directions</a>`;
+                }
                 const timings = mosque.timings || {};
                 document.getElementById('t-fajr').textContent = timings.fajr || '-';
                 document.getElementById('t-sunrise').textContent = timings.sunrise || '-';

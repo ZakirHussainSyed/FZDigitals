@@ -52,6 +52,9 @@ Thumbs.db
 mobile/node_modules/
 mobile/android/
 mobile/package-lock.json
+mobile-phone/node_modules/
+mobile-phone/android/
+mobile-phone/package-lock.json
 *.keystore
 tizen/.manifest.tmp
 tizen/*.wgt

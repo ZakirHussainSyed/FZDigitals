@@ -1,0 +1,18 @@
+{
+  "appId": "com.fzdigitals.mosquemap",
+  "appName": "Mosque Map",
+  "webDir": "www",
+  "backgroundColor": "#ffffff",
+  "server": {
+    "url": "https://www.fzscreens.com/mosque-map/"
+  },
+  "android": {
+    "backgroundColor": "#ffffff"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true
+    }
+  }
+}
