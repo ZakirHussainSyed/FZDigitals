@@ -385,6 +385,9 @@
         <div class="user-info">
             <span>Welcome, {{ user.email|default:user.username }}</span>
             <a href="/screens/">My Screens</a>
+            {% if user.userprofile.vertical == 'mosque' %}
+                <a href="{% url 'prayer-times' %}">Prayer Timings</a>
+            {% endif %}
             <a href="/accounts/logout/">Logout</a>
             {% if user.is_superuser %}
                 <a href="/user-management/">User Management</a>
