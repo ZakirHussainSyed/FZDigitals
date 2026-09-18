@@ -300,7 +300,14 @@
 
         function getMediaSrc(f) {
             if (f.localPath && typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc) {
-                return Capacitor.convertFileSrc(f.localPath);
+                const src = Capacitor.convertFileSrc(f.localPath);
+                const i = src.indexOf('/_capacitor_file_/');
+                if (i !== -1) {
+                    const base = src.substring(0, i).split('?')[0].split('#')[0];
+                    const rest = src.substring(i + '/_capacitor_file_/'.length);
+                    return base + '_capacitor_file_/' + rest;
+                }
+                return src;
             }
             return f.url;
         }
