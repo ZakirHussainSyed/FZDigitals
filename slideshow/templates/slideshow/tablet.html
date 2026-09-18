@@ -250,6 +250,7 @@
         let autoplayTimer = null;
         let resumeTimer = null;
         let paused = false;
+        let transitioning = false;
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
@@ -438,13 +439,6 @@
                 clearTimeout(autoplayTimer);
                 autoplayTimer = null;
             }
-            const nodes = slidesEl.querySelectorAll('.slide');
-            const v = nodes[current]?.querySelector('video');
-            if (v) {
-                v.onended = null;
-                v.onloadedmetadata = null;
-                v.pause();
-            }
             if (!media.length) {
                 dlog('startAutoplay: no media, returning');
                 return;
@@ -592,9 +586,6 @@
                     });
                     vid.addEventListener('error', () => {
                         dwarn('video error:', f.title, 'code:', vid.error && vid.error.code, 'message:', vid.error && vid.error.message, 'currentSrc:', vid.currentSrc, 'readyState:', vid.readyState, 'networkState:', vid.networkState);
-                        if (vid.parentElement && vid.parentElement.classList.contains('active')) {
-                            setTimeout(() => show(current + 1), 500);
-                        }
                     });
                     wrap.appendChild(vid);
                 }
@@ -606,9 +597,12 @@
         }
 
         function show(i) {
+            if (transitioning) return;
+            transitioning = true;
             dlog('show called with index:', i, 'current:', current, 'media.length:', media.length);
             if (!media.length) {
                 dlog('show: no media, returning');
+                transitioning = false;
                 return;
             }
             const prev = current;
@@ -616,7 +610,7 @@
             dlog('show: updated current to:', current);
             const nodes = slidesEl.querySelectorAll('.slide');
             dlog('show: found', nodes.length, 'slide nodes');
-            
+
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
                 if (idx === current) {
@@ -631,11 +625,15 @@
                 if (!v) return;
                 if (idx !== current) {
                     v.pause();
+                    v.onended = null;
+                    v.onerror = null;
+                    v.onloadedmetadata = null;
                 }
             });
 
             updateCounter();
             startAutoplay();
+            setTimeout(() => { transitioning = false; }, 300);
         }
 
         async function refresh() {
