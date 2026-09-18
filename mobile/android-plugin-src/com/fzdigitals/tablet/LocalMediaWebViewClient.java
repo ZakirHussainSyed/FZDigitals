@@ -140,9 +140,10 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         headers.put("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
         headers.put("Accept-Ranges", "bytes");
         headers.put("Content-Length", String.valueOf(length));
-        headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
-        headers.put("Pragma", "no-cache");
-        headers.put("Expires", "0");
+        // The mtime query param busts cache on change, so let the WebView cache the
+        // response. This is needed for large videos, otherwise the media stack cannot
+        // write them to disk and playback fails.
+        headers.put("Cache-Control", "public, max-age=31536000, immutable");
         return headers;
     }
 
