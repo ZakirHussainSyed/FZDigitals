@@ -424,6 +424,8 @@
             const v = nodes[current]?.querySelector('video');
             if (v) {
                 v.onended = null;
+                v.onloadedmetadata = null;
+                v.pause();
             }
             if (!media.length) {
                 console.log('startAutoplay: no media, returning');
@@ -440,6 +442,24 @@
                     video.loop = false;
                     video.onended = () => { if (!paused) { show(current + 1); } };
 
+                    const playVideo = () => {
+                        try {
+                            video.currentTime = 0;
+                            console.log('startAutoplay: set currentTime 0, duration:', video.duration);
+                        } catch (e) {
+                            console.warn('currentTime reset failed:', e);
+                        }
+                        const playPromise = video.play();
+                        playPromise
+                            .then(() => { console.log('video playing:', video.currentSrc); })
+                            .catch((err) => {
+                                console.warn('video play failed:', video.currentSrc, err && err.name, err && err.message);
+                                if (err && err.name !== 'NotAllowedError' && err && err.name !== 'AbortError') {
+                                    setTimeout(() => show(current + 1), 1000);
+                                }
+                            });
+                    };
+
                     const scheduleFallback = () => {
                         if (autoplayTimer) clearTimeout(autoplayTimer);
                         const duration = isFinite(video.duration) ? video.duration : 0;
@@ -452,30 +472,20 @@
 
                     if (video.readyState >= 1) {
                         scheduleFallback();
+                        playVideo();
                     } else {
                         video.onloadedmetadata = () => {
                             if (autoplayTimer) clearTimeout(autoplayTimer);
                             scheduleFallback();
+                            playVideo();
+                        };
+                        video.onerror = () => {
+                            console.warn('video load error before play:', media[current].title, video.error);
+                            if (!paused) setTimeout(() => show(current + 1), 500);
                         };
                         autoplayTimer = setTimeout(() => { if (!paused) show(current + 1); }, 15000);
+                        video.load();
                     }
-
-                    try {
-                        if (video.readyState >= 1) {
-                            video.currentTime = 0;
-                        }
-                    } catch (e) {
-                        console.warn('currentTime reset failed:', e);
-                    }
-                    const playPromise = video.play();
-                    playPromise
-                        .then(() => { console.log('video playing:', video.currentSrc); })
-                        .catch((err) => {
-                            console.warn('video play failed:', video.currentSrc, err && err.name, err && err.message);
-                            if (err && err.name !== 'NotAllowedError' && err && err.name !== 'AbortError') {
-                                setTimeout(() => show(current + 1), 1000);
-                            }
-                        });
                     console.log('startAutoplay: video slide, will advance on ended');
                 }
             } else {
