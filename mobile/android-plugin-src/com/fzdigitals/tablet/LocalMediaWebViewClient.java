@@ -67,12 +67,18 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                         headers.put("Accept-Ranges", "bytes");
                         headers.put("Content-Length", String.valueOf(length));
                         headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
+                        headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
+                        headers.put("Pragma", "no-cache");
+                        headers.put("Expires", "0");
                         return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
                     }
                     Map<String, String> headers = new HashMap<>();
                     headers.put("Content-Type", mime);
                     headers.put("Accept-Ranges", "bytes");
                     headers.put("Content-Length", String.valueOf(total));
+                    headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
+                    headers.put("Pragma", "no-cache");
+                    headers.put("Expires", "0");
                     return new WebResourceResponse(mime, null, 200, "OK", headers, new FileInputStream(file));
                 } catch (Exception e) {
                     // fall through to default handling

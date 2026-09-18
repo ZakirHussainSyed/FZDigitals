@@ -122,9 +122,9 @@ public class MediaDownloaderPlugin extends Plugin {
         }
     }
 
-    private String localUrl(String id, String type) {
+    private String localUrl(File out, String id, String type) {
         String ext = type.startsWith("video") ? ".mp4" : ".jpg";
-        return "https://media.fzscreens.com/tablet-local/" + id + ext;
+        return "https://media.fzscreens.com/tablet-local/" + id + ext + "?mtime=" + out.lastModified();
     }
 
     private long getContentLength(HttpURLConnection conn) {
@@ -174,7 +174,7 @@ public class MediaDownloaderPlugin extends Plugin {
             if (remoteLen < 0 || remoteLen == out.length()) {
                 result.put("status", "cached");
                 result.put("localPath", out.getAbsolutePath());
-                result.put("localUrl", localUrl(id, type));
+                result.put("localUrl", localUrl(out, id, type));
                 return result;
             }
             Log.i(TAG, "re-downloading " + id + " size mismatch local=" + out.length() + " remote=" + remoteLen);
@@ -210,7 +210,7 @@ public class MediaDownloaderPlugin extends Plugin {
                 } else if (tmp.renameTo(out) && out.length() > 0) {
                     result.put("status", "downloaded");
                     result.put("localPath", out.getAbsolutePath());
-                    result.put("localUrl", localUrl(id, type));
+                    result.put("localUrl", localUrl(out, id, type));
                 } else {
                     result.put("status", "error");
                     result.put("error", "rename failed");

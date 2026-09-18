@@ -19,6 +19,8 @@ public class MainActivity extends BridgeActivity {
         settings.setAllowFileAccessFromFileURLs(true);
         settings.setAllowUniversalAccessFromFileURLs(true);
 
+        bridge.getWebView().clearCache(true);
+
         File base = new File(getFilesDir(), "slideshow");
         bridge.getWebView().setWebViewClient(new LocalMediaWebViewClient(bridge, base));
     }
