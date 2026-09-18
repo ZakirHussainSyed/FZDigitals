@@ -23,10 +23,12 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private static final String TAG = "LocalMediaWebViewClient";
     private static final String LOCAL_HOST = "media.fzscreens.com";
     private static final String LOCAL_PATH = "/tablet-local/";
+    private final Bridge bridgeRef;
     private final File base;
 
     public LocalMediaWebViewClient(Bridge bridge, File base) {
         super(bridge);
+        this.bridgeRef = bridge;
         this.base = base;
     }
 
@@ -112,7 +114,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         detail.append("\"error\":\"").append(escape(error != null ? error : "")).append("\"");
         detail.append("}");
         final String js = "window.dispatchEvent(new CustomEvent('localMediaLog',{detail:" + detail.toString() + "}));";
-        bridge.getWebView().post(() -> bridge.getWebView().evaluateJavascript(js, null));
+        bridgeRef.getWebView().post(() -> bridgeRef.getWebView().evaluateJavascript(js, null));
     }
 
     private String escape(String s) {
