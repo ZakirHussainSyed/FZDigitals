@@ -558,7 +558,7 @@
                     }
                     media = data.files;
                     saveCachedMedia(media);
-                    cacheMediaUrls(media.filter(f => f.type && f.type.startsWith('image')).map(f => f.url));
+                    cacheMediaUrls(media);
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';

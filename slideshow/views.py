@@ -428,21 +428,28 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'CACHE_MEDIA') {
-        event.waitUntil(cacheMedia(event.data.urls));
+        const files = event.data.files || event.data.urls || [];
+        event.waitUntil(cacheMedia(files));
     }
 });
 
-async function cacheMedia(urls) {
+async function cacheMedia(files) {
     const cache = await caches.open(CACHE_NAME);
-    await Promise.all(urls.map(async (url) => {
+    await Promise.all(files.map(async (file) => {
         try {
-            const req = new Request(url, {mode: 'no-cors'});
+            const url = (typeof file === 'string') ? file : file.url;
+            const type = (typeof file === 'string') ? 'image' : file.type;
+            const isVideo = type && (type.startsWith('video') || type === 'video');
+            const mode = isVideo ? 'cors' : 'no-cors';
+            const req = new Request(url, {mode: mode});
+            const existing = await cache.match(req);
+            if (existing) return;
             const res = await fetch(req);
-            if (res) {
+            if (res && (mode === 'no-cors' || res.ok)) {
                 await cache.put(req, res);
             }
         } catch (err) {
-            console.error('Cache media failed:', url, err);
+            console.error('Cache media failed:', file, err);
         }
     }));
 }
@@ -455,31 +462,51 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // HTML5 video requests use byte-range requests; serving a full cached
-    // 200 response for a 206 request breaks playback on Android WebView.
-    if (request.headers.has('range')) {
-        return;
-    }
-
-    // Do not intercept actual video/audio playback requests. HTML5 video
-    // uses byte-range streaming and must fetch directly from the network.
-    if (request.destination === 'video' || request.destination === 'audio') {
-        return;
-    }
-
     if (isMediaUrl(url)) {
         event.respondWith(
-            caches.match(request).then((cached) => {
-                if (cached) return cached;
-                return fetch(request).then((response) => {
-                    const resClone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, resClone).catch(() => {});
-                    }).catch(() => {});
-                    return response;
-                }).catch(() => caches.match(request));
-            })
+            (async () => {
+                const cache = await caches.open(CACHE_NAME);
+                const cacheKey = new Request(url, {mode: request.mode});
+                let cached = await cache.match(cacheKey);
+                if (!cached) {
+                    cached = await cache.match(new Request(url, {mode: 'cors'}));
+                }
+                if (!cached) {
+                    const res = await fetch(request);
+                    if (res && res.ok && res.status === 200) {
+                        const fullRes = res.clone();
+                        cache.put(cacheKey, fullRes).catch(() => {});
+                    }
+                    return res;
+                }
+                if (request.headers.has('range')) {
+                    try {
+                        const fullBlob = await cached.blob();
+                        const range = request.headers.get('range');
+                        const m = range.match(/bytes=(\\d+)-(\\d*)/);
+                        if (m) {
+                            const start = parseInt(m[1], 10);
+                            const end = m[2] ? parseInt(m[2], 10) : fullBlob.size - 1;
+                            const chunk = fullBlob.slice(start, end + 1);
+                            return new Response(chunk, {
+                                status: 206,
+                                statusText: 'Partial Content',
+                                headers: {
+                                    'Content-Range': `bytes ${start}-${end}/${fullBlob.size}`,
+                                    'Accept-Ranges': 'bytes',
+                                    'Content-Length': String(chunk.size),
+                                    'Content-Type': cached.headers.get('Content-Type') || 'video/mp4',
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error('range response error:', e);
+                    }
+                }
+                return cached;
+            })()
         );
+        return;
     } else if (isSlideshowApi(url)) {
         event.respondWith(
             fetch(request).then((response) => {
