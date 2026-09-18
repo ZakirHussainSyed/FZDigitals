@@ -457,21 +457,31 @@
                 if (video) {
                     dlog('startAutoplay: video', video.currentSrc, 'readyState:', video.readyState, 'networkState:', video.networkState, 'paused:', video.paused);
                     video.loop = false;
-                    video.onended = () => { if (!paused) { show(current + 1); } };
+                    video.onended = () => {
+                        if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = null; }
+                        if (!paused) show(current + 1);
+                    };
 
                     const playVideo = () => {
+                        if (paused || !video.paused || video.__playPromise) return;
                         try {
-                            video.currentTime = 0;
-                            dlog('startAutoplay: set currentTime 0, duration:', video.duration);
+                            if (video.currentTime !== 0) {
+                                video.currentTime = 0;
+                                dlog('startAutoplay: set currentTime 0, duration:', video.duration);
+                            }
                         } catch (e) {
                             dwarn('currentTime reset failed:', e);
                         }
-                        const playPromise = video.play();
-                        playPromise
-                            .then(() => { dlog('video playing:', video.currentSrc); })
+                        video.__playPromise = video.play();
+                        video.__playPromise
+                            .then(() => {
+                                dlog('video playing:', video.currentSrc);
+                                video.__playPromise = null;
+                            })
                             .catch((err) => {
-                                dwarn('video play failed:', video.currentSrc, err && err.name, err && err.message);
-                                if (err && err.name !== 'NotAllowedError' && err && err.name !== 'AbortError') {
+                                video.__playPromise = null;
+                                if (err && err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
+                                    dwarn('video play failed:', video.currentSrc, err.name, err.message);
                                     setTimeout(() => show(current + 1), 1000);
                                 }
                             });
@@ -492,7 +502,8 @@
                         playVideo();
                     } else {
                         video.onloadedmetadata = () => {
-                            if (autoplayTimer) clearTimeout(autoplayTimer);
+                            if (paused) return;
+                            if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = null; }
                             scheduleFallback();
                             playVideo();
                         };
