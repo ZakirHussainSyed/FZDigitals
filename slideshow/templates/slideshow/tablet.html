@@ -316,6 +316,7 @@
 
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
         dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
+        window.addEventListener('localMediaLog', e => dlog('localMediaLog', JSON.stringify(e.detail)));
 
         function showLoading() {
             const el = document.getElementById('syncScreen');

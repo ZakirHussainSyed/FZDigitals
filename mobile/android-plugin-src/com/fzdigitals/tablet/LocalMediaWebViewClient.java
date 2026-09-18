@@ -7,12 +7,14 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import android.util.Log;
@@ -31,76 +33,120 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         Uri url = request.getUrl();
-        Log.i(TAG, "request " + url.toString());
         if (LOCAL_HOST.equals(url.getHost()) && url.getPath() != null && url.getPath().startsWith(LOCAL_PATH)) {
             String name = url.getPath().substring(LOCAL_PATH.length());
             File file = new File(base, name);
-            Log.i(TAG, "resolved " + file.getAbsolutePath() + " exists=" + file.exists() + " size=" + file.length());
-            if (file.exists() && file.isFile()) {
-                String mime = URLConnection.guessContentTypeFromName(file.getName());
+            String method = request.getMethod() != null ? request.getMethod() : "GET";
+            jsLog(url, file, "request", null);
+            if (!file.exists() || !file.isFile()) {
+                jsLog(url, file, "missing", "not found");
+                return plainTextResponse(404, "Not Found", "Not found: " + name);
+            }
+            String mime = URLConnection.guessContentTypeFromName(file.getName());
+            if (mime == null || mime.isEmpty()) {
+                String ext = MimeTypeMap.getFileExtensionFromUrl(file.getName());
+                if (ext != null) {
+                    mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                }
                 if (mime == null || mime.isEmpty()) {
-                    String ext = MimeTypeMap.getFileExtensionFromUrl(file.getName());
-                    if (ext != null) {
-                        mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
-                    }
-                    if (mime == null || mime.isEmpty()) {
-                        mime = "application/octet-stream";
-                    }
+                    mime = "application/octet-stream";
                 }
-                try {
-                    Log.i(TAG, "serving " + file.getAbsolutePath() + " size=" + file.length());
-                    long total = file.length();
-                    String range = request.getRequestHeaders().get("Range");
-                    if (range != null && range.startsWith("bytes=")) {
-                        String[] parts = range.substring(6).split("-");
-                        long start;
-                        long end = total - 1;
-                        if (parts.length > 0 && !parts[0].isEmpty()) {
-                            start = Long.parseLong(parts[0]);
-                            if (parts.length > 1 && !parts[1].isEmpty()) {
-                                end = Long.parseLong(parts[1]);
-                            }
-                        } else if (parts.length > 1 && !parts[1].isEmpty()) {
-                            long suffix = Long.parseLong(parts[1]);
-                            start = Math.max(0, total - suffix);
-                        } else {
-                            start = 0;
+            }
+            long total = file.length();
+            if ("OPTIONS".equals(method)) {
+                return corsResponse(mime, 0, new ByteArrayInputStream(new byte[0]), 204, "No Content", null);
+            }
+            if ("HEAD".equals(method)) {
+                return corsResponse(mime, total, new ByteArrayInputStream(new byte[0]), 200, "OK", null);
+            }
+            try {
+                String range = request.getRequestHeaders().get("Range");
+                if (range != null && range.startsWith("bytes=")) {
+                    String[] parts = range.substring(6).split("-");
+                    long start;
+                    long end = total - 1;
+                    if (parts.length > 0 && !parts[0].isEmpty()) {
+                        start = Long.parseLong(parts[0]);
+                        if (parts.length > 1 && !parts[1].isEmpty()) {
+                            end = Long.parseLong(parts[1]);
                         }
-                        if (end >= total) end = total - 1;
-                        if (start < 0 || start >= total || end < start) {
-                            Map<String, String> err = new HashMap<>();
-                            err.put("Content-Range", "bytes */" + total);
-                            return new WebResourceResponse(mime, null, 416, "Range Not Satisfiable", err, null);
-                        }
-                        long length = end - start + 1;
-                        FileInputStream fis = new FileInputStream(file);
-                        fis.getChannel().position(start);
-                        Map<String, String> headers = new HashMap<>();
-                        headers.put("Content-Type", mime);
-                        headers.put("Accept-Ranges", "bytes");
-                        headers.put("Content-Length", String.valueOf(length));
-                        headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
-                        headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
-                        headers.put("Pragma", "no-cache");
-                        headers.put("Expires", "0");
-                        return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
+                    } else if (parts.length > 1 && !parts[1].isEmpty()) {
+                        long suffix = Long.parseLong(parts[1]);
+                        start = Math.max(0, total - suffix);
+                    } else {
+                        start = 0;
                     }
-                    Map<String, String> headers = new HashMap<>();
-                    headers.put("Content-Type", mime);
-                    headers.put("Accept-Ranges", "bytes");
-                    headers.put("Content-Length", String.valueOf(total));
-                    headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
-                    headers.put("Pragma", "no-cache");
-                    headers.put("Expires", "0");
-                    return new WebResourceResponse(mime, null, 200, "OK", headers, new FileInputStream(file));
-                } catch (Exception e) {
-                    Log.w(TAG, "error serving " + file.getAbsolutePath(), e);
+                    if (end >= total) end = total - 1;
+                    if (start < 0 || start >= total || end < start) {
+                        Map<String, String> headers = corsHeaders(mime, 0);
+                        headers.put("Content-Range", "bytes */" + total);
+                        return new WebResourceResponse(mime, null, 416, "Range Not Satisfiable", headers, new ByteArrayInputStream(new byte[0]));
+                    }
+                    long length = end - start + 1;
+                    FileInputStream fis = new FileInputStream(file);
+                    fis.getChannel().position(start);
+                    Map<String, String> headers = corsHeaders(mime, length);
+                    headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
+                    jsLog(url, file, "serving-206", null);
+                    return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
                 }
-            } else {
-                Log.w(TAG, "missing " + file.getAbsolutePath() + " for " + url.toString());
+                jsLog(url, file, "serving-200", null);
+                return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
+            } catch (Exception e) {
+                Log.w(TAG, "error serving " + file.getAbsolutePath(), e);
+                jsLog(url, file, "error", e.getMessage());
+                return plainTextResponse(500, "Internal Server Error", "Server error: " + e.getMessage());
             }
         }
         return super.shouldInterceptRequest(view, request);
+    }
+
+    private void jsLog(Uri url, File file, String action, String error) {
+        StringBuilder detail = new StringBuilder();
+        detail.append("{");
+        detail.append("\"url\":\"").append(escape(url.toString())).append("\",");
+        detail.append("\"path\":\"").append(escape(file != null ? file.getAbsolutePath() : "")).append("\",");
+        detail.append("\"exists\":").append(file != null && file.exists()).append(",");
+        detail.append("\"size\":").append(file != null ? file.length() : 0).append(",");
+        detail.append("\"action\":\"").append(escape(action)).append("\",");
+        detail.append("\"error\":\"").append(escape(error != null ? error : "")).append("\"");
+        detail.append("}");
+        final String js = "window.dispatchEvent(new CustomEvent('localMediaLog',{detail:" + detail.toString() + "}));";
+        bridge.getWebView().post(() -> bridge.getWebView().evaluateJavascript(js, null));
+    }
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    private Map<String, String> corsHeaders(String mime, long length) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", mime);
+        headers.put("Access-Control-Allow-Origin", "*");
+        headers.put("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+        headers.put("Accept-Ranges", "bytes");
+        headers.put("Content-Length", String.valueOf(length));
+        headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
+        headers.put("Pragma", "no-cache");
+        headers.put("Expires", "0");
+        return headers;
+    }
+
+    private WebResourceResponse corsResponse(String mime, long length, InputStream body, int code, String reason, Map<String, String> extra) {
+        Map<String, String> headers = corsHeaders(mime, length);
+        if (extra != null) headers.putAll(extra);
+        return new WebResourceResponse(mime, null, code, reason, headers, body);
+    }
+
+    private WebResourceResponse plainTextResponse(int code, String reason, String body) {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "text/plain; charset=utf-8");
+        headers.put("Access-Control-Allow-Origin", "*");
+        headers.put("Content-Length", String.valueOf(bytes.length));
+        headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
+        return new WebResourceResponse("text/plain", "utf-8", code, reason, headers, new ByteArrayInputStream(bytes));
     }
 
     private static class BoundedInputStream extends FilterInputStream {
