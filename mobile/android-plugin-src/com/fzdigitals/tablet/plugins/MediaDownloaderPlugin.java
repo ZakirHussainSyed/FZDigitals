@@ -127,6 +127,37 @@ public class MediaDownloaderPlugin extends Plugin {
         return "https://media.fzscreens.com/tablet-local/" + id + ext;
     }
 
+    private long getContentLength(HttpURLConnection conn) {
+        String cl = conn.getHeaderField("Content-Length");
+        if (cl != null) {
+            try { return Long.parseLong(cl.trim()); } catch (NumberFormatException e) {}
+        }
+        return -1;
+    }
+
+    private long getRemoteSize(String url) {
+        HttpURLConnection head = null;
+        try {
+            URL u = new URL(url);
+            head = (HttpURLConnection) u.openConnection();
+            head.setRequestMethod("HEAD");
+            head.setConnectTimeout(15000);
+            head.setReadTimeout(15000);
+            int code = head.getResponseCode();
+            if (code >= 200 && code < 300) {
+                String cl = head.getHeaderField("Content-Length");
+                if (cl != null) {
+                    try { return Long.parseLong(cl.trim()); } catch (NumberFormatException e) {}
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "HEAD check failed for " + url, e);
+        } finally {
+            if (head != null) head.disconnect();
+        }
+        return -1;
+    }
+
     private JSObject downloadOne(File base, JSONObject f) {
         String id = f.optString("id", "");
         String url = f.optString("url", "");
@@ -139,10 +170,15 @@ public class MediaDownloaderPlugin extends Plugin {
         result.put("url", url);
 
         if (out.exists() && out.length() > 0) {
-            result.put("status", "cached");
-            result.put("localPath", out.getAbsolutePath());
-            result.put("localUrl", localUrl(id, type));
-            return result;
+            long remoteLen = getRemoteSize(url);
+            if (remoteLen < 0 || remoteLen == out.length()) {
+                result.put("status", "cached");
+                result.put("localPath", out.getAbsolutePath());
+                result.put("localUrl", localUrl(id, type));
+                return result;
+            }
+            Log.i(TAG, "re-downloading " + id + " size mismatch local=" + out.length() + " remote=" + remoteLen);
+            out.delete();
         }
 
         HttpURLConnection conn = null;
@@ -166,7 +202,12 @@ public class MediaDownloaderPlugin extends Plugin {
                 }
                 fos.close();
                 in.close();
-                if (tmp.renameTo(out)) {
+                long expected = getContentLength(conn);
+                if (tmp.length() != expected && expected >= 0) {
+                    result.put("status", "error");
+                    result.put("error", "size mismatch");
+                    if (tmp.exists()) tmp.delete();
+                } else if (tmp.renameTo(out)) {
                     result.put("status", "downloaded");
                     result.put("localPath", out.getAbsolutePath());
                     result.put("localUrl", localUrl(id, type));
