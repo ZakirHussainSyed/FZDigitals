@@ -69,7 +69,7 @@ jobs:
             '    <files-path name="slideshow" path="slideshow" />' \
             '</paths>' > android/app/src/main/res/xml/file_paths.xml
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          perl -0777 -i -pe 's|</application>|    <provider android:name="androidx.core.content.FileProvider" android:authorities="com.fzdigitals.tablet.fileprovider" android:exported="false" android:grantUriPermissions="true">\n            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />\n        </provider>\n    </application>|s' $MANIFEST
+          perl -0777 -i -pe 's|</application>|    <provider android:name="androidx.core.content.FileProvider" android:authorities="com.fzdigitals.tablet.fileprovider" android:exported="false" android:grantUriPermissions="true">\n            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="\@xml/file_paths" />\n        </provider>\n    </application>|s' $MANIFEST
 
       - name: Auto-bump app version
         working-directory: mobile
