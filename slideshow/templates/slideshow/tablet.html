@@ -253,32 +253,49 @@
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
-        const debugEl = document.getElementById('debug-log');
         const rawLog = console.log;
         const rawWarn = console.warn;
+        const rawError = console.error;
+
+        function getDebugEl() {
+            let el = document.getElementById('debug-log');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'debug-log';
+                el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:180px;overflow-y:auto;background:rgba(0,0,0,0.9);color:#0f0;font-family:monospace;font-size:14px;line-height:1.5;padding:10px 14px;z-index:99999;white-space:pre-line;';
+                if (document.body) document.body.appendChild(el);
+            }
+            return el;
+        }
         function trimDebug() {
-            if (!debugEl) return;
-            const lines = debugEl.textContent.split('\n');
-            if (lines.length > 8) {
-                debugEl.textContent = lines.slice(lines.length - 8).join('\n');
+            const el = getDebugEl();
+            if (!el) return;
+            const lines = el.textContent.split('\n');
+            if (lines.length > 12) {
+                el.textContent = lines.slice(lines.length - 12).join('\n');
             }
         }
-        console.log = function (...args) {
+        function toLine(args) {
+            return args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
+        }
+        function dlog(...args) {
             rawLog.apply(console, args);
-            if (debugEl) {
-                debugEl.textContent += args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
-                trimDebug();
-            }
-        };
-        console.warn = function (...args) {
+            const el = getDebugEl();
+            if (el) { el.textContent += toLine(args); trimDebug(); }
+        }
+        function dwarn(...args) {
             rawWarn.apply(console, args);
-            if (debugEl) {
-                debugEl.textContent += args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
-                trimDebug();
-            }
-        };
+            const el = getDebugEl();
+            if (el) { el.textContent += toLine(args); trimDebug(); }
+        }
+        function derror(...args) {
+            rawError.apply(console, args);
+            const el = getDebugEl();
+            if (el) { el.textContent += toLine(args); trimDebug(); }
+        }
 
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
+        dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
 
         function getMediaSrc(f) {
             if (f.localPath && typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc) {
@@ -290,9 +307,9 @@
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) return files;
             try {
-                console.log('MediaDownloader.sync starting for', files.length, 'files');
+                dlog('MediaDownloader.sync starting for', files.length, 'files');
                 const res = await MediaDownloader.sync({ files: files });
-                console.log('MediaDownloader.sync result:', res);
+                dlog('MediaDownloader.sync result:', res);
                 if (res && res.files) {
                     const map = {};
                     res.files.forEach(item => { if (item.id) map[item.id] = item; });
@@ -305,7 +322,7 @@
                     });
                 }
             } catch (err) {
-                console.warn('MediaDownloader.sync error:', err);
+                dwarn('MediaDownloader.sync error:', err);
             }
             return files;
         }
@@ -318,7 +335,7 @@
                     reg.active.postMessage({type: 'CACHE_MEDIA', urls: urls});
                 }
             } catch (err) {
-                console.error('cacheMediaUrls error:', err);
+                derror('cacheMediaUrls error:', err);
             }
         }
 
@@ -364,7 +381,7 @@
         const qrStatus = document.getElementById('qrStatus');
         const qrHint = document.getElementById('qrHint');
 
-        console.log('Pairing elements found:', {
+        dlog('Pairing elements found:', {
             pairingScreen: !!pairingScreen
         });
 
@@ -402,7 +419,7 @@
         }
 
         function stopAutoplay() {
-            console.log('stopAutoplay called');
+            dlog('stopAutoplay called');
             if (autoplayTimer) {
                 clearTimeout(autoplayTimer);
                 autoplayTimer = null;
@@ -416,7 +433,7 @@
         }
 
         function startAutoplay() {
-            console.log('startAutoplay called, paused:', paused, 'media.length:', media.length);
+            dlog('startAutoplay called, paused:', paused, 'media.length:', media.length);
             if (autoplayTimer) {
                 clearTimeout(autoplayTimer);
                 autoplayTimer = null;
@@ -429,32 +446,32 @@
                 v.pause();
             }
             if (!media.length) {
-                console.log('startAutoplay: no media, returning');
+                dlog('startAutoplay: no media, returning');
                 return;
             }
             if (paused) {
-                console.log('startAutoplay: paused, returning');
+                dlog('startAutoplay: paused, returning');
                 return;
             }
             if (media[current].type === 'video') {
                 const video = nodes[current]?.querySelector('video');
                 if (video) {
-                    console.log('startAutoplay: video', video.currentSrc, 'readyState:', video.readyState, 'networkState:', video.networkState, 'paused:', video.paused);
+                    dlog('startAutoplay: video', video.currentSrc, 'readyState:', video.readyState, 'networkState:', video.networkState, 'paused:', video.paused);
                     video.loop = false;
                     video.onended = () => { if (!paused) { show(current + 1); } };
 
                     const playVideo = () => {
                         try {
                             video.currentTime = 0;
-                            console.log('startAutoplay: set currentTime 0, duration:', video.duration);
+                            dlog('startAutoplay: set currentTime 0, duration:', video.duration);
                         } catch (e) {
-                            console.warn('currentTime reset failed:', e);
+                            dwarn('currentTime reset failed:', e);
                         }
                         const playPromise = video.play();
                         playPromise
-                            .then(() => { console.log('video playing:', video.currentSrc); })
+                            .then(() => { dlog('video playing:', video.currentSrc); })
                             .catch((err) => {
-                                console.warn('video play failed:', video.currentSrc, err && err.name, err && err.message);
+                                dwarn('video play failed:', video.currentSrc, err && err.name, err && err.message);
                                 if (err && err.name !== 'NotAllowedError' && err && err.name !== 'AbortError') {
                                     setTimeout(() => show(current + 1), 1000);
                                 }
@@ -481,17 +498,17 @@
                             playVideo();
                         };
                         video.onerror = () => {
-                            console.warn('video load error before play:', media[current].title, video.error);
+                            dwarn('video load error before play:', media[current].title, video.error);
                             if (!paused) setTimeout(() => show(current + 1), 500);
                         };
                         autoplayTimer = setTimeout(() => { if (!paused) show(current + 1); }, 15000);
                         video.load();
                     }
-                    console.log('startAutoplay: video slide, will advance on ended');
+                    dlog('startAutoplay: video slide, will advance on ended');
                 }
             } else {
                 autoplayTimer = setTimeout(() => { show(current + 1); }, 10000);
-                console.log('startAutoplay: image slide, timeout 10000ms');
+                dlog('startAutoplay: image slide, timeout 10000ms');
             }
         }
 
@@ -502,7 +519,7 @@
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    dlog(`Error attempting to enable fullscreen: ${err.message}`);
                 });
             } else {
                 document.exitFullscreen();
@@ -515,7 +532,7 @@
             const requestFullscreen = () => {
                 if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen().catch(err => {
-                        console.log(`Auto-fullscreen blocked (user interaction required): ${err.message}`);
+                        dlog(`Auto-fullscreen blocked (user interaction required): ${err.message}`);
                     });
                 }
             };
@@ -553,7 +570,7 @@
                     img.src = getMediaSrc(f);
                     img.alt = f.title;
                     img.onerror = () => {
-                        console.warn('image load error:', f.title);
+                        dwarn('image load error:', f.title);
                         if (img.parentElement && img.parentElement.classList.contains('active')) {
                             setTimeout(() => show(current + 1), 500);
                         }
@@ -569,12 +586,12 @@
                     vid.setAttribute('playsinline', '');
                     vid.setAttribute('muted', '');
                     vid.setAttribute('preload', 'auto');
-                    const logVideo = (e) => console.log(`video [${f.title}] ${e}:`, 'readyState:', vid.readyState, 'networkState:', vid.networkState, 'currentSrc:', vid.currentSrc);
+                    const logVideo = (e) => dlog(`video [${f.title}] ${e}:`, 'readyState:', vid.readyState, 'networkState:', vid.networkState, 'currentTime:', vid.currentTime, 'duration:', vid.duration, 'paused:', vid.paused, 'currentSrc:', vid.currentSrc);
                     ['loadstart', 'loadeddata', 'canplay', 'canplaythrough', 'playing', 'stalled', 'waiting', 'ended'].forEach(evt => {
                         vid.addEventListener(evt, () => logVideo(evt));
                     });
                     vid.addEventListener('error', () => {
-                        console.warn('video error:', f.title, 'code:', vid.error && vid.error.code, 'message:', vid.error && vid.error.message, 'currentSrc:', vid.currentSrc, 'readyState:', vid.readyState, 'networkState:', vid.networkState);
+                        dwarn('video error:', f.title, 'code:', vid.error && vid.error.code, 'message:', vid.error && vid.error.message, 'currentSrc:', vid.currentSrc, 'readyState:', vid.readyState, 'networkState:', vid.networkState);
                         if (vid.parentElement && vid.parentElement.classList.contains('active')) {
                             setTimeout(() => show(current + 1), 500);
                         }
@@ -589,16 +606,16 @@
         }
 
         function show(i) {
-            console.log('show called with index:', i, 'current:', current, 'media.length:', media.length);
+            dlog('show called with index:', i, 'current:', current, 'media.length:', media.length);
             if (!media.length) {
-                console.log('show: no media, returning');
+                dlog('show: no media, returning');
                 return;
             }
             const prev = current;
             current = (i + media.length) % media.length;
-            console.log('show: updated current to:', current);
+            dlog('show: updated current to:', current);
             const nodes = slidesEl.querySelectorAll('.slide');
-            console.log('show: found', nodes.length, 'slide nodes');
+            dlog('show: found', nodes.length, 'slide nodes');
             
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
@@ -622,7 +639,7 @@
         }
 
         async function refresh() {
-            console.log('refresh: checking slideshow sources, online:', navigator.onLine);
+            dlog('refresh: checking slideshow sources, online:', navigator.onLine);
 
             if (!navigator.onLine) {
                 const cached = loadCachedMedia();
@@ -638,7 +655,7 @@
             }
 
             if (deviceToken && deviceId) {
-                console.log('refresh: using existing pairing');
+                dlog('refresh: using existing pairing');
                 const res = await fetch(
                     `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
                 );
@@ -662,7 +679,7 @@
                     return;
                 }
                 if (res.status === 403 || res.status === 404) {
-                    console.log('refresh: device token invalid, showing QR');
+                    dlog('refresh: device token invalid, showing QR');
                     stopAutoplay();
                     stage.style.display = 'none';
                     pairingScreen.classList.remove('hidden');
@@ -675,7 +692,7 @@
                 return;
             }
 
-            console.log('refresh: no device token, showing QR');
+            dlog('refresh: no device token, showing QR');
             pairingScreen.classList.remove('hidden');
             qrWrap.style.display = 'block';
             await requestQrPairing();
@@ -694,14 +711,14 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
-                        console.log('QR pairing created:', deviceId);
+                        dlog('QR pairing created:', deviceId);
                     } else {
-                        console.warn('QR pairing failed:', data.error);
+                        dwarn('QR pairing failed:', data.error);
                         if (qrStatus) qrStatus.textContent = `Create failed: ${data.error}`;
                         return;
                     }
                 } catch (err) {
-                    console.error('QR pairing error:', err);
+                    derror('QR pairing error:', err);
                     if (qrStatus) qrStatus.textContent = `Create error: ${err.message}`;
                     return;
                 }
@@ -730,36 +747,36 @@
         
         // Pointer events (modern browsers)
         tapLayer.addEventListener('pointerdown', (e) => {
-            console.log('pointerdown event fired');
+            dlog('pointerdown event fired');
             e.preventDefault();
             setPaused(true);
         });
         tapLayer.addEventListener('pointerup', (e) => {
-            console.log('pointerup event fired');
+            dlog('pointerup event fired');
             e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
         });
         tapLayer.addEventListener('pointercancel', (e) => {
-            console.log('pointercancel event fired');
+            dlog('pointercancel event fired');
             e.preventDefault();
             scheduleResume();
         });
 
         // Touch events (Safari iOS support)
         tapLayer.addEventListener('touchstart', (e) => {
-            console.log('touchstart event fired');
+            dlog('touchstart event fired');
             e.preventDefault();
             setPaused(true);
         }, { passive: false });
         tapLayer.addEventListener('touchend', (e) => {
-            console.log('touchend event fired');
+            dlog('touchend event fired');
             e.preventDefault();
             // user stopped touching; already paused, resume timer is scheduled
         }, { passive: false });
         
         // Prevent context menu on long press
         tapLayer.addEventListener('contextmenu', (e) => {
-            console.log('contextmenu event fired');
+            dlog('contextmenu event fired');
             e.preventDefault();
             return false;
         });
@@ -796,7 +813,7 @@
                 if (qrStatus) qrStatus.textContent = '';
             };
             qrImg.onerror = () => {
-                console.error('Failed to load same-origin QR image');
+                derror('Failed to load same-origin QR image');
                 if (qrStatus) qrStatus.textContent = 'Could not load QR. Please refresh.';
             };
         }
@@ -814,14 +831,14 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
-                        console.log('QR pairing created:', deviceId);
+                        dlog('QR pairing created:', deviceId);
                     } else {
-                        console.warn('QR pairing failed:', data.error);
+                        dwarn('QR pairing failed:', data.error);
                         if (qrStatus) qrStatus.textContent = `Create failed: ${data.error}`;
                         return;
                     }
                 } catch (err) {
-                    console.error('QR pairing error:', err);
+                    derror('QR pairing error:', err);
                     if (qrStatus) qrStatus.textContent = `Create error: ${err.message}`;
                     return;
                 }
@@ -834,7 +851,7 @@
         }
 
         function startApp() {
-            console.log('Initial load: starting app after splash');
+            dlog('Initial load: starting app after splash');
 
             if (deviceId && deviceToken && deviceId.startsWith('QR-')) {
                 // Already have an unclaimed QR device: show its QR and keep polling
