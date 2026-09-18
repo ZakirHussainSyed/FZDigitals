@@ -53,6 +53,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                         if (parts.length > 1 && !parts[1].isEmpty()) {
                             end = Long.parseLong(parts[1]);
                         }
+                        if (end >= total) end = total - 1;
                         if (start < 0 || start >= total || end < start) {
                             Map<String, String> err = new HashMap<>();
                             err.put("Content-Range", "bytes */" + total);
@@ -60,7 +61,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                         }
                         long length = end - start + 1;
                         FileInputStream fis = new FileInputStream(file);
-                        fis.skip(start);
+                        fis.getChannel().position(start);
                         Map<String, String> headers = new HashMap<>();
                         headers.put("Content-Type", mime);
                         headers.put("Accept-Ranges", "bytes");

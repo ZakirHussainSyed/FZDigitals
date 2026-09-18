@@ -203,11 +203,11 @@ public class MediaDownloaderPlugin extends Plugin {
                 fos.close();
                 in.close();
                 long expected = getContentLength(conn);
-                if (tmp.length() != expected && expected >= 0) {
+                if (tmp.length() == 0 || (expected >= 0 && tmp.length() != expected)) {
                     result.put("status", "error");
-                    result.put("error", "size mismatch");
+                    result.put("error", tmp.length() == 0 ? "empty download" : "size mismatch");
                     if (tmp.exists()) tmp.delete();
-                } else if (tmp.renameTo(out)) {
+                } else if (tmp.renameTo(out) && out.length() > 0) {
                     result.put("status", "downloaded");
                     result.put("localPath", out.getAbsolutePath());
                     result.put("localUrl", localUrl(id, type));
