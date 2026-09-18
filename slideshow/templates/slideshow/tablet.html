@@ -299,6 +299,9 @@
         dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
 
         function getMediaSrc(f) {
+            if (f.localPath && typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc) {
+                return Capacitor.convertFileSrc(f.localPath);
+            }
             return f.url;
         }
 

@@ -38,6 +38,13 @@ jobs:
         working-directory: mobile
         run: npm install
 
+      - name: Prepare local tablet HTML
+        working-directory: mobile
+        run: |
+          mkdir -p www
+          cp ../slideshow/templates/slideshow/tablet.html www/index.html
+          sed -i 's|<head>|<head>\n    <base href="https://www.fzscreens.com/">|' www/index.html
+
       - name: Add Android platform
         working-directory: mobile
         run: npx cap add android
