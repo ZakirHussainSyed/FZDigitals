@@ -277,6 +277,38 @@
             }
         };
 
+        const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
+
+        function getMediaSrc(f) {
+            if (f.localPath && typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc) {
+                return Capacitor.convertFileSrc(f.localPath);
+            }
+            return f.url;
+        }
+
+        async function syncMediaToLocal(files) {
+            if (!MediaDownloader) return files;
+            try {
+                console.log('MediaDownloader.sync starting for', files.length, 'files');
+                const res = await MediaDownloader.sync({ files: files });
+                console.log('MediaDownloader.sync result:', res);
+                if (res && res.files) {
+                    const map = {};
+                    res.files.forEach(item => { if (item.id) map[item.id] = item; });
+                    files = files.map(f => {
+                        const local = map[f.id];
+                        if (local && local.localPath) {
+                            return { ...f, localPath: local.localPath, _status: local.status };
+                        }
+                        return f;
+                    });
+                }
+            } catch (err) {
+                console.warn('MediaDownloader.sync error:', err);
+            }
+            return files;
+        }
+
         async function cacheMediaUrls(urls) {
             if (!('serviceWorker' in navigator)) return;
             try {
@@ -507,7 +539,7 @@
 
                 if (f.type === 'image') {
                     const img = document.createElement('img');
-                    img.src = f.url;
+                    img.src = getMediaSrc(f);
                     img.alt = f.title;
                     img.onerror = () => {
                         console.warn('image load error:', f.title);
@@ -518,7 +550,7 @@
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
-                    vid.src = f.url;
+                    vid.src = getMediaSrc(f);
                     vid.controls = false;
                     vid.muted = true;
                     vid.playsInline = true;
@@ -607,7 +639,7 @@
                         // No change; don't re-render, keep current playback running
                         return;
                     }
-                    media = data.files;
+                    media = await syncMediaToLocal(data.files);
                     saveCachedMedia(media);
                     cacheMediaUrls(media);
                     if (current >= media.length) current = 0;

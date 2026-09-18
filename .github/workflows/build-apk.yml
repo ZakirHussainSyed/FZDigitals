@@ -42,6 +42,14 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Copy custom native media downloader plugin
+        working-directory: mobile
+        run: |
+          mkdir -p android/app/src/main/java/com/fzdigitals/tablet/plugins
+          cp -f android-plugin-src/com/fzdigitals/tablet/MainActivity.java android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
+          cp -f android-plugin-src/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java
+          ls -R android/app/src/main/java/com/fzdigitals/tablet
+
       - name: Allow WebView autoplay without user gesture
         working-directory: mobile
         run: |
