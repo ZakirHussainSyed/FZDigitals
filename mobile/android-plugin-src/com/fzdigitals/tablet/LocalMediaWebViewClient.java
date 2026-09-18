@@ -53,10 +53,18 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     String range = request.getRequestHeaders().get("Range");
                     if (range != null && range.startsWith("bytes=")) {
                         String[] parts = range.substring(6).split("-");
-                        long start = Long.parseLong(parts[0]);
+                        long start;
                         long end = total - 1;
-                        if (parts.length > 1 && !parts[1].isEmpty()) {
-                            end = Long.parseLong(parts[1]);
+                        if (parts.length > 0 && !parts[0].isEmpty()) {
+                            start = Long.parseLong(parts[0]);
+                            if (parts.length > 1 && !parts[1].isEmpty()) {
+                                end = Long.parseLong(parts[1]);
+                            }
+                        } else if (parts.length > 1 && !parts[1].isEmpty()) {
+                            long suffix = Long.parseLong(parts[1]);
+                            start = Math.max(0, total - suffix);
+                        } else {
+                            start = 0;
                         }
                         if (end >= total) end = total - 1;
                         if (start < 0 || start >= total || end < start) {
@@ -86,7 +94,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     headers.put("Expires", "0");
                     return new WebResourceResponse(mime, null, 200, "OK", headers, new FileInputStream(file));
                 } catch (Exception e) {
-                    // fall through to default handling
+                    Log.w(TAG, "error serving " + file.getAbsolutePath(), e);
                 }
             } else {
                 Log.w(TAG, "missing " + file.getAbsolutePath() + " for " + url.toString());
