@@ -38,12 +38,15 @@ jobs:
         working-directory: mobile
         run: npm install
 
-      - name: Prepare local tablet HTML
+      - name: Prepare placeholder www
         working-directory: mobile
         run: |
           mkdir -p www
-          cp ../slideshow/templates/slideshow/tablet.html www/index.html
-          sed -i 's|<head>|<head>\n    <base href="https://www.fzscreens.com/">|' www/index.html
+          cat > www/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html><head><meta http-equiv="refresh" content="0; url=https://www.fzscreens.com/tablet/"></head>
+          <body>Loading...</body></html>
+          EOF
 
       - name: Add Android platform
         working-directory: mobile
@@ -56,6 +59,19 @@ jobs:
           cp -f android-plugin-src/com/fzdigitals/tablet/MainActivity.java android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
           cp -f android-plugin-src/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java
           ls -R android/app/src/main/java/com/fzdigitals/tablet
+
+      - name: Add FileProvider for content:// URIs
+        working-directory: mobile
+        run: |
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/file_paths.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <files-path name="slideshow" path="slideshow" />
+          </paths>
+          EOF
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          perl -0777 -i -pe 's|</application>|    <provider android:name="androidx.core.content.FileProvider" android:authorities="com.fzdigitals.tablet.fileprovider" android:exported="false" android:grantUriPermissions="true">\n            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />\n        </provider>\n    </application>|s' $MANIFEST
 
       - name: Auto-bump app version
         working-directory: mobile

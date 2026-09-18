@@ -1,7 +1,9 @@
 package com.fzdigitals.tablet.plugins;
 
 import android.content.Context;
+import android.net.Uri;
 import android.util.Log;
+import androidx.core.content.FileProvider;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -71,23 +73,12 @@ public class MediaDownloaderPlugin extends Plugin {
                 }
             }
 
-            // Clean up files not in the new list
             List<String> keep = new ArrayList<>();
             for (JSONObject f : fileList) {
                 String id = f.optString("id", null);
                 if (id != null) keep.add(id);
             }
-            File[] existing = base.listFiles();
-            if (existing != null) {
-                for (File file : existing) {
-                    String name = file.getName();
-                    int dot = name.lastIndexOf('.');
-                    String fileId = dot > 0 ? name.substring(0, dot) : name;
-                    if (!keep.contains(fileId) && !name.endsWith(".tmp")) {
-                        file.delete();
-                    }
-                }
-            }
+            cleanFiles(base, keep);
 
             JSObject result = new JSObject();
             result.put("files", out);
@@ -97,6 +88,48 @@ public class MediaDownloaderPlugin extends Plugin {
             call.reject("Sync failed: " + e.getMessage());
         } finally {
             executor.shutdown();
+        }
+    }
+
+    @PluginMethod
+    public void cleanup(PluginCall call) {
+        Context ctx = getContext();
+        final File base = new File(ctx.getFilesDir(), SUBDIR);
+        JSArray files = call.getArray("keep", new JSArray());
+        List<String> keep = new ArrayList<>();
+        for (int i = 0; i < files.length(); i++) {
+            try {
+                keep.add(files.getString(i));
+            } catch (Exception e) {
+                Log.w(TAG, "bad keep id at index " + i, e);
+            }
+        }
+        cleanFiles(base, keep);
+        JSObject result = new JSObject();
+        result.put("status", "ok");
+        call.resolve(result);
+    }
+
+    private void cleanFiles(File base, List<String> keep) {
+        File[] existing = base.listFiles();
+        if (existing != null) {
+            for (File file : existing) {
+                String name = file.getName();
+                int dot = name.lastIndexOf('.');
+                String fileId = dot > 0 ? name.substring(0, dot) : name;
+                if (!keep.contains(fileId) && !name.endsWith(".tmp")) {
+                    file.delete();
+                }
+            }
+        }
+    }
+
+    private Uri getContentUri(Context ctx, File file) {
+        try {
+            return FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", file);
+        } catch (Exception e) {
+            Log.e(TAG, "cannot get content URI", e);
+            return null;
         }
     }
 
@@ -114,6 +147,8 @@ public class MediaDownloaderPlugin extends Plugin {
         if (out.exists() && out.length() > 0) {
             result.put("status", "cached");
             result.put("localPath", out.getAbsolutePath());
+            Uri uri = getContentUri(getContext(), out);
+            if (uri != null) result.put("contentUri", uri.toString());
             return result;
         }
 
@@ -141,6 +176,8 @@ public class MediaDownloaderPlugin extends Plugin {
                 if (tmp.renameTo(out)) {
                     result.put("status", "downloaded");
                     result.put("localPath", out.getAbsolutePath());
+                    Uri uri = getContentUri(getContext(), out);
+                    if (uri != null) result.put("contentUri", uri.toString());
                 } else {
                     result.put("status", "error");
                     result.put("error", "rename failed");

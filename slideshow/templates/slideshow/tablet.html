@@ -299,9 +299,7 @@
         dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
 
         function getMediaSrc(f) {
-            if (f.localPath && typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc) {
-                return Capacitor.convertFileSrc(f.localPath);
-            }
+            if (f.contentUri) return f.contentUri;
             return f.url;
         }
 
@@ -316,11 +314,16 @@
                     res.files.forEach(item => { if (item.id) map[item.id] = item; });
                     files = files.map(f => {
                         const local = map[f.id];
-                        if (local && local.localPath) {
-                            return { ...f, localPath: local.localPath, _status: local.status };
+                        if (local && (local.contentUri || local.localPath)) {
+                            return { ...f, contentUri: local.contentUri, localPath: local.localPath, _status: local.status };
                         }
                         return f;
                     });
+                    try {
+                        await MediaDownloader.cleanup({ keep: files.map(f => f.id) });
+                    } catch (err) {
+                        dwarn('MediaDownloader.cleanup error:', err);
+                    }
                 }
             } catch (err) {
                 dwarn('MediaDownloader.sync error:', err);
@@ -329,6 +332,7 @@
         }
 
         async function cacheMediaUrls(urls) {
+            if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) return;
             if (!('serviceWorker' in navigator)) return;
             try {
                 const reg = await navigator.serviceWorker.ready;
@@ -881,7 +885,7 @@
         // Keep list updated
         showSplash().then(startApp);
 
-        if ('serviceWorker' in navigator) {
+        if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
         }
     </script>
