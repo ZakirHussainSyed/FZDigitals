@@ -9,7 +9,12 @@ import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private static final String LOCAL_HOST = "media.fzscreens.com";
@@ -39,12 +44,79 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     }
                 }
                 try {
-                    return new WebResourceResponse(mime, null, new FileInputStream(file));
+                    long total = file.length();
+                    String range = request.getRequestHeaders().get("Range");
+                    if (range != null && range.startsWith("bytes=")) {
+                        String[] parts = range.substring(6).split("-");
+                        long start = Long.parseLong(parts[0]);
+                        long end = total - 1;
+                        if (parts.length > 1 && !parts[1].isEmpty()) {
+                            end = Long.parseLong(parts[1]);
+                        }
+                        if (start < 0 || start >= total || end < start) {
+                            Map<String, String> err = new HashMap<>();
+                            err.put("Content-Range", "bytes */" + total);
+                            return new WebResourceResponse(mime, null, 416, "Range Not Satisfiable", err, null);
+                        }
+                        long length = end - start + 1;
+                        FileInputStream fis = new FileInputStream(file);
+                        fis.skip(start);
+                        Map<String, String> headers = new HashMap<>();
+                        headers.put("Content-Type", mime);
+                        headers.put("Accept-Ranges", "bytes");
+                        headers.put("Content-Length", String.valueOf(length));
+                        headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
+                        return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
+                    }
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", mime);
+                    headers.put("Accept-Ranges", "bytes");
+                    headers.put("Content-Length", String.valueOf(total));
+                    return new WebResourceResponse(mime, null, 200, "OK", headers, new FileInputStream(file));
                 } catch (Exception e) {
                     // fall through to default handling
                 }
             }
         }
         return super.shouldInterceptRequest(view, request);
+    }
+
+    private static class BoundedInputStream extends FilterInputStream {
+        private long remaining;
+
+        BoundedInputStream(InputStream in, long length) {
+            super(in);
+            this.remaining = length;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (remaining <= 0) return -1;
+            int b = in.read();
+            if (b >= 0) remaining--;
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            if (remaining <= 0) return -1;
+            int toRead = (int) Math.min(len, remaining);
+            int n = in.read(b, off, toRead);
+            if (n > 0) remaining -= n;
+            return n;
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            long toSkip = Math.min(n, remaining);
+            long skipped = super.skip(toSkip);
+            remaining -= skipped;
+            return skipped;
+        }
+
+        @Override
+        public int available() throws IOException {
+            return (int) Math.min(super.available(), remaining);
+        }
     }
 }
