@@ -216,6 +216,7 @@
     </style>
 </head>
 <body>
+    <div id="debug-log"></div>
     <div class="splash-screen hidden" id="splashScreen">
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
     </div>
@@ -868,6 +869,5 @@
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
         }
     </script>
-    <div id="debug-log"></div>
 </body>
 </html>
