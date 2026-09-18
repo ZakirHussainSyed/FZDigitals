@@ -84,6 +84,12 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                         headers.put("Content-Range", "bytes */" + total);
                         return new WebResourceResponse(mime, null, 416, "Range Not Satisfiable", headers, new ByteArrayInputStream(new byte[0]));
                     }
+                    // For an initial open-ended "bytes=0-" range that covers the whole file, serve 200.
+                    // Some WebView media stacks reject a 206 for the first full-file request.
+                    if (start == 0 && end >= total - 1) {
+                        jsLog(url, file, "serving-200", null);
+                        return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
+                    }
                     long length = end - start + 1;
                     FileInputStream fis = new FileInputStream(file);
                     fis.getChannel().position(start);
