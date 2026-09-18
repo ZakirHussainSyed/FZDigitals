@@ -382,11 +382,16 @@
                     if (video.readyState >= 1) {
                         scheduleFallback();
                     } else {
-                        video.onloadedmetadata = scheduleFallback;
+                        video.onloadedmetadata = () => {
+                            if (autoplayTimer) clearTimeout(autoplayTimer);
+                            scheduleFallback();
+                        };
+                        autoplayTimer = setTimeout(() => { if (!paused) show(current + 1); }, 15000);
                     }
 
-                    if (video.ended) video.currentTime = 0;
-                    video.play()
+                    video.currentTime = 0;
+                    const playPromise = video.play();
+                    playPromise
                         .then(() => { console.log('video playing:', video.currentSrc); })
                         .catch((err) => {
                             console.warn('video play failed:', video.currentSrc, err);

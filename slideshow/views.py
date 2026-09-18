@@ -461,6 +461,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Do not intercept actual video/audio playback requests. HTML5 video
+    // uses byte-range streaming and must fetch directly from the network.
+    if (request.destination === 'video' || request.destination === 'audio') {
+        return;
+    }
+
     if (isMediaUrl(url)) {
         event.respondWith(
             caches.match(request).then((cached) => {
