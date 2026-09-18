@@ -42,6 +42,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             jsLog(url, file, "request", null);
             if (!file.exists() || !file.isFile()) {
                 jsLog(url, file, "missing", "not found");
+                Log.i(TAG, "missing file: " + file.getAbsolutePath());
                 return plainTextResponse(404, "Not Found", "Not found: " + name);
             }
             String mime = URLConnection.guessContentTypeFromName(file.getName());
@@ -55,6 +56,8 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 }
             }
             long total = file.length();
+            String range = request.getRequestHeaders().get("Range");
+            Log.i(TAG, "request " + method + " " + url + " range=" + range + " mime=" + mime + " total=" + total + " headers=" + request.getRequestHeaders());
             if ("OPTIONS".equals(method)) {
                 return corsResponse(mime, 0, new ByteArrayInputStream(new byte[0]), 204, "No Content", null);
             }
@@ -62,7 +65,6 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 return corsResponse(mime, total, new ByteArrayInputStream(new byte[0]), 200, "OK", null);
             }
             try {
-                String range = request.getRequestHeaders().get("Range");
                 if (range != null && range.startsWith("bytes=")) {
                     String[] parts = range.substring(6).split("-");
                     long start;
@@ -88,6 +90,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     // Some WebView media stacks reject a 206 for the first full-file request.
                     if (start == 0 && end >= total - 1) {
                         jsLog(url, file, "serving-200", null);
+                        Log.i(TAG, "serving-200 start=" + start + " end=" + end + " total=" + total + " mime=" + mime);
                         return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
                     }
                     long length = end - start + 1;
@@ -96,9 +99,11 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     Map<String, String> headers = corsHeaders(mime, length);
                     headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
                     jsLog(url, file, "serving-206", null);
+                    Log.i(TAG, "serving-206 start=" + start + " end=" + end + " length=" + length + " total=" + total + " mime=" + mime);
                     return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
                 }
                 jsLog(url, file, "serving-200", null);
+                Log.i(TAG, "serving-200 total=" + total + " mime=" + mime);
                 return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
             } catch (Exception e) {
                 Log.w(TAG, "error serving " + file.getAbsolutePath(), e);
