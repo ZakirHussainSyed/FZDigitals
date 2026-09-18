@@ -434,6 +434,7 @@ self.addEventListener('message', (event) => {
 });
 
 async function cacheMedia(files) {
+    console.log('[SW] cacheMedia start, files:', files.length);
     const cache = await caches.open(CACHE_NAME);
     await Promise.all(files.map(async (file) => {
         try {
@@ -443,10 +444,13 @@ async function cacheMedia(files) {
             const mode = isVideo ? 'cors' : 'no-cors';
             const req = new Request(url, {mode: mode});
             const existing = await cache.match(req);
+            console.log('[SW] cacheMedia checking:', url, 'type:', type, 'mode:', mode, 'already cached:', !!existing);
             if (existing) return;
             const res = await fetch(req);
+            console.log('[SW] cacheMedia fetched:', url, 'status:', res.status, 'ok:', res.ok, 'type:', res.type);
             if (res && (mode === 'no-cors' || res.ok)) {
                 await cache.put(req, res);
+                console.log('[SW] cacheMedia saved:', url);
             }
         } catch (err) {
             console.error('Cache media failed:', file, err);
@@ -471,6 +475,7 @@ self.addEventListener('fetch', (event) => {
                 if (!cached) {
                     cached = await cache.match(new Request(url, {mode: 'cors'}));
                 }
+                console.log('[SW] fetch:', url, 'dest:', request.destination, 'range:', request.headers.has('range'), 'mode:', request.mode, 'cached:', !!cached);
                 if (!cached) {
                     const res = await fetch(request);
                     if (res && res.ok && res.status === 200) {

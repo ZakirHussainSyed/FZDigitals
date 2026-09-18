@@ -362,12 +362,9 @@
             if (media[current].type === 'video') {
                 const video = nodes[current]?.querySelector('video');
                 if (video) {
+                    console.log('startAutoplay: video', video.currentSrc, 'readyState:', video.readyState, 'networkState:', video.networkState, 'paused:', video.paused);
                     video.loop = false;
                     video.onended = () => { if (!paused) { show(current + 1); } };
-                    video.onerror = () => {
-                        console.warn('video error, skipping:', video.currentSrc);
-                        setTimeout(() => show(current + 1), 500);
-                    };
 
                     const scheduleFallback = () => {
                         if (autoplayTimer) clearTimeout(autoplayTimer);
@@ -471,6 +468,7 @@
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
+                    vid.crossOrigin = 'anonymous';
                     vid.src = f.url;
                     vid.controls = false;
                     vid.muted = true;
@@ -479,12 +477,16 @@
                     vid.setAttribute('playsinline', '');
                     vid.setAttribute('muted', '');
                     vid.setAttribute('preload', 'auto');
-                    vid.onerror = () => {
-                        console.warn('video load error:', f.title);
+                    const logVideo = (e) => console.log(`video [${f.title}] ${e}:`, 'readyState:', vid.readyState, 'networkState:', vid.networkState, 'currentSrc:', vid.currentSrc);
+                    ['loadstart', 'loadeddata', 'canplay', 'canplaythrough', 'playing', 'stalled', 'waiting', 'ended'].forEach(evt => {
+                        vid.addEventListener(evt, () => logVideo(evt));
+                    });
+                    vid.addEventListener('error', () => {
+                        console.warn('video error:', f.title, 'code:', vid.error && vid.error.code, 'message:', vid.error && vid.error.message, 'currentSrc:', vid.currentSrc, 'readyState:', vid.readyState, 'networkState:', vid.networkState);
                         if (vid.parentElement && vid.parentElement.classList.contains('active')) {
                             setTimeout(() => show(current + 1), 500);
                         }
-                    };
+                    });
                     wrap.appendChild(vid);
                 }
 
