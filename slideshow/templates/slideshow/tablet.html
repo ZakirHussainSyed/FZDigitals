@@ -213,12 +213,31 @@
             pointer-events: none;
             text-shadow: 0 0 2px #000;
         }
+        /* Sync loading screen */
+        .sync-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 250;
+        }
+        .sync-screen.hidden { display: none; }
+        .sync-screen img {
+            max-width: 70%;
+            max-height: 70%;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
     <div id="debug-log"></div>
     <div class="splash-screen hidden" id="splashScreen">
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
+    </div>
+    <div class="sync-screen hidden" id="syncScreen">
+        <img src="/static/slideshow/logo.png" alt="FZ Screen">
     </div>
     <div class="pairing-screen" id="pairingScreen">
         <div class="pairing-logo" id="pairingLogo">
@@ -298,6 +317,15 @@
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
         dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
 
+        function showLoading() {
+            const el = document.getElementById('syncScreen');
+            if (el) el.classList.remove('hidden');
+        }
+        function hideLoading() {
+            const el = document.getElementById('syncScreen');
+            if (el) el.classList.add('hidden');
+        }
+
         function getMediaSrc(f) {
             if (f.localUrl) return f.localUrl;
             return f.url;
@@ -319,11 +347,6 @@
                         }
                         return f;
                     });
-                    try {
-                        await MediaDownloader.cleanup({ keep: files.map(f => f.id) });
-                    } catch (err) {
-                        dwarn('MediaDownloader.cleanup error:', err);
-                    }
                 }
             } catch (err) {
                 dwarn('MediaDownloader.sync error:', err);
@@ -681,10 +704,14 @@
                         // No change; don't re-render, keep current playback running
                         return;
                     }
+                    dlog('refresh: slideshow changed, pausing and re-downloading');
+                    stopAutoplay();
+                    showLoading();
                     media = await syncMediaToLocal(data.files);
+                    hideLoading();
                     saveCachedMedia(media);
                     cacheMediaUrls(media);
-                    if (current >= media.length) current = 0;
+                    current = 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';
                     renderSlides();
