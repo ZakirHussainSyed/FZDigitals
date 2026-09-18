@@ -195,6 +195,24 @@
             -webkit-user-select: none;
             user-select: none;
         }
+        #debug-log {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 120px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.85);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 8px 12px;
+            z-index: 9999;
+            white-space: pre-line;
+            pointer-events: none;
+            text-shadow: 0 0 2px #000;
+        }
     </style>
 </head>
 <body>
@@ -234,6 +252,30 @@
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
+        const debugEl = document.getElementById('debug-log');
+        const rawLog = console.log;
+        const rawWarn = console.warn;
+        function trimDebug() {
+            if (!debugEl) return;
+            const lines = debugEl.textContent.split('\n');
+            if (lines.length > 8) {
+                debugEl.textContent = lines.slice(lines.length - 8).join('\n');
+            }
+        }
+        console.log = function (...args) {
+            rawLog.apply(console, args);
+            if (debugEl) {
+                debugEl.textContent += args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
+                trimDebug();
+            }
+        };
+        console.warn = function (...args) {
+            rawWarn.apply(console, args);
+            if (debugEl) {
+                debugEl.textContent += args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
+                trimDebug();
+            }
+        };
 
         async function cacheMediaUrls(urls) {
             if (!('serviceWorker' in navigator)) return;
@@ -386,13 +428,21 @@
                         autoplayTimer = setTimeout(() => { if (!paused) show(current + 1); }, 15000);
                     }
 
-                    video.currentTime = 0;
+                    try {
+                        if (video.readyState >= 1) {
+                            video.currentTime = 0;
+                        }
+                    } catch (e) {
+                        console.warn('currentTime reset failed:', e);
+                    }
                     const playPromise = video.play();
                     playPromise
                         .then(() => { console.log('video playing:', video.currentSrc); })
                         .catch((err) => {
-                            console.warn('video play failed:', video.currentSrc, err);
-                            setTimeout(() => show(current + 1), 1000);
+                            console.warn('video play failed:', video.currentSrc, err && err.name, err && err.message);
+                            if (err && err.name !== 'NotAllowedError' && err && err.name !== 'AbortError') {
+                                setTimeout(() => show(current + 1), 1000);
+                            }
                         });
                     console.log('startAutoplay: video slide, will advance on ended');
                 }
@@ -468,7 +518,6 @@
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
-                    vid.crossOrigin = 'anonymous';
                     vid.src = f.url;
                     vid.controls = false;
                     vid.muted = true;
@@ -777,5 +826,6 @@
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
         }
     </script>
+    <div id="debug-log"></div>
 </body>
 </html>

@@ -42,6 +42,15 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Allow WebView autoplay without user gesture
+        working-directory: mobile
+        run: |
+          MAIN=android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
+          if [ -f "$MAIN" ]; then
+            sed -i '/super.onCreate(savedInstanceState);/a\        bridge.getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);' "$MAIN"
+            cat "$MAIN"
+          fi
+
       - name: Auto-bump app version
         working-directory: mobile
         run: |
