@@ -79,13 +79,6 @@ public class MediaDownloaderPlugin extends Plugin {
                 }
             }
 
-            List<String> keep = new ArrayList<>();
-            for (JSONObject f : fileList) {
-                String id = f.optString("id", null);
-                if (id != null) keep.add(id);
-            }
-            cleanFiles(base, keep);
-
             JSObject result = new JSObject();
             result.put("files", out);
             call.resolve(result);

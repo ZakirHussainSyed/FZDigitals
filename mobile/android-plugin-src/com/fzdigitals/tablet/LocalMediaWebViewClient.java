@@ -15,8 +15,10 @@ import java.io.InputStream;
 import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
+import android.util.Log;
 
 public class LocalMediaWebViewClient extends BridgeWebViewClient {
+    private static final String TAG = "LocalMediaWebViewClient";
     private static final String LOCAL_HOST = "media.fzscreens.com";
     private static final String LOCAL_PATH = "/tablet-local/";
     private final File base;
@@ -29,9 +31,11 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         Uri url = request.getUrl();
+        Log.i(TAG, "request " + url.toString());
         if (LOCAL_HOST.equals(url.getHost()) && url.getPath() != null && url.getPath().startsWith(LOCAL_PATH)) {
             String name = url.getPath().substring(LOCAL_PATH.length());
             File file = new File(base, name);
+            Log.i(TAG, "resolved " + file.getAbsolutePath() + " exists=" + file.exists() + " size=" + file.length());
             if (file.exists() && file.isFile()) {
                 String mime = URLConnection.guessContentTypeFromName(file.getName());
                 if (mime == null || mime.isEmpty()) {
@@ -44,6 +48,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                     }
                 }
                 try {
+                    Log.i(TAG, "serving " + file.getAbsolutePath() + " size=" + file.length());
                     long total = file.length();
                     String range = request.getRequestHeaders().get("Range");
                     if (range != null && range.startsWith("bytes=")) {
@@ -83,6 +88,8 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 } catch (Exception e) {
                     // fall through to default handling
                 }
+            } else {
+                Log.w(TAG, "missing " + file.getAbsolutePath() + " for " + url.toString());
             }
         }
         return super.shouldInterceptRequest(view, request);

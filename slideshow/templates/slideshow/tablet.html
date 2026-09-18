@@ -338,6 +338,7 @@
                 const res = await MediaDownloader.sync({ files: files });
                 dlog('MediaDownloader.sync result:', res);
                 if (res && res.files) {
+                    dlog('MediaDownloader.sync raw files:', JSON.stringify(res.files));
                     const map = {};
                     res.files.forEach(item => { if (item.id) map[item.id] = item; });
                     files = files.map(f => {
