@@ -36,6 +36,14 @@ public class MediaDownloaderPlugin extends Plugin {
             return;
         }
 
+        File[] existing = base.listFiles();
+        if (existing != null) {
+            for (File f : existing) {
+                f.delete();
+            }
+            Log.i(TAG, "cleared local slideshow cache, " + existing.length + " files");
+        }
+
         final List<JSONObject> fileList = new ArrayList<>();
         for (int i = 0; i < files.length(); i++) {
             try {
