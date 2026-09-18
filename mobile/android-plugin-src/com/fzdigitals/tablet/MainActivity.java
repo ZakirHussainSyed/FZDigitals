@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.webkit.WebSettings;
 import com.getcapacitor.BridgeActivity;
 import com.fzdigitals.tablet.plugins.MediaDownloaderPlugin;
+import java.io.File;
 
 public class MainActivity extends BridgeActivity {
     @Override
@@ -17,6 +18,8 @@ public class MainActivity extends BridgeActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowFileAccessFromFileURLs(true);
         settings.setAllowUniversalAccessFromFileURLs(true);
-        settings.setAllowContentAccess(true);
+
+        File base = new File(getFilesDir(), "slideshow");
+        bridge.getWebView().setWebViewClient(new LocalMediaWebViewClient(bridge, base));
     }
 }

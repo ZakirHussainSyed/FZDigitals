@@ -57,19 +57,9 @@ jobs:
         run: |
           mkdir -p android/app/src/main/java/com/fzdigitals/tablet/plugins
           cp -f android-plugin-src/com/fzdigitals/tablet/MainActivity.java android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
+          cp -f android-plugin-src/com/fzdigitals/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzdigitals/tablet/LocalMediaWebViewClient.java
           cp -f android-plugin-src/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java
           ls -R android/app/src/main/java/com/fzdigitals/tablet
-
-      - name: Add FileProvider for content:// URIs
-        working-directory: mobile
-        run: |
-          mkdir -p android/app/src/main/res/xml
-          printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' \
-            '<paths xmlns:android="http://schemas.android.com/apk/res/android">' \
-            '    <files-path name="slideshow" path="slideshow" />' \
-            '</paths>' > android/app/src/main/res/xml/file_paths.xml
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          perl -0777 -i -pe 's|</application>|    <provider android:name="androidx.core.content.FileProvider" android:authorities="com.fzdigitals.tablet.fileprovider" android:exported="false" android:grantUriPermissions="true">\n            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="\@xml/file_paths" />\n        </provider>\n    </application>|s' $MANIFEST
 
       - name: Auto-bump app version
         working-directory: mobile

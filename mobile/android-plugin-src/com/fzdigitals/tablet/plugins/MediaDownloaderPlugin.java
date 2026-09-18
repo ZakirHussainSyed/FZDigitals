@@ -1,9 +1,7 @@
 package com.fzdigitals.tablet.plugins;
 
 import android.content.Context;
-import android.net.Uri;
 import android.util.Log;
-import androidx.core.content.FileProvider;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -124,13 +122,9 @@ public class MediaDownloaderPlugin extends Plugin {
         }
     }
 
-    private Uri getContentUri(Context ctx, File file) {
-        try {
-            return FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", file);
-        } catch (Exception e) {
-            Log.e(TAG, "cannot get content URI", e);
-            return null;
-        }
+    private String localUrl(String id, String type) {
+        String ext = type.startsWith("video") ? ".mp4" : ".jpg";
+        return "https://media.fzscreens.com/tablet-local/" + id + ext;
     }
 
     private JSObject downloadOne(File base, JSONObject f) {
@@ -147,8 +141,7 @@ public class MediaDownloaderPlugin extends Plugin {
         if (out.exists() && out.length() > 0) {
             result.put("status", "cached");
             result.put("localPath", out.getAbsolutePath());
-            Uri uri = getContentUri(getContext(), out);
-            if (uri != null) result.put("contentUri", uri.toString());
+            result.put("localUrl", localUrl(id, type));
             return result;
         }
 
@@ -176,8 +169,7 @@ public class MediaDownloaderPlugin extends Plugin {
                 if (tmp.renameTo(out)) {
                     result.put("status", "downloaded");
                     result.put("localPath", out.getAbsolutePath());
-                    Uri uri = getContentUri(getContext(), out);
-                    if (uri != null) result.put("contentUri", uri.toString());
+                    result.put("localUrl", localUrl(id, type));
                 } else {
                     result.put("status", "error");
                     result.put("error", "rename failed");

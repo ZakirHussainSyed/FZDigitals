@@ -299,7 +299,7 @@
         dlog('Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
 
         function getMediaSrc(f) {
-            if (f.contentUri) return f.contentUri;
+            if (f.localUrl) return f.localUrl;
             return f.url;
         }
 
@@ -314,8 +314,8 @@
                     res.files.forEach(item => { if (item.id) map[item.id] = item; });
                     files = files.map(f => {
                         const local = map[f.id];
-                        if (local && (local.contentUri || local.localPath)) {
-                            return { ...f, contentUri: local.contentUri, localPath: local.localPath, _status: local.status };
+                        if (local && (local.localUrl || local.localPath)) {
+                            return { ...f, localUrl: local.localUrl, localPath: local.localPath, _status: local.status };
                         }
                         return f;
                     });
