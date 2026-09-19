@@ -58,6 +58,7 @@ jobs:
           mkdir -p android/app/src/main/java/com/fzdigitals/tablet/plugins
           cp -f android-plugin-src/com/fzdigitals/tablet/MainActivity.java android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
           cp -f android-plugin-src/com/fzdigitals/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzdigitals/tablet/LocalMediaWebViewClient.java
+          cp -f android-plugin-src/com/fzdigitals/tablet/LocalMediaServer.java android/app/src/main/java/com/fzdigitals/tablet/LocalMediaServer.java
           cp -f android-plugin-src/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java
           ls -R android/app/src/main/java/com/fzdigitals/tablet
 

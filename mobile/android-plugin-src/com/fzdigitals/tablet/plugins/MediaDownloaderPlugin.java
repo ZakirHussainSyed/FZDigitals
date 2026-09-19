@@ -8,6 +8,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.fzdigitals.tablet.LocalMediaServer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -25,6 +26,15 @@ import org.json.JSONObject;
 public class MediaDownloaderPlugin extends Plugin {
     private static final String TAG = "MediaDownloader";
     private static final String SUBDIR = "slideshow";
+    private static LocalMediaServer mediaServer;
+
+    @Override
+    public void load() {
+        File base = new File(getContext().getFilesDir(), SUBDIR);
+        if (!base.exists()) base.mkdirs();
+        mediaServer = new LocalMediaServer(base);
+        mediaServer.start();
+    }
 
     @PluginMethod
     public void sync(PluginCall call) {
@@ -125,6 +135,11 @@ public class MediaDownloaderPlugin extends Plugin {
 
     private String localUrl(File out, String id, String type) {
         String ext = type.startsWith("video") ? ".mp4" : ".jpg";
+        int port = mediaServer != null ? mediaServer.getPort() : -1;
+        if (port > 0) {
+            return "http://127.0.0.1:" + port + "/tablet-local/" + id + ext + "?mtime=" + out.lastModified();
+        }
+        // Fallback to the intercepted host if the server failed to start.
         return "https://media.fzscreens.com/tablet-local/" + id + ext + "?mtime=" + out.lastModified();
     }
 
