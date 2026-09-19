@@ -65,9 +65,49 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 return corsResponse(mime, total, new ByteArrayInputStream(new byte[0]), 200, "OK", null);
             }
             try {
-                // Always serve the full file. The WebView's shouldInterceptRequest path
-                // is unreliable for large video range requests, so let it parse the
-                // complete MP4 instead of serving partial 206 responses.
+                if (range != null && range.startsWith("bytes=")) {
+                    String spec = range.substring(6);
+                    int comma = spec.indexOf(',');
+                    if (comma >= 0) spec = spec.substring(0, comma).trim();
+                    String[] parts = spec.split("-", -1);
+                    long start;
+                    long end = total - 1;
+                    if (!parts[0].isEmpty()) {
+                        start = Long.parseLong(parts[0]);
+                        if (parts.length > 1 && !parts[1].isEmpty()) {
+                            end = Long.parseLong(parts[1]);
+                        }
+                    } else if (parts.length > 1 && !parts[1].isEmpty()) {
+                        long suffix = Long.parseLong(parts[1]);
+                        start = Math.max(0, total - suffix);
+                    } else {
+                        start = 0;
+                    }
+                    if (end >= total) end = total - 1;
+                    if (start < 0 || start >= total || end < start) {
+                        Map<String, String> headers = corsHeaders(mime, 0);
+                        headers.put("Content-Range", "bytes */" + total);
+                        jsLog(url, file, "serving-416", null);
+                        Log.i(TAG, "serving-416 range=" + range + " total=" + total);
+                        return new WebResourceResponse(mime, null, 416, "Requested Range Not Satisfiable", headers, new ByteArrayInputStream(new byte[0]));
+                    }
+                    // For an initial open-ended "bytes=0-" range that covers the whole
+                    // file, serve 200. Some WebView media stacks reject a 206 for the
+                    // first full-file request.
+                    if (start == 0 && end >= total - 1) {
+                        jsLog(url, file, "serving-200", null);
+                        Log.i(TAG, "serving-200 total=" + total + " mime=" + mime);
+                        return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
+                    }
+                    long length = end - start + 1;
+                    FileInputStream fis = new FileInputStream(file);
+                    fis.getChannel().position(start);
+                    Map<String, String> headers = corsHeaders(mime, length);
+                    headers.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
+                    jsLog(url, file, "serving-206", null);
+                    Log.i(TAG, "serving-206 start=" + start + " end=" + end + " length=" + length + " total=" + total + " mime=" + mime);
+                    return new WebResourceResponse(mime, null, 206, "Partial Content", headers, new BoundedInputStream(fis, length));
+                }
                 jsLog(url, file, "serving-200", null);
                 Log.i(TAG, "serving-200 total=" + total + " mime=" + mime);
                 return corsResponse(mime, total, new FileInputStream(file), 200, "OK", null);
