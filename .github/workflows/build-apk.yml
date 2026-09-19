@@ -94,6 +94,23 @@ jobs:
           sed -i 's|<category android:name="android.intent.category.LAUNCHER" />|<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />\n                <category android:name="android.intent.category.HOME" />\n                <category android:name="android.intent.category.DEFAULT" />|' $MANIFEST
           sed -i 's|</manifest>|    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
 
+      - name: Allow cleartext HTTP to local media server
+        working-directory: mobile
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <network-security-config>
+              <domain-config cleartextTrafficPermitted="true">
+                  <domain includeSubdomains="false">127.0.0.1</domain>
+                  <domain includeSubdomains="false">localhost</domain>
+              </domain-config>
+          </network-security-config>
+          EOF
+          sed -i 's|<application|<application android:networkSecurityConfig="@xml/network_security_config"|' $MANIFEST
+          grep -n "networkSecurityConfig" $MANIFEST
+
       - name: Sync Capacitor
         working-directory: mobile
         run: npx cap sync android
