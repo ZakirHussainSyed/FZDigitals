@@ -195,24 +195,6 @@
             -webkit-user-select: none;
             user-select: none;
         }
-        #debug-log {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            max-height: 120px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.85);
-            color: #0f0;
-            font-family: monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            padding: 8px 12px;
-            z-index: 9999;
-            white-space: pre-line;
-            pointer-events: none;
-            text-shadow: 0 0 2px #000;
-        }
         /* Sync loading screen */
         .sync-screen {
             position: fixed;
@@ -232,7 +214,6 @@
     </style>
 </head>
 <body>
-    <div id="debug-log"></div>
     <div class="splash-screen hidden" id="splashScreen">
         <img src="/static/slideshow/logo.png" alt="FZDigitals" id="splashLogo">
     </div>
@@ -277,41 +258,14 @@
         const rawWarn = console.warn;
         const rawError = console.error;
 
-        function getDebugEl() {
-            let el = document.getElementById('debug-log');
-            if (!el) {
-                el = document.createElement('div');
-                el.id = 'debug-log';
-                el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:180px;overflow-y:auto;background:rgba(0,0,0,0.9);color:#0f0;font-family:monospace;font-size:14px;line-height:1.5;padding:10px 14px;z-index:99999;white-space:pre-line;';
-                if (document.body) document.body.appendChild(el);
-            }
-            return el;
-        }
-        function trimDebug() {
-            const el = getDebugEl();
-            if (!el) return;
-            const lines = el.textContent.split('\n');
-            if (lines.length > 12) {
-                el.textContent = lines.slice(lines.length - 12).join('\n');
-            }
-        }
-        function toLine(args) {
-            return args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
-        }
         function dlog(...args) {
             rawLog.apply(console, args);
-            const el = getDebugEl();
-            if (el) { el.textContent += toLine(args); trimDebug(); }
         }
         function dwarn(...args) {
             rawWarn.apply(console, args);
-            const el = getDebugEl();
-            if (el) { el.textContent += toLine(args); trimDebug(); }
         }
         function derror(...args) {
             rawError.apply(console, args);
-            const el = getDebugEl();
-            if (el) { el.textContent += toLine(args); trimDebug(); }
         }
 
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
