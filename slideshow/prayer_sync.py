@@ -176,8 +176,8 @@ def sync_mosque_prayer_times(mosque, force=False):
 
 
 def maybe_sync_mosque(mosque):
-    """Lazy sync: at most once per SYNC_INTERVAL, only when a website is set."""
-    if not mosque or not mosque.website_url:
+    """Lazy sync: at most once per SYNC_INTERVAL, only when sync is enabled."""
+    if not mosque or not mosque.sync_enabled or not mosque.website_url:
         return
     if mosque.prayer_synced_at and timezone.now() - mosque.prayer_synced_at < SYNC_INTERVAL:
         return

@@ -89,6 +89,20 @@
             margin-top: 8px;
         }
         .sync-btn:hover { background: rgba(255,255,255,0.14); }
+        .sync-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(124,92,255,0.08);
+            border: 1px solid rgba(124,92,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e8eaf0;
+        }
+        .sync-toggle input { width: 18px; height: 18px; accent-color: #7c5cff; cursor: pointer; }
         .time-row input:focus, .time-row select:focus {
             outline: none;
             border-color: #7c5cff;
@@ -140,7 +154,13 @@
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
-                <label for="id_website_url">Mosque Website (auto-syncs iqama times)</label>
+                <label class="sync-toggle" for="id_sync_enabled">
+                    <input type="checkbox" name="sync_enabled" id="id_sync_enabled" {% if mosque.sync_enabled %}checked{% endif %}>
+                    Sync timings from website
+                </label>
+            </div>
+            <div class="form-group" id="website-url-group" {% if not mosque.sync_enabled %}style="display:none"{% endif %}>
+                <label for="id_website_url">Mosque Website</label>
                 <input type="url" name="website_url" id="id_website_url" class="url-input"
                        placeholder="https://www.eastsidemosque.com/" value="{{ mosque.website_url }}">
             </div>
@@ -169,5 +189,10 @@
 
         <a href="/{{ request.user.id }}/" class="back-link">Back to Dashboard</a>
     </div>
+    <script>
+        document.getElementById('id_sync_enabled').addEventListener('change', function () {
+            document.getElementById('website-url-group').style.display = this.checked ? 'block' : 'none';
+        });
+    </script>
 </body>
 </html>

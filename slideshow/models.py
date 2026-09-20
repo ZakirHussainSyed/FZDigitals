@@ -158,6 +158,10 @@ class Mosque(models.Model):
     latitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
     longitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
     website_url = models.URLField(blank=True, default='')
+    sync_enabled = models.BooleanField(
+        default=False,
+        help_text='When on, prayer times come from the website PDF; when off, manual entries are used.',
+    )
     timezone = models.CharField(max_length=64, blank=True, default='')
     prayer_synced_at = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)

@@ -1555,18 +1555,12 @@ def prayer_times(request):
 
     if request.method == 'POST':
         website = request.POST.get('website_url', '').strip()
-        if website != mosque.website_url:
+        sync_enabled = request.POST.get('sync_enabled') == 'on'
+        if website != mosque.website_url or sync_enabled != mosque.sync_enabled:
             mosque.website_url = website
-            mosque.prayer_synced_at = None  # force re-sync on URL change
-            mosque.save(update_fields=['website_url', 'prayer_synced_at'])
-
-        if request.POST.get('action') == 'sync':
-            synced, err = sync_mosque_prayer_times(mosque, force=True)
-            if err:
-                messages.error(request, f'Sync failed: {err}')
-            else:
-                messages.success(request, f'Synced {synced} days of prayer times from the website.')
-            return redirect('prayer-times')
+            mosque.sync_enabled = sync_enabled
+            mosque.prayer_synced_at = None  # force re-sync on settings change
+            mosque.save(update_fields=['website_url', 'sync_enabled', 'prayer_synced_at'])
 
         def _parse(field, optional=False):
             hour = request.POST.get(f'{field}_hour', '').strip()
@@ -1583,6 +1577,22 @@ def prayer_times(request):
             elif ampm.upper() == 'AM' and h == 12:
                 h = 0
             return datetime.strptime(f'{h:02d}:{m:02d}', '%H:%M').time()
+
+        if request.POST.get('action') == 'sync' or mosque.sync_enabled:
+            synced, err = sync_mosque_prayer_times(mosque, force=True)
+            if err:
+                messages.error(request, f'Sync failed: {err}')
+                return redirect('prayer-times')
+            # Website times own the row now; Jummah is not in the PDF so
+            # persist just that field from the form (update_fields avoids
+            # clobbering the freshly synced values on this stale object).
+            try:
+                prayer_time.jummah = _parse('jummah')
+                prayer_time.save(update_fields=['jummah'])
+            except Exception:
+                pass
+            messages.success(request, f'Synced {synced} days of prayer times from the website.')
+            return redirect('prayer-times')
 
         try:
             for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah']:
