@@ -28,6 +28,7 @@ from .prayer_sync import (
     sunset_time,
     sync_mosque_prayer_times,
 )
+from .geo import geocode_address, timezone_for_coords
 
 logger = logging.getLogger(__name__)
 
@@ -282,27 +283,43 @@ def user_management(request):
             vertical=vertical
         )
 
+        mosque_note = ''
         if vertical == 'mosque':
             try:
+                lat = Decimal(mosque_latitude) if mosque_latitude else None
+                lng = Decimal(mosque_longitude) if mosque_longitude else None
+                # Guard against typos: out-of-range values are discarded.
+                if lat is not None and not (Decimal('-90') <= lat <= Decimal('90')):
+                    lat = None
+                if lng is not None and not (Decimal('-180') <= lng <= Decimal('180')):
+                    lng = None
+                if lat is None or lng is None:
+                    coords = geocode_address(mosque_address)
+                    if coords:
+                        lat, lng = Decimal(str(coords[0])), Decimal(str(coords[1]))
+                    else:
+                        mosque_note = ' Address could not be geocoded — set coordinates manually or the mosque will not appear on the map.'
                 tz_name = mosque_timezone
                 if tz_name:
                     try:
                         ZoneInfo(tz_name)
                     except Exception:
                         tz_name = ''
+                if not tz_name and lat is not None and lng is not None:
+                    tz_name = timezone_for_coords(lat, lng) or ''
                 Mosque.objects.create(
                     user=user,
                     name=mosque_name or username,
                     address=mosque_address,
-                    latitude=Decimal(mosque_latitude) if mosque_latitude else None,
-                    longitude=Decimal(mosque_longitude) if mosque_longitude else None,
+                    latitude=lat,
+                    longitude=lng,
                     website_url=mosque_website,
                     timezone=tz_name,
                 )
             except Exception as e:
                 logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
 
-        context['success'] = f'User {username} created successfully.'
+        context['success'] = f'User {username} created successfully.' + mosque_note
         context['users'] = User.objects.all().order_by('-id')
         return render(request, 'slideshow/user_management.html', context)
 
@@ -1564,6 +1581,7 @@ def prayer_times(request):
     if request.method == 'POST':
         website = request.POST.get('website_url', '').strip()
         sync_enabled = request.POST.get('sync_enabled') == 'on'
+        address = request.POST.get('address', '').strip()
         tz_name = request.POST.get('timezone', '').strip()
         if tz_name:
             try:
@@ -1572,12 +1590,26 @@ def prayer_times(request):
                 messages.error(request, f'Invalid timezone "{tz_name}" — keeping current setting.')
                 tz_name = mosque.timezone
         if (website != mosque.website_url or sync_enabled != mosque.sync_enabled
-                or tz_name != mosque.timezone):
+                or tz_name != mosque.timezone or address != mosque.address):
             mosque.website_url = website
             mosque.sync_enabled = sync_enabled
             mosque.timezone = tz_name
+            mosque.address = address
             mosque.prayer_synced_at = None  # force re-sync on settings change
-            mosque.save(update_fields=['website_url', 'sync_enabled', 'timezone', 'prayer_synced_at'])
+            mosque.save(update_fields=['website_url', 'sync_enabled', 'timezone', 'address', 'prayer_synced_at'])
+
+        if request.POST.get('action') == 'geolocate':
+            coords = geocode_address(mosque.address)
+            if not coords:
+                messages.error(request, 'Could not find that address — check it and try again.')
+            else:
+                mosque.latitude = Decimal(str(coords[0]))
+                mosque.longitude = Decimal(str(coords[1]))
+                if not mosque.timezone:
+                    mosque.timezone = timezone_for_coords(*coords) or ''
+                mosque.save(update_fields=['latitude', 'longitude', 'timezone'])
+                messages.success(request, f'Location detected: {coords[0]:.5f}, {coords[1]:.5f}')
+            return redirect('prayer-times')
 
         def _parse(field, optional=False):
             hour = request.POST.get(f'{field}_hour', '').strip()

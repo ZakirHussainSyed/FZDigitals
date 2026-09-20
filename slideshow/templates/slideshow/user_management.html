@@ -245,11 +245,11 @@
                             <input type="text" name="mosque_address" id="create_mosque_address" placeholder="Street address">
                         </div>
                         <div class="form-group">
-                            <label for="create_mosque_latitude">Latitude</label>
+                            <label for="create_mosque_latitude">Latitude (optional — auto-detected from address)</label>
                             <input type="number" step="any" name="mosque_latitude" id="create_mosque_latitude" placeholder="e.g. 17.4065">
                         </div>
                         <div class="form-group">
-                            <label for="create_mosque_longitude">Longitude</label>
+                            <label for="create_mosque_longitude">Longitude (optional — auto-detected)</label>
                             <input type="number" step="any" name="mosque_longitude" id="create_mosque_longitude" placeholder="e.g. 78.4772">
                         </div>
                         <div class="form-group">
@@ -365,7 +365,7 @@
             if (vertical === 'mosque') {
                 mosqueFields.style.display = 'block';
                 inputs.forEach(function(input) {
-                    if (input.name === 'mosque_name' || input.name === 'mosque_latitude' || input.name === 'mosque_longitude') {
+                    if (input.name === 'mosque_name' || input.name === 'mosque_address') {
                         input.required = true;
                     }
                 });
