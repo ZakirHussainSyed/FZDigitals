@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FZ Screens</title>
+    <title>{{ brand.name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:ital,wght@1,400&display=swap" rel="stylesheet">
@@ -117,15 +117,16 @@
     <div class="video-overlay"></div>
 
     <header class="header">
-        <img src="/static/logo.png" alt="FZ Digitals" class="logo" />
+        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
         <nav class="nav">
+            {% if brand.key == 'qama' %}<a href="{% url 'mosque-map' %}" class="btn">Mosque Map</a>{% endif %}
             <a href="{% url 'django_login' %}" class="btn">Log In</a>
-            <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20FZ%20Screens" target="_blank" class="btn primary">Get Started</a>
+            <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn primary">Get Started</a>
         </nav>
     </header>
 
     <main class="hero">
-        <p>Run and manage ads on multi screens remotely from anywhere.</p>
+        <p>{{ brand.tagline }}</p>
     </main>
 </body>
 </html>

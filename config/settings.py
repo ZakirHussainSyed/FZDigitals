@@ -34,8 +34,8 @@ if not SECRET_KEY:
     SECRET_KEY = 'django-insecure-local-development-key'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,fzdigitals.onrender.com').split(',')
-# Always allow the public custom domain even if the ALLOWED_HOSTS env var is set without it
-ALLOWED_HOSTS += [h for h in ('fzscreens.com', 'www.fzscreens.com') if h not in ALLOWED_HOSTS]
+# Always allow the public custom domains even if the ALLOWED_HOSTS env var is set without them
+ALLOWED_HOSTS += [h for h in ('fzscreens.com', 'www.fzscreens.com', 'qama.fzscreens.com') if h not in ALLOWED_HOSTS]
 
 # Served over HTTPS everywhere except local production-like runs (HTTPS_ONLY=False)
 if not DEBUG and os.environ.get('HTTPS_ONLY', 'True') == 'True':
@@ -88,6 +88,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'slideshow.context_processors.brand',
             ],
         },
     },
