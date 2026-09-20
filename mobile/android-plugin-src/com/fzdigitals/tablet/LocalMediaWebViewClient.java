@@ -22,6 +22,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import android.util.Log;
 
@@ -153,7 +154,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         // snapshot; any failure serves the last good copy. This does not depend
         // on the WebView HTTP cache or server cache headers.
         if (isAppShellRequest(url, request, method)) {
-            WebResourceResponse res = fetchThroughCache(url);
+            WebResourceResponse res = fetchThroughCache(view, request, url);
             if (res != null) return res;
         }
         return super.shouldInterceptRequest(view, request);
@@ -173,7 +174,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
      * filesDir/webcache and return it; on any failure serve the stored copy.
      * Returns null only when there is no network AND no snapshot.
      */
-    private WebResourceResponse fetchThroughCache(Uri url) {
+    private WebResourceResponse fetchThroughCache(WebView view, WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
         HttpURLConnection conn = null;
         try {
@@ -183,11 +184,27 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             conn.setReadTimeout(15000);
             conn.setInstanceFollowRedirects(true);
             conn.setRequestProperty("Accept-Encoding", "identity");
+            // Mirror the WebView's own request so CDN/bot protection sees the
+            // same client — otherwise our fetch can get a challenge page while
+            // the WebView load would have succeeded, and no snapshot is saved.
+            String ua = view.getSettings().getUserAgentString();
+            if (ua != null) conn.setRequestProperty("User-Agent", ua);
+            Map<String, String> reqHeaders = request.getRequestHeaders();
+            if (reqHeaders != null) {
+                for (Map.Entry<String, String> h : reqHeaders.entrySet()) {
+                    String k = h.getKey();
+                    if (k == null || h.getValue() == null) continue;
+                    String lk = k.toLowerCase(Locale.US);
+                    if (lk.equals("host") || lk.equals("connection") || lk.equals("accept-encoding") || lk.equals("user-agent")) continue;
+                    conn.setRequestProperty(k, h.getValue());
+                }
+            }
             int code = conn.getResponseCode();
             if (code >= 200 && code < 300) {
                 byte[] body = readFully(conn.getInputStream(), 8 * 1024 * 1024);
                 if (body != null && body.length > 0) {
                     writeAtomic(cacheFile, body);
+                    Log.i(TAG, "snapshot saved " + cacheFile.getName() + " (" + body.length + " bytes)");
                     String mime = contentMime(conn.getContentType(), url);
                     Map<String, String> headers = new HashMap<>();
                     headers.put("Content-Type", mime);
