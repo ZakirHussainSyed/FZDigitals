@@ -21,9 +21,13 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from suntime import Sun
-
 from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, MosqueSlide
+from .prayer_sync import (
+    maybe_sync_mosque,
+    sunrise_time,
+    sunset_time,
+    sync_mosque_prayer_times,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +252,7 @@ def user_management(request):
         mosque_address = request.POST.get('mosque_address', '').strip()
         mosque_latitude = request.POST.get('mosque_latitude', '').strip()
         mosque_longitude = request.POST.get('mosque_longitude', '').strip()
+        mosque_website = request.POST.get('mosque_website', '').strip()
 
         context = {
             'users': User.objects.all().order_by('-id'),
@@ -284,6 +289,7 @@ def user_management(request):
                     address=mosque_address,
                     latitude=Decimal(mosque_latitude) if mosque_latitude else None,
                     longitude=Decimal(mosque_longitude) if mosque_longitude else None,
+                    website_url=mosque_website,
                 )
             except Exception as e:
                 logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
@@ -1458,36 +1464,6 @@ def _next_salah(prayer_time, now, tz):
     return {'name': None, 'time': ''}
 
 
-def _sunrise_time(latitude, longitude, d, tz):
-    if latitude is None or longitude is None:
-        return None
-    try:
-        sun = Sun(float(latitude), float(longitude))
-        sr = sun.get_sunrise_time(d)
-        if not sr.tzinfo:
-            sr = sr.replace(tzinfo=ZoneInfo('UTC'))
-        sr = sr.astimezone(tz)
-        return sr.time()
-    except Exception as e:
-        logger.warning(f"Sunrise calc failed for {latitude},{longitude}: {e}")
-        return None
-
-
-def _sunset_time(latitude, longitude, d, tz):
-    if latitude is None or longitude is None:
-        return None
-    try:
-        sun = Sun(float(latitude), float(longitude))
-        ss = sun.get_sunset_time(d)
-        if not ss.tzinfo:
-            ss = ss.replace(tzinfo=ZoneInfo('UTC'))
-        ss = ss.astimezone(tz)
-        return ss.time()
-    except Exception as e:
-        logger.warning(f"Sunset calc failed for {latitude},{longitude}: {e}")
-        return None
-
-
 @require_http_methods(["GET"])
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah."""
@@ -1510,7 +1486,7 @@ def api_public_mosques(request):
                     'sunset': _format_prayer_time(prayer_time.sunset),
                     'jummah': _format_prayer_time(prayer_time.jummah),
                 }
-            timings['sunrise'] = _format_prayer_time(_sunrise_time(m.latitude, m.longitude, today, tz))
+            timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, today, tz))
             next_salah = _next_salah(prayer_time, now, tz)
             data.append({
                 'id': m.id,
@@ -1551,8 +1527,10 @@ def prayer_times(request):
         messages.error(request, 'No mosque is associated with your account.')
         return redirect(f'/{request.user.id}/')
 
+    maybe_sync_mosque(mosque)
+
     today = timezone.now().date()
-    tz = ZoneInfo(getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
+    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
     prayer_time, _ = PrayerTime.objects.get_or_create(
         mosque=mosque,
         date=today,
@@ -1565,17 +1543,31 @@ def prayer_times(request):
         }
     )
 
-    # Default sunset based on the mosque's location.
-    if prayer_time.sunset is None and mosque.latitude is not None and mosque.longitude is not None:
+    # Sunset is always computed from the mosque's location — not editable.
+    if mosque.latitude is not None and mosque.longitude is not None:
         try:
-            computed_sunset = _sunset_time(mosque.latitude, mosque.longitude, today, tz)
-            if computed_sunset:
+            computed_sunset = sunset_time(mosque.latitude, mosque.longitude, today, tz)
+            if computed_sunset and prayer_time.sunset != computed_sunset:
                 prayer_time.sunset = computed_sunset
                 prayer_time.save(update_fields=['sunset'])
         except Exception as e:
             logger.warning(f"Sunset default failed: {e}")
 
     if request.method == 'POST':
+        website = request.POST.get('website_url', '').strip()
+        if website != mosque.website_url:
+            mosque.website_url = website
+            mosque.prayer_synced_at = None  # force re-sync on URL change
+            mosque.save(update_fields=['website_url', 'prayer_synced_at'])
+
+        if request.POST.get('action') == 'sync':
+            synced, err = sync_mosque_prayer_times(mosque, force=True)
+            if err:
+                messages.error(request, f'Sync failed: {err}')
+            else:
+                messages.success(request, f'Synced {synced} days of prayer times from the website.')
+            return redirect('prayer-times')
+
         def _parse(field, optional=False):
             hour = request.POST.get(f'{field}_hour', '').strip()
             minute = request.POST.get(f'{field}_minute', '').strip()
@@ -1593,8 +1585,9 @@ def prayer_times(request):
             return datetime.strptime(f'{h:02d}:{m:02d}', '%H:%M').time()
 
         try:
-            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'sunset', 'jummah']:
+            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah']:
                 setattr(prayer_time, field, _parse(field))
+            prayer_time.source = 'manual'
             prayer_time.save()
             messages.success(request, 'Prayer times updated.')
             return redirect('prayer-times')
@@ -1603,25 +1596,28 @@ def prayer_times(request):
             return redirect('prayer-times')
 
     prayer_fields = []
-    for field, label in [
-        ('fajr', 'Fajr'),
-        ('dhuhr', 'Dhuhr'),
-        ('asr', 'Asr'),
-        ('sunset', 'Sunset'),
-        ('maghrib', 'Maghrib'),
-        ('isha', 'Isha'),
-        ('jummah', 'Jummah'),
+    for field, label, readonly, t in [
+        ('fajr', 'Fajr (Iqama)', False, prayer_time.fajr),
+        ('sunrise', 'Sunrise', True, sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
+        ('dhuhr', 'Dhuhr (Iqama)', False, prayer_time.dhuhr),
+        ('asr', 'Asr (Iqama)', False, prayer_time.asr),
+        ('sunset', 'Sunset', True, prayer_time.sunset),
+        ('maghrib', 'Maghrib (Iqama)', False, prayer_time.maghrib),
+        ('isha', 'Isha (Iqama)', False, prayer_time.isha),
+        ('jummah', 'Jummah', False, prayer_time.jummah),
     ]:
-        t = getattr(prayer_time, field)
-        if t:
-            hour = t.strftime('%I').lstrip('0')
-            minute = t.strftime('%M')
-            ampm = t.strftime('%p')
+        entry = {'name': field, 'label': label, 'readonly': readonly}
+        if readonly:
+            entry['display'] = _format_prayer_time(t)
+        elif t:
+            entry['hour'] = t.strftime('%I').lstrip('0')
+            entry['minute'] = t.strftime('%M')
+            entry['ampm'] = t.strftime('%p')
         else:
-            hour = ''
-            minute = ''
-            ampm = 'AM'
-        prayer_fields.append({'name': field, 'label': label, 'hour': hour, 'minute': minute, 'ampm': ampm})
+            entry['hour'] = ''
+            entry['minute'] = ''
+            entry['ampm'] = 'AM'
+        prayer_fields.append(entry)
 
     return render(request, 'slideshow/prayer_times.html', {
         'mosque': mosque,
@@ -1646,8 +1642,10 @@ def mosque_tv(request):
         messages.error(request, 'No mosque is associated with your account.')
         return redirect('prayer-times')
 
+    maybe_sync_mosque(mosque)
+
     today = timezone.now().date()
-    tz = ZoneInfo(mosque.timezone or 'UTC')
+    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     prayer_time, _ = PrayerTime.objects.get_or_create(
         mosque=mosque,
         date=today,
@@ -1658,13 +1656,13 @@ def mosque_tv(request):
             'maghrib': datetime.strptime('18:30', '%H:%M').time(),
             'isha': datetime.strptime('20:00', '%H:%M').time(),
             'jummah': datetime.strptime('13:30', '%H:%M').time(),
-            'sunset': _sunset_time(mosque.latitude, mosque.longitude, today, tz),
+            'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
         }
     )
 
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),
-        'sunrise': _format_prayer_time(_sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
+        'sunrise': _format_prayer_time(sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
         'dhuhr': _format_prayer_time(prayer_time.dhuhr),
         'asr': _format_prayer_time(prayer_time.asr),
         'sunset': _format_prayer_time(prayer_time.sunset),

@@ -55,6 +55,40 @@
         }
         .time-row input { width: 60px; }
         .time-row select { width: 70px; }
+        .time-display {
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #e8eaf0;
+        }
+        .auto-note {
+            font-size: 11px;
+            color: rgba(232,234,240,0.5);
+            margin-top: 4px;
+        }
+        .url-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #e8eaf0;
+            font-size: 14px;
+        }
+        .url-input:focus { outline: none; border-color: #7c5cff; }
+        .sync-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #e8eaf0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .sync-btn:hover { background: rgba(255,255,255,0.14); }
         .time-row input:focus, .time-row select:focus {
             outline: none;
             border-color: #7c5cff;
@@ -105,9 +139,18 @@
 
         <form method="post">
             {% csrf_token %}
+            <div class="form-group">
+                <label for="id_website_url">Mosque Website (auto-syncs iqama times)</label>
+                <input type="url" name="website_url" id="id_website_url" class="url-input"
+                       placeholder="https://www.eastsidemosque.com/" value="{{ mosque.website_url }}">
+            </div>
             {% for f in prayer_fields %}
             <div class="form-group">
-                <label for="id_{{ f.name }}_hour">{{ f.label }}</label>
+                <label>{{ f.label }}</label>
+                {% if f.readonly %}
+                <div class="time-display">{{ f.display|default:"—" }}</div>
+                <div class="auto-note">Auto-computed from location</div>
+                {% else %}
                 <div class="time-row">
                     <input type="number" name="{{ f.name }}_hour" id="id_{{ f.name }}_hour" min="1" max="12" placeholder="HH" value="{{ f.hour }}">
                     <span class="colon">:</span>
@@ -117,9 +160,11 @@
                         <option value="PM" {% if f.ampm == 'PM' %}selected{% endif %}>PM</option>
                     </select>
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
             <button type="submit" class="submit-btn">Save Prayer Times</button>
+            <button type="submit" name="action" value="sync" class="sync-btn">Sync from Website</button>
         </form>
 
         <a href="/{{ request.user.id }}/" class="back-link">Back to Dashboard</a>

@@ -157,6 +157,9 @@ class Mosque(models.Model):
     address = models.TextField(blank=True, default='')
     latitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
     longitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
+    website_url = models.URLField(blank=True, default='')
+    timezone = models.CharField(max_length=64, blank=True, default='')
+    prayer_synced_at = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -178,6 +181,11 @@ class PrayerTime(models.Model):
     isha = models.TimeField()
     sunset = models.TimeField(blank=True, null=True)
     jummah = models.TimeField(blank=True, null=True)
+    source = models.CharField(
+        max_length=10,
+        default='default',
+        help_text='default | pdf | manual — sync never overwrites manual rows',
+    )
 
     class Meta:
         unique_together = ['mosque', 'date']
