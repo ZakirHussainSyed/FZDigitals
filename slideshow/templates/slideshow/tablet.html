@@ -631,31 +631,44 @@
             setTimeout(() => { transitioning = false; }, 300);
         }
 
+        // Show cached media from localStorage, re-resolving local URLs through
+        // the plugin (the local media server binds a random port each launch,
+        // so saved localUrls point at a dead port after restart).
+        async function playCachedMedia() {
+            const cached = loadCachedMedia();
+            if (!cached || !cached.length) return false;
+            media = await syncMediaToLocal(cached);
+            if (current >= media.length) current = 0;
+            pairingScreen.classList.add('hidden');
+            stage.style.display = '';
+            renderSlides();
+            show(current);
+            return true;
+        }
+
         async function refresh() {
             dlog('refresh: checking slideshow sources, online:', navigator.onLine);
 
             if (!navigator.onLine) {
-                const cached = loadCachedMedia();
-                if (cached && cached.length) {
-                    // Re-resolve local URLs through the plugin: the local media
-                    // server binds a random port each launch, so localUrls
-                    // saved in localStorage point at a dead port after restart.
-                    media = await syncMediaToLocal(cached);
-                    if (current >= media.length) current = 0;
-                    pairingScreen.classList.add('hidden');
-                    stage.style.display = '';
-                    renderSlides();
-                    show(current);
-                }
+                await playCachedMedia();
                 return;
             }
 
             if (deviceToken && deviceId) {
                 dlog('refresh: using existing pairing');
-                const res = await fetch(
-                    `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
-                );
-                const data = await res.json();
+                let res, data;
+                try {
+                    res = await fetch(
+                        `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
+                    );
+                    data = await res.json();
+                } catch (err) {
+                    // Network failed even though navigator.onLine was true
+                    // (e.g. WiFi up but no WAN). Fall back to cached media.
+                    dwarn('refresh: slideshow fetch failed, trying cache', err);
+                    await playCachedMedia();
+                    return;
+                }
                 if (data.success) {
                     const currentIds = JSON.stringify(media.map(f => f.id));
                     const newIds = JSON.stringify(data.files.map(f => f.id));
@@ -866,6 +879,11 @@
                     setInterval(refresh, 30000);
                     refresh();
                 });
+            } else if (deviceId && deviceToken) {
+                // Paired device (non-QR id): keep pairing + media cache and go
+                // straight to refresh — offline launches can play cached media.
+                setInterval(refresh, 30000);
+                refresh();
             } else {
                 // Start fresh with a QR code
                 localStorage.removeItem('fz_device_token');
