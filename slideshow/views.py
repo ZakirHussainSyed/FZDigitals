@@ -10,7 +10,9 @@ from django.contrib import messages
 from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-from django.db.models import Sum
+from django.db.models import Sum, Max
+from django.db import transaction
+import json
 import logging
 import secrets
 
@@ -554,7 +556,7 @@ def api_media_list(request):
                     'error': f'Screen number must be between 1 and {profile.max_slideshows}',
                 }, status=400)
         
-        files = MediaFile.objects.filter(user=request.user, screen=screen)
+        files = MediaFile.objects.filter(user=request.user, screen=screen).order_by('position', '-id')
         return JsonResponse(
             {
                 'success': True,
@@ -606,6 +608,9 @@ def api_upload(request):
             used = 0
             quota_bytes = 0
         
+        next_pos = MediaFile.objects.filter(user=request.user, screen=screen).aggregate(m=Max('position'))['m']
+        next_pos = 0 if next_pos is None else next_pos + 1
+
         created = []
         for uf in uploaded:
             if uf.content_type.startswith('image/'):
@@ -637,7 +642,9 @@ def api_upload(request):
                 content_type=ct,
                 file=uf,
                 file_size=uf.size,
+                position=next_pos,
             )
+            next_pos += 1
             used += uf.size
             
             created.append(
@@ -673,6 +680,74 @@ def api_delete(request, pk: int):
         return JsonResponse({'success': True})
     except Exception as e:
         logger.error(f"Error in api_delete: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_reorder(request):
+    """Save playlist order for a screen. Body: {"screen": N, "order": [id, ...]}"""
+    try:
+        payload = json.loads(request.body or '{}')
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    try:
+        screen = int(payload.get('screen', 1))
+    except (ValueError, TypeError):
+        screen = 1
+    order = payload.get('order') or []
+    if not isinstance(order, list):
+        return JsonResponse({'success': False, 'error': 'order must be a list'}, status=400)
+
+    try:
+        ids = [int(i) for i in order]
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'order must contain ids'}, status=400)
+
+    owned = {f.id: f for f in MediaFile.objects.filter(user=request.user, screen=screen, id__in=ids)}
+    try:
+        with transaction.atomic():
+            for pos, fid in enumerate(ids):
+                f = owned.get(fid)
+                if f is not None and f.position != pos:
+                    f.position = pos
+                    f.save(update_fields=['position'])
+        return JsonResponse({'success': True})
+    except Exception as e:
+        logger.error(f"Error in api_reorder: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_bulk_delete(request):
+    """Delete multiple owned files. Body: {"ids": [id, ...]}"""
+    try:
+        payload = json.loads(request.body or '{}')
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    ids = payload.get('ids') or []
+    if not isinstance(ids, list):
+        return JsonResponse({'success': False, 'error': 'ids must be a list'}, status=400)
+
+    try:
+        ids = [int(i) for i in ids]
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'ids must contain integers'}, status=400)
+
+    deleted = 0
+    try:
+        for obj in MediaFile.objects.filter(user=request.user, id__in=ids):
+            file_url = obj.file.url if obj.file and hasattr(obj.file, 'url') else ''
+            obj.delete()
+            deleted += 1
+            if file_url:
+                purge_cloudflare_cache(file_url)
+        return JsonResponse({'success': True, 'deleted': deleted})
+    except Exception as e:
+        logger.error(f"Error in api_bulk_delete: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
@@ -1013,7 +1088,7 @@ def api_device_slideshow(request, device_id):
                 'device_name': device.name
             }, status=404)
         
-        files = MediaFile.objects.filter(user=device.user, screen=device.screen)
+        files = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
         return JsonResponse({
             'success': True,
             'device_id': device.device_id,
@@ -1600,7 +1675,7 @@ def mosque_tv(request):
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
 
-    media = MediaFile.objects.filter(user=request.user, screen=1).order_by('created_at')
+    media = MediaFile.objects.filter(user=request.user, screen=1).order_by('position', '-id')
     media_files = [
         {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
         for m in media

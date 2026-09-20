@@ -161,6 +161,36 @@
             cursor: pointer;
             font-weight: 800;
         }
+        .item { cursor: grab; }
+        .item.selected { outline: 2px solid #7c5cff; outline-offset: -2px; }
+        .sel-check {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 22px;
+            height: 22px;
+            accent-color: #7c5cff;
+            display: none;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .grid.selecting .sel-check { display: block; }
+        .grid.selecting .item { cursor: default; }
+        .grid.selecting .del { display: none; }
+        .sortable-ghost { opacity: 0.4; }
+        .sel-bar {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(232,234,240,0.8);
+        }
+        .sel-bar.active { display: flex; }
+        .sel-bar label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .sel-bar input { accent-color: #7c5cff; width: 16px; height: 16px; }
+        .btn.danger { background: rgba(220,38,38,0.85); color: #fff; }
+        .btn.danger:hover { background: rgba(220,38,38,1); }
 
         /* Slideshow */
         .stage {
@@ -375,6 +405,7 @@
             min-width: 40px;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body data-user-id="{{ user.id }}">
 {% csrf_token %}
@@ -425,6 +456,12 @@
                 <div style="display:flex; gap:10px; margin-top:12px;">
                     <button class="btn primary" id="btnUpload-{{ screen }}">Upload</button>
                     <button class="btn" id="btnRefresh-{{ screen }}">Refresh</button>
+                    <button class="btn" id="btnSelect-{{ screen }}">Select</button>
+                </div>
+                <div class="sel-bar" id="selBar-{{ screen }}">
+                    <label><input type="checkbox" id="selAll-{{ screen }}"> Select all</label>
+                    <button class="btn danger" id="btnDeleteSel-{{ screen }}">Delete (0)</button>
+                    <button class="btn" id="btnCancelSel-{{ screen }}">Cancel</button>
                 </div>
 
                 <div class="progress" id="progress-{{ screen }}" style="display:none;">
@@ -477,7 +514,10 @@
                 current: 0,
                 timer: null,
                 pausedByHover: false,
-                pendingFiles: []
+                pendingFiles: [],
+                selectMode: false,
+                selected: new Set(),
+                sortable: null
             };
         }
 
@@ -591,7 +631,12 @@
                 empty: document.getElementById(`empty-${screen}`),
                 counter: document.getElementById(`counter-${screen}`),
                 prev: document.getElementById(`prev-${screen}`),
-                next: document.getElementById(`next-${screen}`)
+                next: document.getElementById(`next-${screen}`),
+                btnSelect: document.getElementById(`btnSelect-${screen}`),
+                selBar: document.getElementById(`selBar-${screen}`),
+                selAll: document.getElementById(`selAll-${screen}`),
+                btnDeleteSel: document.getElementById(`btnDeleteSel-${screen}`),
+                btnCancelSel: document.getElementById(`btnCancelSel-${screen}`)
             };
         }
 
@@ -734,6 +779,34 @@
             });
 
             elements.btnRefresh.addEventListener('click', () => refresh(screen));
+
+            if (elements.btnSelect) {
+                elements.btnSelect.addEventListener('click', () => setSelectMode(screen, !state.selectMode));
+            }
+            if (elements.btnCancelSel) {
+                elements.btnCancelSel.addEventListener('click', () => setSelectMode(screen, false));
+            }
+            if (elements.btnDeleteSel) {
+                elements.btnDeleteSel.addEventListener('click', () => deleteSelected(screen));
+            }
+            if (elements.selAll) {
+                elements.selAll.addEventListener('change', () => {
+                    if (elements.selAll.checked) {
+                        state.media.forEach(f => state.selected.add(f.id));
+                    } else {
+                        state.selected.clear();
+                    }
+                    renderLibrary(screen);
+                    updateSelBar(screen);
+                });
+            }
+
+            if (window.Sortable && elements.grid) {
+                state.sortable = Sortable.create(elements.grid, {
+                    animation: 150,
+                    onEnd: () => persistOrder(screen)
+                });
+            }
         }
 
         function renderPendingFiles(screen) {
@@ -772,9 +845,13 @@
             if (!elements.grid) return;
 
             elements.grid.innerHTML = '';
+            elements.grid.classList.toggle('selecting', !!state.selectMode);
+            const validIds = new Set(state.media.map(f => f.id));
+            state.selected.forEach(id => { if (!validIds.has(id)) state.selected.delete(id); });
             for (const f of state.media) {
                 const el = document.createElement('div');
-                el.className = 'item';
+                el.className = 'item' + (state.selected.has(f.id) ? ' selected' : '');
+                el.dataset.id = f.id;
 
                 const thumb = document.createElement(f.type === 'image' ? 'img' : 'video');
                 thumb.className = 'thumb';
@@ -800,11 +877,102 @@
                     await refresh(screen);
                 });
 
+                const check = document.createElement('input');
+                check.type = 'checkbox';
+                check.className = 'sel-check';
+                check.checked = state.selected.has(f.id);
+                check.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSelect(screen, f.id, el, check);
+                });
+                el.addEventListener('click', () => {
+                    if (state.selectMode) toggleSelect(screen, f.id, el, check);
+                });
+
                 el.appendChild(thumb);
                 el.appendChild(meta);
                 el.appendChild(del);
+                el.appendChild(check);
                 elements.grid.appendChild(el);
             }
+        }
+
+        function toggleSelect(screen, id, el, check) {
+            const state = screenStates[screen];
+            const on = !state.selected.has(id);
+            if (on) state.selected.add(id); else state.selected.delete(id);
+            el.classList.toggle('selected', on);
+            check.checked = on;
+            updateSelBar(screen);
+        }
+
+        function updateSelBar(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            if (elements.btnDeleteSel) {
+                elements.btnDeleteSel.textContent = `Delete (${state.selected.size})`;
+            }
+            if (elements.selAll) {
+                elements.selAll.checked = state.media.length > 0 && state.selected.size === state.media.length;
+            }
+        }
+
+        function setSelectMode(screen, on) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            state.selectMode = on;
+            if (!on) state.selected.clear();
+            if (elements.selBar) elements.selBar.classList.toggle('active', on);
+            if (elements.btnSelect) elements.btnSelect.textContent = on ? 'Selecting…' : 'Select';
+            if (state.sortable) state.sortable.option('disabled', on);
+            renderLibrary(screen);
+            updateSelBar(screen);
+        }
+
+        async function persistOrder(screen) {
+            const elements = getScreenElements(screen);
+            const state = screenStates[screen];
+            const ids = Array.from(elements.grid.children).map(el => parseInt(el.dataset.id, 10));
+            const byId = {};
+            state.media.forEach(f => { byId[f.id] = f; });
+            const reordered = ids.map(id => byId[id]).filter(Boolean);
+            if (reordered.length === state.media.length) {
+                state.media = reordered;
+                renderSlides(screen);
+            }
+            try {
+                const r = await fetch('/api/media/reorder/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ screen: screen, order: ids })
+                });
+                const d = await r.json();
+                if (!d.success) {
+                    alert(d.error || 'Reorder failed');
+                    await refresh(screen);
+                }
+            } catch (e) {
+                await refresh(screen);
+            }
+        }
+
+        async function deleteSelected(screen) {
+            const state = screenStates[screen];
+            const ids = Array.from(state.selected);
+            if (!ids.length) return;
+            if (!confirm(`Delete ${ids.length} file(s)?`)) return;
+            const r = await fetch('/api/media/bulk-delete/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids })
+            });
+            const d = await r.json();
+            if (!d.success) {
+                alert(d.error || 'Delete failed');
+            } else {
+                setSelectMode(screen, false);
+            }
+            await refresh(screen);
         }
 
         function renderSlides(screen) {

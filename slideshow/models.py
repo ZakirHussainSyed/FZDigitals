@@ -24,6 +24,10 @@ class MediaFile(models.Model):
         ],
     )
     file_size = models.PositiveIntegerField(default=0, help_text='File size in bytes')
+    position = models.PositiveIntegerField(
+        default=0,
+        help_text='Playlist order within (user, screen); lower plays first',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
