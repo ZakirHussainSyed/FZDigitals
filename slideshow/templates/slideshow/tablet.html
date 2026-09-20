@@ -251,6 +251,8 @@
         let resumeTimer = null;
         let paused = false;
         let transitioning = false;
+        let devicePaired = false;  // set once the slideshow API returns success
+        let pollTimer = null;
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
@@ -649,8 +651,11 @@
         async function refresh() {
             dlog('refresh: checking slideshow sources, online:', navigator.onLine);
 
+            // Already playing? Don't re-render on every poll.
+            const alreadyPlaying = media.length > 0 && pairingScreen.classList.contains('hidden');
+
             if (!navigator.onLine) {
-                await playCachedMedia();
+                if (!alreadyPlaying) await playCachedMedia();
                 return;
             }
 
@@ -666,10 +671,11 @@
                     // Network failed even though navigator.onLine was true
                     // (e.g. WiFi up but no WAN). Fall back to cached media.
                     dwarn('refresh: slideshow fetch failed, trying cache', err);
-                    await playCachedMedia();
+                    if (!alreadyPlaying) await playCachedMedia();
                     return;
                 }
                 if (data.success) {
+                    devicePaired = true;
                     const currentIds = JSON.stringify(media.map(f => f.id));
                     const newIds = JSON.stringify(data.files.map(f => f.id));
                     if (currentIds === newIds && media.length === data.files.length && pairingScreen.classList.contains('hidden')) {
@@ -681,9 +687,14 @@
                     const currentId = media.length && media[current] ? media[current].id : null;
                     // Only show the sync screen if the sync takes a moment —
                     // cached diffs resolve instantly and shouldn't flash it.
-                    const loadingTimer = setTimeout(showLoading, 400);
+                    // First claim: the user is staring at the QR screen, so show
+                    // the sync screen immediately. Later diffs resolve instantly
+                    // from cache — only flash the sync screen if they take a moment.
+                    const firstClaim = !pairingScreen.classList.contains('hidden');
+                    const loadingTimer = firstClaim ? null : setTimeout(showLoading, 400);
+                    if (firstClaim) showLoading();
                     media = await syncMediaToLocal(data.files);
-                    clearTimeout(loadingTimer);
+                    if (loadingTimer) clearTimeout(loadingTimer);
                     hideLoading();
                     saveCachedMedia(media);
                     cacheMediaUrls(media);
@@ -698,6 +709,11 @@
                     setPaused(false);
                     return;
                 }
+                if (res.status === 404 && data.device_id) {
+                    // Device exists but isn't linked to a user yet — keep the
+                    // same QR on screen and keep polling (fast while unclaimed).
+                    return;
+                }
                 if (res.status === 403 || res.status === 404) {
                     dlog('refresh: device token invalid, showing QR');
                     stopAutoplay();
@@ -705,6 +721,7 @@
                     pairingScreen.classList.remove('hidden');
                     qrWrap.style.display = 'block';
                     deviceToken = null;
+                    devicePaired = false;
                     localStorage.removeItem('fz_device_token');
                     await requestQrPairing();
                     return;
@@ -870,20 +887,33 @@
             await showQrImage(setupUrl);
         }
 
+        // Poll fast while the QR screen is up so linking feels instant, then
+        // drop to a slow cadence once media is playing.
+        const POLL_FAST = 4000;
+        const POLL_SLOW = 30000;
+        function poll() {
+            clearTimeout(pollTimer);
+            pollTimer = setTimeout(runAndRequeue, devicePaired ? POLL_SLOW : POLL_FAST);
+        }
+        function runAndRequeue() {
+            Promise.resolve(refresh()).catch(() => {}).then(poll);
+        }
+
         function startApp() {
             dlog('Initial load: starting app after splash');
 
             if (deviceId && deviceToken && deviceId.startsWith('QR-')) {
-                // Already have an unclaimed QR device: show its QR and keep polling
-                requestQrPairing().then(() => {
-                    setInterval(refresh, 30000);
-                    refresh();
-                });
+                // QR device: if it was already claimed, cached media covers the
+                // QR screen instantly; otherwise the QR stays and fast polling
+                // picks up the link within a few seconds.
+                playCachedMedia();
+                requestQrPairing().then(runAndRequeue);
             } else if (deviceId && deviceToken) {
                 // Paired device (non-QR id): keep pairing + media cache and go
                 // straight to refresh — offline launches can play cached media.
-                setInterval(refresh, 30000);
-                refresh();
+                devicePaired = true;
+                playCachedMedia();
+                runAndRequeue();
             } else {
                 // Start fresh with a QR code
                 localStorage.removeItem('fz_device_token');
@@ -892,10 +922,7 @@
                 localStorage.removeItem('fz_media');
                 deviceToken = null;
                 deviceId = null;
-                requestQrPairing().then(() => {
-                    setInterval(refresh, 30000);
-                    refresh();
-                });
+                requestQrPairing().then(runAndRequeue);
             }
 
             requestAutoFullscreen();
