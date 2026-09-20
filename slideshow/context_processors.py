@@ -5,7 +5,7 @@ BRANDS = {
     'qama': {
         'key': 'qama',
         'name': 'Qama',
-        'logo': '/static/qama-logo.svg',
+        'logo': '/static/slideshow/qama-logo.jpg',
         'tagline': 'Never miss the jamaah — live iqamah times from your masjid, on every screen.',
     },
 }
