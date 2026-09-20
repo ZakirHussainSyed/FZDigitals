@@ -75,6 +75,28 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         // always hit the network when it's available.
         view.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
         super.onPageFinished(view, url);
+        // The initial loadUrl races our setWebViewClient, so the main frame
+        // may never reach shouldInterceptRequest. Snapshot it here instead —
+        // the fetch validates (2xx + body) before writing, and we skip it
+        // entirely after a failed main-frame load.
+        if (!triedCacheFallback && isAppShellPage(url)) {
+            snapshotAsync(url);
+        }
+    }
+
+    private boolean isAppShellPage(String pageUrl) {
+        Uri u = Uri.parse(pageUrl);
+        String host = u.getHost();
+        return APP_HOST.equals(host) || APP_HOST_ALT.equals(host);
+    }
+
+    private void snapshotAsync(final String pageUrl) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                fetchAndSnapshot(null, Uri.parse(pageUrl));
+            }
+        }, "shell-snapshot").start();
     }
 
     @Override
@@ -177,12 +199,18 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         return path != null && (path.startsWith("/static/") || path.equals("/manifest.webmanifest"));
     }
 
+    private static class Snapshot {
+        final byte[] body;
+        final String mime;
+        Snapshot(byte[] body, String mime) { this.body = body; this.mime = mime; }
+    }
+
     /**
-     * GET the resource ourselves: on success store a copy under
-     * filesDir/webcache and return it; on any failure serve the stored copy.
-     * Returns null only when there is no network AND no snapshot.
+     * GET the resource and, on success, store it under filesDir/webcache.
+     * Returns body+mime on success, null on any failure. request may be null
+     * (background snapshot from onPageFinished) — headers are then skipped.
      */
-    private WebResourceResponse fetchThroughCache(WebResourceRequest request, Uri url) {
+    private Snapshot fetchAndSnapshot(WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
         HttpURLConnection conn = null;
         try {
@@ -196,14 +224,16 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             // same client — otherwise our fetch can get a challenge page while
             // the WebView load would have succeeded, and no snapshot is saved.
             if (userAgent != null) conn.setRequestProperty("User-Agent", userAgent);
-            Map<String, String> reqHeaders = request.getRequestHeaders();
-            if (reqHeaders != null) {
-                for (Map.Entry<String, String> h : reqHeaders.entrySet()) {
-                    String k = h.getKey();
-                    if (k == null || h.getValue() == null) continue;
-                    String lk = k.toLowerCase(Locale.US);
-                    if (lk.equals("host") || lk.equals("connection") || lk.equals("accept-encoding") || lk.equals("user-agent")) continue;
-                    conn.setRequestProperty(k, h.getValue());
+            if (request != null) {
+                Map<String, String> reqHeaders = request.getRequestHeaders();
+                if (reqHeaders != null) {
+                    for (Map.Entry<String, String> h : reqHeaders.entrySet()) {
+                        String k = h.getKey();
+                        if (k == null || h.getValue() == null) continue;
+                        String lk = k.toLowerCase(Locale.US);
+                        if (lk.equals("host") || lk.equals("connection") || lk.equals("accept-encoding") || lk.equals("user-agent")) continue;
+                        conn.setRequestProperty(k, h.getValue());
+                    }
                 }
             }
             int code = conn.getResponseCode();
@@ -212,12 +242,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 if (body != null && body.length > 0) {
                     writeAtomic(cacheFile, body);
                     Log.i(TAG, "snapshot saved " + cacheFile.getName() + " (" + body.length + " bytes)");
-                    String mime = contentMime(conn.getContentType(), url);
-                    Map<String, String> headers = new HashMap<>();
-                    headers.put("Content-Type", mime);
-                    headers.put("Cache-Control", "no-cache");
-                    headers.put("Content-Length", String.valueOf(body.length));
-                    return new WebResourceResponse(mime, encodingFor(mime), 200, "OK", headers, new ByteArrayInputStream(body));
+                    return new Snapshot(body, contentMime(conn.getContentType(), url));
                 }
             } else {
                 Log.w(TAG, "shell fetch HTTP " + code + " for " + url);
@@ -226,6 +251,24 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             Log.i(TAG, "shell fetch failed for " + url + ": " + e.getMessage());
         } finally {
             if (conn != null) conn.disconnect();
+        }
+        return null;
+    }
+
+    /**
+     * Fetch through our own disk snapshot: on success return the fresh body
+     * (already stored); on any failure serve the stored copy. Returns null
+     * only when there is no network AND no snapshot.
+     */
+    private WebResourceResponse fetchThroughCache(WebResourceRequest request, Uri url) {
+        File cacheFile = cacheFileFor(url);
+        Snapshot s = fetchAndSnapshot(request, url);
+        if (s != null) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", s.mime);
+            headers.put("Cache-Control", "no-cache");
+            headers.put("Content-Length", String.valueOf(s.body.length));
+            return new WebResourceResponse(s.mime, encodingFor(s.mime), 200, "OK", headers, new ByteArrayInputStream(s.body));
         }
         if (cacheFile.exists() && cacheFile.length() > 0) {
             try {
