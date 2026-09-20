@@ -369,14 +369,16 @@ def user_dashboard(request, user_id):
 def tablet(request):
     """Tablet pairing page"""
     response = render(request, 'slideshow/tablet.html')
-    response['Cache-Control'] = 'no-store, must-revalidate'
+    # no-cache (not no-store): the WebView may keep a copy so the app shell can
+    # load offline, but must revalidate on every online load so updates ship.
+    response['Cache-Control'] = 'no-cache'
     return response
 
 
 def tablet_slideshow(request, pairing_id):
     """Tablet slideshow after pairing"""
     response = render(request, 'slideshow/tablet.html', {'pairing_id': pairing_id})
-    response['Cache-Control'] = 'no-store, must-revalidate'
+    response['Cache-Control'] = 'no-cache'
     return response
 
 

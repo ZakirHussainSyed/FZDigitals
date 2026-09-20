@@ -2,8 +2,10 @@ package com.fzdigitals.tablet;
 
 import android.net.Uri;
 import android.webkit.MimeTypeMap;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
@@ -25,11 +27,39 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private static final String LOCAL_PATH = "/tablet-local/";
     private final Bridge bridgeRef;
     private final File base;
+    private boolean triedCacheFallback = false;
 
     public LocalMediaWebViewClient(Bridge bridge, File base) {
         super(bridge);
         this.bridgeRef = bridge;
         this.base = base;
+    }
+
+    /**
+     * If the main page fails to load (offline, server down, flaky DNS), retry
+     * once from the WebView HTTP cache so the app shell still comes up and can
+     * play locally synced media. The page is served with Cache-Control:
+     * no-cache, so online loads always revalidate — this only kicks in when
+     * the network load itself fails.
+     */
+    @Override
+    public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+        if (request.isForMainFrame() && !triedCacheFallback) {
+            triedCacheFallback = true;
+            Log.i(TAG, "main frame load failed (" + error.getDescription() + "), retrying from cache");
+            view.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+            view.loadUrl(request.getUrl().toString());
+            return;
+        }
+        super.onReceivedError(view, request, error);
+    }
+
+    @Override
+    public void onPageFinished(WebView view, String url) {
+        // Restore normal revalidation so API fetches and future page loads
+        // always hit the network when it's available.
+        view.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+        super.onPageFinished(view, url);
     }
 
     @Override
