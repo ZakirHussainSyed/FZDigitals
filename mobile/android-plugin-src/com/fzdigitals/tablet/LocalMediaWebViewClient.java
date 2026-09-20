@@ -10,11 +10,15 @@ import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -25,6 +29,8 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private static final String TAG = "LocalMediaWebViewClient";
     private static final String LOCAL_HOST = "media.fzscreens.com";
     private static final String LOCAL_PATH = "/tablet-local/";
+    private static final String APP_HOST = "www.fzscreens.com";
+    private static final String APP_HOST_ALT = "fzscreens.com";
     private final Bridge bridgeRef;
     private final File base;
     private boolean triedCacheFallback = false;
@@ -65,10 +71,10 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         Uri url = request.getUrl();
+        String method = request.getMethod() != null ? request.getMethod() : "GET";
         if (LOCAL_HOST.equals(url.getHost()) && url.getPath() != null && url.getPath().startsWith(LOCAL_PATH)) {
             String name = url.getPath().substring(LOCAL_PATH.length());
             File file = new File(base, name);
-            String method = request.getMethod() != null ? request.getMethod() : "GET";
             jsLog(url, file, "request", null);
             if (!file.exists() || !file.isFile()) {
                 jsLog(url, file, "missing", "not found");
@@ -142,7 +148,151 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
                 return plainTextResponse(500, "Internal Server Error", "Server error: " + e.getMessage());
             }
         }
+        // App shell + static assets: fetch through our own disk snapshot so the
+        // app can launch offline. Every successful online load refreshes the
+        // snapshot; any failure serves the last good copy. This does not depend
+        // on the WebView HTTP cache or server cache headers.
+        if (isAppShellRequest(url, request, method)) {
+            WebResourceResponse res = fetchThroughCache(url);
+            if (res != null) return res;
+        }
         return super.shouldInterceptRequest(view, request);
+    }
+
+    private boolean isAppShellRequest(Uri url, WebResourceRequest request, String method) {
+        if (!"GET".equals(method)) return false;
+        String host = url.getHost();
+        if (!APP_HOST.equals(host) && !APP_HOST_ALT.equals(host)) return false;
+        if (request.isForMainFrame()) return true;
+        String path = url.getPath();
+        return path != null && (path.startsWith("/static/") || path.equals("/manifest.webmanifest"));
+    }
+
+    /**
+     * GET the resource ourselves: on success store a copy under
+     * filesDir/webcache and return it; on any failure serve the stored copy.
+     * Returns null only when there is no network AND no snapshot.
+     */
+    private WebResourceResponse fetchThroughCache(Uri url) {
+        File cacheFile = cacheFileFor(url);
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(url.toString()).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(15000);
+            conn.setInstanceFollowRedirects(true);
+            conn.setRequestProperty("Accept-Encoding", "identity");
+            int code = conn.getResponseCode();
+            if (code >= 200 && code < 300) {
+                byte[] body = readFully(conn.getInputStream(), 8 * 1024 * 1024);
+                if (body != null && body.length > 0) {
+                    writeAtomic(cacheFile, body);
+                    String mime = contentMime(conn.getContentType(), url);
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", mime);
+                    headers.put("Cache-Control", "no-cache");
+                    headers.put("Content-Length", String.valueOf(body.length));
+                    return new WebResourceResponse(mime, encodingFor(mime), 200, "OK", headers, new ByteArrayInputStream(body));
+                }
+            } else {
+                Log.w(TAG, "shell fetch HTTP " + code + " for " + url);
+            }
+        } catch (Exception e) {
+            Log.i(TAG, "shell fetch failed for " + url + ": " + e.getMessage());
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+        if (cacheFile.exists() && cacheFile.length() > 0) {
+            try {
+                Log.i(TAG, "serving snapshot " + cacheFile.getName() + " for " + url);
+                String mime = guessMime(url);
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", mime);
+                headers.put("Cache-Control", "no-cache");
+                headers.put("Content-Length", String.valueOf(cacheFile.length()));
+                return new WebResourceResponse(mime, encodingFor(mime), 200, "OK", headers, new FileInputStream(cacheFile));
+            } catch (Exception e) {
+                Log.w(TAG, "failed to serve snapshot " + cacheFile, e);
+            }
+        }
+        return null;
+    }
+
+    private File cacheFileFor(Uri url) {
+        String path = url.getPath();
+        if (path == null || path.isEmpty()) path = "/";
+        String name = path.replaceAll("^/+", "").replaceAll("/+$", "").replace('/', '_');
+        if (name.isEmpty()) name = "index";
+        if (!name.contains(".")) name = name + ".html";
+        // Query string is intentionally dropped: ?v= is our own cache-buster
+        // and the snapshot should survive version bumps.
+        return new File(new File(base.getParentFile(), "webcache"), name);
+    }
+
+    private String contentMime(String contentType, Uri url) {
+        if (contentType != null) {
+            int semi = contentType.indexOf(';');
+            String mime = (semi > 0 ? contentType.substring(0, semi) : contentType).trim();
+            if (!mime.isEmpty()) return mime;
+        }
+        return guessMime(url);
+    }
+
+    private String guessMime(Uri url) {
+        String path = url.getPath() != null ? url.getPath() : "";
+        if (path.endsWith(".webmanifest")) return "application/manifest+json";
+        String mime = URLConnection.guessContentTypeFromName(path);
+        return mime != null ? mime : "application/octet-stream";
+    }
+
+    private String encodingFor(String mime) {
+        if (mime == null) return null;
+        if (mime.startsWith("text/") || mime.contains("javascript") || mime.contains("json") || mime.contains("svg")) {
+            return "utf-8";
+        }
+        return null;
+    }
+
+    private byte[] readFully(InputStream in, int max) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[16384];
+        int n;
+        int total = 0;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > max) {
+                in.close();
+                return null;
+            }
+            bos.write(buf, 0, n);
+        }
+        in.close();
+        return bos.toByteArray();
+    }
+
+    private void writeAtomic(File target, byte[] body) {
+        FileOutputStream fos = null;
+        File tmp = new File(target.getParentFile(), target.getName() + ".tmp");
+        try {
+            File dir = target.getParentFile();
+            if (dir != null && !dir.exists()) dir.mkdirs();
+            fos = new FileOutputStream(tmp);
+            fos.write(body);
+            fos.close();
+            fos = null;
+            if (!tmp.renameTo(target)) {
+                Log.w(TAG, "snapshot rename failed for " + target);
+                tmp.delete();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "failed to write snapshot " + target, e);
+            if (tmp.exists()) tmp.delete();
+        } finally {
+            if (fos != null) {
+                try { fos.close(); } catch (IOException ignored) {}
+            }
+        }
     }
 
     private void jsLog(Uri url, File file, String action, String error) {
