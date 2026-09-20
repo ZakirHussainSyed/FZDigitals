@@ -1,6 +1,7 @@
 package com.fzdigitals.tablet.plugins;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -15,6 +16,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +28,8 @@ import org.json.JSONObject;
 public class MediaDownloaderPlugin extends Plugin {
     private static final String TAG = "MediaDownloader";
     private static final String SUBDIR = "slideshow";
+    private static final String PREFS = "media_sync";
+    private static final String KEY_MANIFEST = "manifest";
     private static LocalMediaServer mediaServer;
 
     @Override
@@ -46,22 +50,23 @@ public class MediaDownloaderPlugin extends Plugin {
             return;
         }
 
-        File[] existing = base.listFiles();
-        if (existing != null) {
-            for (File f : existing) {
-                f.delete();
-            }
-            Log.i(TAG, "cleared local slideshow cache, " + existing.length + " files");
-        }
-
+        // Diff-based sync: download only new/changed files, delete only ids
+        // that disappeared upstream. Never wipe the whole cache first — a
+        // partial sync must leave the previous slideshow playable.
         final List<JSONObject> fileList = new ArrayList<>();
+        final List<String> keepIds = new ArrayList<>();
         for (int i = 0; i < files.length(); i++) {
             try {
-                fileList.add(files.getJSONObject(i));
+                JSONObject f = files.getJSONObject(i);
+                fileList.add(f);
+                String id = f.optString("id", "");
+                if (!id.isEmpty()) keepIds.add(id);
             } catch (Exception e) {
                 Log.w(TAG, "bad file object at index " + i, e);
             }
         }
+
+        final JSONObject manifest = loadManifest(ctx);
 
         int threads = Math.max(1, Math.min(fileList.size(), 4));
         ExecutorService executor = Executors.newFixedThreadPool(threads);
@@ -70,7 +75,7 @@ public class MediaDownloaderPlugin extends Plugin {
             final JSONObject f = fileList.get(i);
             futures.add(executor.submit(new Callable<JSObject>() {
                 public JSObject call() {
-                    return downloadOne(base, f);
+                    return downloadOne(base, f, manifest);
                 }
             }));
         }
@@ -88,6 +93,13 @@ public class MediaDownloaderPlugin extends Plugin {
                     out.put(err);
                 }
             }
+
+            // Downloads are done (some may have failed — old files stay in
+            // place). Now drop files whose id is no longer desired, and prune
+            // the manifest to match what is actually on disk.
+            cleanFiles(base, keepIds);
+            pruneManifest(manifest, keepIds, fileList, base);
+            saveManifest(ctx, manifest);
 
             JSObject result = new JSObject();
             result.put("files", out);
@@ -151,33 +163,64 @@ public class MediaDownloaderPlugin extends Plugin {
         return -1;
     }
 
-    private long getRemoteSize(String url) {
-        HttpURLConnection head = null;
+    /** Manifest of {id: version} for files we have fully downloaded. */
+    private JSONObject loadManifest(Context ctx) {
         try {
-            URL u = new URL(url);
-            head = (HttpURLConnection) u.openConnection();
-            head.setRequestMethod("HEAD");
-            head.setConnectTimeout(15000);
-            head.setReadTimeout(15000);
-            int code = head.getResponseCode();
-            if (code >= 200 && code < 300) {
-                String cl = head.getHeaderField("Content-Length");
-                if (cl != null) {
-                    try { return Long.parseLong(cl.trim()); } catch (NumberFormatException e) {}
+            SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            String raw = prefs.getString(KEY_MANIFEST, null);
+            if (raw != null) return new JSONObject(raw);
+        } catch (Exception e) {
+            Log.w(TAG, "manifest load failed", e);
+        }
+        return new JSONObject();
+    }
+
+    private void saveManifest(Context ctx, JSONObject manifest) {
+        try {
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_MANIFEST, manifest.toString())
+                .apply();
+        } catch (Exception e) {
+            Log.w(TAG, "manifest save failed", e);
+        }
+    }
+
+    /**
+     * After a sync pass, drop manifest entries for ids no longer desired and
+     * record the server version for every file that is now on disk.
+     */
+    private void pruneManifest(JSONObject manifest, List<String> keepIds, List<JSONObject> fileList, File base) {
+        try {
+            List<String> stale = new ArrayList<>();
+            Iterator<String> it = manifest.keys();
+            while (it.hasNext()) {
+                String id = it.next();
+                if (!keepIds.contains(id)) stale.add(id);
+            }
+            for (String id : stale) manifest.remove(id);
+
+            for (JSONObject f : fileList) {
+                String id = f.optString("id", "");
+                String version = f.optString("version", "");
+                if (id.isEmpty() || version.isEmpty()) continue;
+                String ext = f.optString("type", "image").startsWith("video") ? ".mp4" : ".jpg";
+                File out = new File(base, id + ext);
+                if (out.exists() && out.length() > 0) {
+                    manifest.put(id, version);
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "HEAD check failed for " + url, e);
-        } finally {
-            if (head != null) head.disconnect();
+            Log.w(TAG, "manifest prune failed", e);
         }
-        return -1;
     }
 
-    private JSObject downloadOne(File base, JSONObject f) {
+    private JSObject downloadOne(File base, JSONObject f, JSONObject manifest) {
         String id = f.optString("id", "");
         String url = f.optString("url", "");
         String type = f.optString("type", "image");
+        String version = f.optString("version", "");
+        long size = f.optLong("size", -1);
         String ext = type.startsWith("video") ? ".mp4" : ".jpg";
         File out = new File(base, id + ext);
 
@@ -186,15 +229,25 @@ public class MediaDownloaderPlugin extends Plugin {
         result.put("url", url);
 
         if (out.exists() && out.length() > 0) {
-            long remoteLen = getRemoteSize(url);
-            if (remoteLen < 0 || remoteLen == out.length()) {
+            String cachedVersion = manifest.optString(id, null);
+            boolean fresh;
+            if (!version.isEmpty()) {
+                // Server-provided version marker is the source of truth.
+                fresh = version.equals(cachedVersion);
+            } else if (size > 0) {
+                // Fallback when the API does not send a version.
+                fresh = out.length() == size;
+            } else {
+                // No way to detect a change; only trust files we downloaded.
+                fresh = cachedVersion != null;
+            }
+            if (fresh) {
                 result.put("status", "cached");
                 result.put("localPath", out.getAbsolutePath());
                 result.put("localUrl", localUrl(out, id, type));
                 return result;
             }
-            Log.i(TAG, "re-downloading " + id + " size mismatch local=" + out.length() + " remote=" + remoteLen);
-            out.delete();
+            Log.i(TAG, "re-downloading " + id + " version changed (cached=" + cachedVersion + " remote=" + version + ")");
         }
 
         HttpURLConnection conn = null;
@@ -242,6 +295,13 @@ public class MediaDownloaderPlugin extends Plugin {
         } finally {
             if (conn != null) conn.disconnect();
             if (tmp != null && tmp.exists()) tmp.delete();
+        }
+
+        // On failure keep the previous file usable: report its local URL so
+        // playback can continue with the stale copy instead of going blank.
+        if ("error".equals(result.optString("status")) && out.exists() && out.length() > 0) {
+            result.put("localPath", out.getAbsolutePath());
+            result.put("localUrl", localUrl(out, id, type));
         }
         return result;
     }

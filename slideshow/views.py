@@ -1024,6 +1024,11 @@ def api_device_slideshow(request, device_id):
                     'type': f.content_type,
                     'screen': f.screen,
                     'url': request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'),
+                    'size': f.file_size,
+                    # Version marker for tablet change detection: a new upload
+                    # creates a new row (new id + created_at), so this changes
+                    # whenever the content does.
+                    'version': f'{f.file_size}-{int(f.created_at.timestamp())}',
                 }
                 for f in files
             ],
