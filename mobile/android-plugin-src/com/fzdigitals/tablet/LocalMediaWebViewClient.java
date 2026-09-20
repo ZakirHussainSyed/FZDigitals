@@ -34,12 +34,20 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private static final String APP_HOST_ALT = "fzscreens.com";
     private final Bridge bridgeRef;
     private final File base;
+    private final String userAgent;
     private boolean triedCacheFallback = false;
 
     public LocalMediaWebViewClient(Bridge bridge, File base) {
         super(bridge);
         this.bridgeRef = bridge;
         this.base = base;
+        // Capture the UA here on the main thread — WebView methods cannot be
+        // called from shouldInterceptRequest's background thread.
+        String ua = null;
+        try {
+            ua = bridge.getWebView().getSettings().getUserAgentString();
+        } catch (Exception ignored) {}
+        this.userAgent = ua;
     }
 
     /**
@@ -154,7 +162,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
         // snapshot; any failure serves the last good copy. This does not depend
         // on the WebView HTTP cache or server cache headers.
         if (isAppShellRequest(url, request, method)) {
-            WebResourceResponse res = fetchThroughCache(view, request, url);
+            WebResourceResponse res = fetchThroughCache(request, url);
             if (res != null) return res;
         }
         return super.shouldInterceptRequest(view, request);
@@ -174,7 +182,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
      * filesDir/webcache and return it; on any failure serve the stored copy.
      * Returns null only when there is no network AND no snapshot.
      */
-    private WebResourceResponse fetchThroughCache(WebView view, WebResourceRequest request, Uri url) {
+    private WebResourceResponse fetchThroughCache(WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
         HttpURLConnection conn = null;
         try {
@@ -187,8 +195,7 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             // Mirror the WebView's own request so CDN/bot protection sees the
             // same client — otherwise our fetch can get a challenge page while
             // the WebView load would have succeeded, and no snapshot is saved.
-            String ua = view.getSettings().getUserAgentString();
-            if (ua != null) conn.setRequestProperty("User-Agent", ua);
+            if (userAgent != null) conn.setRequestProperty("User-Agent", userAgent);
             Map<String, String> reqHeaders = request.getRequestHeaders();
             if (reqHeaders != null) {
                 for (Map.Entry<String, String> h : reqHeaders.entrySet()) {
