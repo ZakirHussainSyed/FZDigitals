@@ -139,7 +139,11 @@ public class MediaDownloaderPlugin extends Plugin {
                 int dot = name.lastIndexOf('.');
                 String fileId = dot > 0 ? name.substring(0, dot) : name;
                 if (!keep.contains(fileId) && !name.endsWith(".tmp")) {
-                    file.delete();
+                    if (file.delete()) {
+                        Log.i(TAG, "deleted stale file " + name);
+                    } else {
+                        Log.w(TAG, "failed to delete stale file " + name);
+                    }
                 }
             }
         }
