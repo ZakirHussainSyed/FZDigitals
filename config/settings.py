@@ -161,14 +161,15 @@ TIME_ZONE = 'UTC'
 MOSQUE_TIMEZONE = os.environ.get('MOSQUE_TIMEZONE', 'Asia/Kolkata')
 
 # Map tile URL and attribution for the mosque map.
-# Default uses OSM France tiles (no API key). Override for Mapbox/Stadia/etc.
+# Default uses CARTO Voyager @2x tiles (Google-Maps-like styling, larger labels,
+# no API key). Override for Mapbox/Stadia/etc.
 MAP_TILE_URL = os.environ.get(
     'MAP_TILE_URL',
-    'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
 )
 MAP_ATTRIBUTION = os.environ.get(
     'MAP_ATTRIBUTION',
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.openstreetmap.fr/">OSM-FR</a>'
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 )
 
 USE_I18N = True
