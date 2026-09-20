@@ -90,6 +90,8 @@ def index(request):
     """Root URL - shows landing page or redirects to user dashboard"""
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
+    if request.get_host().split(':')[0].lower().startswith('qama.'):
+        return redirect('mosque-map')
     return render(request, 'slideshow/home.html')
 
 
