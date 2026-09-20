@@ -231,15 +231,19 @@ public class MediaDownloaderPlugin extends Plugin {
         if (out.exists() && out.length() > 0) {
             String cachedVersion = manifest.optString(id, null);
             boolean fresh;
-            if (!version.isEmpty()) {
-                // Server-provided version marker is the source of truth.
-                fresh = version.equals(cachedVersion);
-            } else if (size > 0) {
-                // Fallback when the API does not send a version.
-                fresh = out.length() == size;
+            if (!version.isEmpty() && version.equals(cachedVersion)) {
+                // Manifest confirms we already have this exact version.
+                fresh = true;
+            } else if (size > 0 && out.length() == size) {
+                // File predates the manifest (or server sent no version) but
+                // its size matches the server — adopt it, don't re-download.
+                fresh = true;
+            } else if (version.isEmpty() && size <= 0) {
+                // Server sent no markers at all. Media ids are immutable (a
+                // new upload is a new id), so an existing file is current.
+                fresh = true;
             } else {
-                // No way to detect a change; only trust files we downloaded.
-                fresh = cachedVersion != null;
+                fresh = false;
             }
             if (fresh) {
                 result.put("status", "cached");
