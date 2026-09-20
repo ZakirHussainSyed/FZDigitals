@@ -164,6 +164,11 @@
                 <input type="url" name="website_url" id="id_website_url" class="url-input"
                        placeholder="https://www.eastsidemosque.com/" value="{{ mosque.website_url }}">
             </div>
+            <div class="form-group">
+                <label for="id_timezone">Timezone (sunrise/sunset &amp; sync schedule)</label>
+                <input type="text" name="timezone" id="id_timezone" class="url-input"
+                       placeholder="e.g. America/Los_Angeles" value="{{ mosque.timezone }}">
+            </div>
             {% for f in prayer_fields %}
             <div class="form-group">
                 <label>{{ f.label }}</label>

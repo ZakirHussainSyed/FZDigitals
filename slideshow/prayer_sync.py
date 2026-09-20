@@ -26,7 +26,7 @@ from .models import PrayerTime
 
 logger = logging.getLogger(__name__)
 
-SYNC_INTERVAL = timedelta(hours=12)
+SYNC_INTERVAL = timedelta(hours=24)
 PDF_LINK_RE = re.compile(r'href=["\']([^"\']*namaz/[^"\']+\.pdf)["\']', re.I)
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
 MONTHS = {m: i for i, m in enumerate(
@@ -176,9 +176,24 @@ def sync_mosque_prayer_times(mosque, force=False):
 
 
 def maybe_sync_mosque(mosque):
-    """Lazy sync: at most once per SYNC_INTERVAL, only when sync is enabled."""
+    """Lazy daily sync in the mosque's local 12-1 AM window.
+
+    The mosque TV reloads shortly after midnight, which lands the request
+    inside the window. A 24h-staleness fallback covers nights when no
+    page load happens, so a day is never skipped entirely.
+    """
     if not mosque or not mosque.sync_enabled or not mosque.website_url:
         return
-    if mosque.prayer_synced_at and timezone.now() - mosque.prayer_synced_at < SYNC_INTERVAL:
-        return
+    last = mosque.prayer_synced_at
+    if last:
+        tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
+        now = timezone.now()
+        now_local = now.astimezone(tz)
+        in_midnight_window = (
+            now_local.hour == 0
+            and last.astimezone(tz).date() < now_local.date()
+        )
+        stale = now - last >= SYNC_INTERVAL
+        if not (in_midnight_window or stale):
+            return
     sync_mosque_prayer_times(mosque)

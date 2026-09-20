@@ -253,6 +253,7 @@ def user_management(request):
         mosque_latitude = request.POST.get('mosque_latitude', '').strip()
         mosque_longitude = request.POST.get('mosque_longitude', '').strip()
         mosque_website = request.POST.get('mosque_website', '').strip()
+        mosque_timezone = request.POST.get('mosque_timezone', '').strip()
 
         context = {
             'users': User.objects.all().order_by('-id'),
@@ -283,6 +284,12 @@ def user_management(request):
 
         if vertical == 'mosque':
             try:
+                tz_name = mosque_timezone
+                if tz_name:
+                    try:
+                        ZoneInfo(tz_name)
+                    except Exception:
+                        tz_name = ''
                 Mosque.objects.create(
                     user=user,
                     name=mosque_name or username,
@@ -290,6 +297,7 @@ def user_management(request):
                     latitude=Decimal(mosque_latitude) if mosque_latitude else None,
                     longitude=Decimal(mosque_longitude) if mosque_longitude else None,
                     website_url=mosque_website,
+                    timezone=tz_name,
                 )
             except Exception as e:
                 logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
@@ -1556,11 +1564,20 @@ def prayer_times(request):
     if request.method == 'POST':
         website = request.POST.get('website_url', '').strip()
         sync_enabled = request.POST.get('sync_enabled') == 'on'
-        if website != mosque.website_url or sync_enabled != mosque.sync_enabled:
+        tz_name = request.POST.get('timezone', '').strip()
+        if tz_name:
+            try:
+                ZoneInfo(tz_name)
+            except Exception:
+                messages.error(request, f'Invalid timezone "{tz_name}" — keeping current setting.')
+                tz_name = mosque.timezone
+        if (website != mosque.website_url or sync_enabled != mosque.sync_enabled
+                or tz_name != mosque.timezone):
             mosque.website_url = website
             mosque.sync_enabled = sync_enabled
+            mosque.timezone = tz_name
             mosque.prayer_synced_at = None  # force re-sync on settings change
-            mosque.save(update_fields=['website_url', 'sync_enabled', 'prayer_synced_at'])
+            mosque.save(update_fields=['website_url', 'sync_enabled', 'timezone', 'prayer_synced_at'])
 
         def _parse(field, optional=False):
             hour = request.POST.get(f'{field}_hour', '').strip()

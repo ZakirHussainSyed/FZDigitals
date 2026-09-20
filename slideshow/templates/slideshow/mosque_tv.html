@@ -152,6 +152,15 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // Reload shortly after midnight so the new day's prayer times load
+        // and the nightly website sync fires on this request.
+        (function scheduleMidnightReload() {
+            const now = new Date();
+            const next = new Date(now);
+            next.setHours(24, 5, 0, 0); // 12:05 AM
+            setTimeout(() => location.reload(), next - now);
+        })();
+
         function renderSlides() {
             slidesEl.innerHTML = '';
             if (!media.length) {
