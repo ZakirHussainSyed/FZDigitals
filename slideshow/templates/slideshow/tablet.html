@@ -637,7 +637,10 @@
             if (!navigator.onLine) {
                 const cached = loadCachedMedia();
                 if (cached && cached.length) {
-                    media = cached;
+                    // Re-resolve local URLs through the plugin: the local media
+                    // server binds a random port each launch, so localUrls
+                    // saved in localStorage point at a dead port after restart.
+                    media = await syncMediaToLocal(cached);
                     if (current >= media.length) current = 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';
@@ -660,14 +663,21 @@
                         // No change; don't re-render, keep current playback running
                         return;
                     }
-                    dlog('refresh: slideshow changed, pausing and re-downloading');
+                    dlog('refresh: slideshow changed, syncing diff');
                     stopAutoplay();
-                    showLoading();
+                    const currentId = media.length && media[current] ? media[current].id : null;
+                    // Only show the sync screen if the sync takes a moment —
+                    // cached diffs resolve instantly and shouldn't flash it.
+                    const loadingTimer = setTimeout(showLoading, 400);
                     media = await syncMediaToLocal(data.files);
+                    clearTimeout(loadingTimer);
                     hideLoading();
                     saveCachedMedia(media);
                     cacheMediaUrls(media);
-                    current = 0;
+                    // Keep playing the same slide if it survived the change
+                    // instead of restarting the slideshow from the top.
+                    const kept = currentId == null ? -1 : media.findIndex(f => f.id === currentId);
+                    current = kept >= 0 ? kept : 0;
                     pairingScreen.classList.add('hidden');
                     stage.style.display = '';
                     renderSlides();
