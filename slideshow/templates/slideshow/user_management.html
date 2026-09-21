@@ -237,28 +237,62 @@
                 <div id="create-mosque-fields" class="mosque-fields">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="create_mosque_name">Mosque Name</label>
+                            <label for="create_mosque_name">Mosque Name *</label>
                             <input type="text" name="mosque_name" id="create_mosque_name" placeholder="Mosque name">
                         </div>
                         <div class="form-group">
-                            <label for="create_mosque_address">Mosque Address</label>
-                            <input type="text" name="mosque_address" id="create_mosque_address" placeholder="Street address">
+                            <label for="create_mosque_map_url">Google Map Location *</label>
+                            <input type="url" name="mosque_map_url" id="create_mosque_map_url" placeholder="Paste Google Maps share link">
+                            <small id="map-url-status" style="display:block; margin-top:6px; font-size:12px; color:rgba(232,234,240,0.6);"></small>
                         </div>
                         <div class="form-group">
-                            <label for="create_mosque_latitude">Latitude (optional — auto-detected from address)</label>
-                            <input type="number" step="any" name="mosque_latitude" id="create_mosque_latitude" placeholder="e.g. 17.4065">
+                            <label for="create_mosque_address">Get Direction</label>
+                            <input type="text" name="mosque_address" id="create_mosque_address" placeholder="Auto-filled from map location">
                         </div>
                         <div class="form-group">
-                            <label for="create_mosque_longitude">Longitude (optional — auto-detected)</label>
-                            <input type="number" step="any" name="mosque_longitude" id="create_mosque_longitude" placeholder="e.g. 78.4772">
+                            <label for="create_mosque_timezone">Timezone (auto-detected)</label>
+                            <input type="text" name="mosque_timezone" id="create_mosque_timezone" placeholder="e.g. America/Los_Angeles">
                         </div>
+                    </div>
+                    <div class="form-group" style="margin-top:4px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" name="mosque_has_website" id="create_mosque_has_website" style="width:auto;" checked onchange="toggleWebsiteFields(this.checked)">
+                            Mosque has a website — sync prayer times from it
+                        </label>
+                    </div>
+                    <div class="form-grid" id="website-field">
                         <div class="form-group">
                             <label for="create_mosque_website">Mosque Website</label>
                             <input type="url" name="mosque_website" id="create_mosque_website" placeholder="https://www.eastsidemosque.com/">
                         </div>
-                        <div class="form-group">
-                            <label for="create_mosque_timezone">Timezone</label>
-                            <input type="text" name="mosque_timezone" id="create_mosque_timezone" placeholder="e.g. America/Los_Angeles">
+                    </div>
+                    <div id="manual-times" style="display:none;">
+                        <label style="display:block; margin-bottom:8px; font-size:13px; color:rgba(232,234,240,0.8);">Manual prayer times (Iqama)</label>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="create_mosque_fajr">Fajr *</label>
+                                <input type="time" name="mosque_fajr" id="create_mosque_fajr" data-required>
+                            </div>
+                            <div class="form-group">
+                                <label for="create_mosque_dhuhr">Dhuhr *</label>
+                                <input type="time" name="mosque_dhuhr" id="create_mosque_dhuhr" data-required>
+                            </div>
+                            <div class="form-group">
+                                <label for="create_mosque_asr">Asr *</label>
+                                <input type="time" name="mosque_asr" id="create_mosque_asr" data-required>
+                            </div>
+                            <div class="form-group">
+                                <label for="create_mosque_maghrib">Maghrib *</label>
+                                <input type="time" name="mosque_maghrib" id="create_mosque_maghrib" data-required>
+                            </div>
+                            <div class="form-group">
+                                <label for="create_mosque_isha">Isha *</label>
+                                <input type="time" name="mosque_isha" id="create_mosque_isha" data-required>
+                            </div>
+                            <div class="form-group">
+                                <label for="create_mosque_jummah">Jummah</label>
+                                <input type="time" name="mosque_jummah" id="create_mosque_jummah">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -365,15 +399,67 @@
             if (vertical === 'mosque') {
                 mosqueFields.style.display = 'block';
                 inputs.forEach(function(input) {
-                    if (input.name === 'mosque_name' || input.name === 'mosque_address') {
+                    if (input.name === 'mosque_name' || input.name === 'mosque_map_url') {
                         input.required = true;
                     }
                 });
+                toggleWebsiteFields(document.getElementById('create_mosque_has_website').checked);
             } else {
                 mosqueFields.style.display = 'none';
                 inputs.forEach(function(input) { input.required = false; });
             }
         }
+
+        function toggleWebsiteFields(hasWebsite) {
+            document.getElementById('website-field').style.display = hasWebsite ? 'grid' : 'none';
+            document.getElementById('manual-times').style.display = hasWebsite ? 'none' : 'block';
+            document.getElementById('create_mosque_website').required = hasWebsite;
+            document.querySelectorAll('#manual-times input[data-required]').forEach(function(input) {
+                input.required = !hasWebsite;
+            });
+        }
+
+        // Pull coordinates out of a Google Maps link and reverse-geocode the address.
+        const MAP_URL_PATTERNS = [
+            /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+            /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+            /[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/
+        ];
+
+        function coordsFromMapUrl(url) {
+            for (const pattern of MAP_URL_PATTERNS) {
+                const m = url.match(pattern);
+                if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+            }
+            return null;
+        }
+
+        document.getElementById('create_mosque_map_url').addEventListener('input', function() {
+            const status = document.getElementById('map-url-status');
+            const url = this.value.trim();
+            if (!url) { status.textContent = ''; return; }
+            const coords = coordsFromMapUrl(url);
+            if (!coords) {
+                status.textContent = url.includes('goo.gl')
+                    ? 'Short link — location will be resolved on save.'
+                    : 'No coordinates found in this link — paste the full Google Maps share link.';
+                return;
+            }
+            status.textContent = 'Location found: ' + coords[0].toFixed(5) + ', ' + coords[1].toFixed(5) + ' — fetching address…';
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + coords[0] + '&lon=' + coords[1])
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.display_name) {
+                        document.getElementById('create_mosque_address').value = data.display_name;
+                        status.textContent = 'Location found: ' + coords[0].toFixed(5) + ', ' + coords[1].toFixed(5);
+                    } else {
+                        status.textContent = 'Location found, but address lookup failed — enter it manually.';
+                    }
+                })
+                .catch(function() {
+                    status.textContent = 'Location found, but address lookup failed — enter it manually.';
+                });
+        });
 
         toggleMosqueFields(document.getElementById('create_vertical').value);
     </script>

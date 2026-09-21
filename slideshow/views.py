@@ -28,7 +28,7 @@ from .prayer_sync import (
     sunset_time,
     sync_mosque_prayer_times,
 )
-from .geo import geocode_address, timezone_for_coords
+from .geo import geocode_address, parse_google_maps_url, reverse_geocode, timezone_for_coords
 
 logger = logging.getLogger(__name__)
 
@@ -252,10 +252,10 @@ def user_management(request):
         confirm_password = request.POST.get('confirm_password', '')
         vertical = request.POST.get('vertical', 'bank')
         mosque_name = request.POST.get('mosque_name', '').strip()
+        mosque_map_url = request.POST.get('mosque_map_url', '').strip()
         mosque_address = request.POST.get('mosque_address', '').strip()
-        mosque_latitude = request.POST.get('mosque_latitude', '').strip()
-        mosque_longitude = request.POST.get('mosque_longitude', '').strip()
         mosque_website = request.POST.get('mosque_website', '').strip()
+        mosque_has_website = request.POST.get('mosque_has_website') == 'on'
         mosque_timezone = request.POST.get('mosque_timezone', '').strip()
 
         context = {
@@ -279,6 +279,35 @@ def user_management(request):
             context['error'] = 'Email already exists.'
             return render(request, 'slideshow/user_management.html', context)
 
+        # Mosque fields are validated before the user is created so a bad
+        # submission doesn't leave a user account without its mosque.
+        mosque_coords = None
+        manual_times = {}
+        if vertical == 'mosque':
+            if not mosque_name:
+                context['error'] = 'Mosque name is required.'
+                return render(request, 'slideshow/user_management.html', context)
+            mosque_coords = parse_google_maps_url(mosque_map_url)
+            if not mosque_coords:
+                context['error'] = 'Could not read a location from that Google Maps link — paste the full share link.'
+                return render(request, 'slideshow/user_management.html', context)
+            if mosque_has_website and not mosque_website:
+                context['error'] = 'Enter the mosque website, or uncheck the website box and add manual prayer times.'
+                return render(request, 'slideshow/user_management.html', context)
+            if not mosque_has_website:
+                for field in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'):
+                    raw = request.POST.get(f'mosque_{field}', '').strip()
+                    if not raw:
+                        if field == 'jummah':
+                            continue
+                        context['error'] = f'{field.capitalize()} iqama time is required when website sync is off.'
+                        return render(request, 'slideshow/user_management.html', context)
+                    try:
+                        manual_times[field] = datetime.strptime(raw, '%H:%M').time()
+                    except ValueError:
+                        context['error'] = f'Invalid {field} time.'
+                        return render(request, 'slideshow/user_management.html', context)
+
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
@@ -288,36 +317,34 @@ def user_management(request):
         mosque_note = ''
         if vertical == 'mosque':
             try:
-                lat = Decimal(mosque_latitude) if mosque_latitude else None
-                lng = Decimal(mosque_longitude) if mosque_longitude else None
-                # Guard against typos: out-of-range values are discarded.
-                if lat is not None and not (Decimal('-90') <= lat <= Decimal('90')):
-                    lat = None
-                if lng is not None and not (Decimal('-180') <= lng <= Decimal('180')):
-                    lng = None
-                if lat is None or lng is None:
-                    coords = geocode_address(mosque_address)
-                    if coords:
-                        lat, lng = Decimal(str(coords[0])), Decimal(str(coords[1]))
-                    else:
-                        mosque_note = ' Address could not be geocoded — set coordinates manually or the mosque will not appear on the map.'
+                lat, lng = Decimal(str(mosque_coords[0])), Decimal(str(mosque_coords[1]))
+                if not mosque_address:
+                    mosque_address = reverse_geocode(*mosque_coords) or ''
                 tz_name = mosque_timezone
                 if tz_name:
                     try:
                         ZoneInfo(tz_name)
                     except Exception:
                         tz_name = ''
-                if not tz_name and lat is not None and lng is not None:
+                if not tz_name:
                     tz_name = timezone_for_coords(lat, lng) or ''
-                Mosque.objects.create(
+                mosque = Mosque.objects.create(
                     user=user,
-                    name=mosque_name or username,
+                    name=mosque_name,
                     address=mosque_address,
                     latitude=lat,
                     longitude=lng,
-                    website_url=mosque_website,
+                    website_url=mosque_website if mosque_has_website else '',
+                    sync_enabled=mosque_has_website,
                     timezone=tz_name,
                 )
+                if manual_times:
+                    PrayerTime.objects.create(
+                        mosque=mosque,
+                        date=timezone.now().date(),
+                        source='manual',
+                        **manual_times,
+                    )
             except Exception as e:
                 logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
 

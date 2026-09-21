@@ -7,12 +7,70 @@ None and the field stays manual.
 """
 
 import logging
+import re
 
 import requests
 
 logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
+NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse'
+
+# Coordinate patterns found in Google Maps links:
+#   .../@47.6102,-122.1438,17z      (place/share URLs)
+#   ?q=47.6102,-122.1438            (query links)
+#   !3d47.6102!4d-122.1438          (embed/data URLs)
+_GMAPS_PATTERNS = (
+    re.compile(r'!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)'),
+    re.compile(r'@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)'),
+    re.compile(r'[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)'),
+)
+
+
+def parse_google_maps_url(url):
+    """Extract (lat, lng) floats from a Google Maps link, or None.
+
+    Handles full share links and short maps.app.goo.gl / goo.gl links
+    (resolved by following the redirect).
+    """
+    if not url:
+        return None
+    url = url.strip()
+    for pattern in _GMAPS_PATTERNS:
+        m = pattern.search(url)
+        if m:
+            return float(m.group(1)), float(m.group(2))
+    if 'goo.gl' in url:
+        try:
+            resp = requests.get(
+                url,
+                headers={'User-Agent': 'FZDigitals/1.0'},
+                timeout=10,
+                allow_redirects=True,
+            )
+            for pattern in _GMAPS_PATTERNS:
+                m = pattern.search(resp.url)
+                if m:
+                    return float(m.group(1)), float(m.group(2))
+        except Exception as e:
+            logger.warning(f'Could not resolve short maps link "{url}": {e}')
+    return None
+
+
+def reverse_geocode(latitude, longitude):
+    """Resolve (lat, lng) to a display address string, or None."""
+    try:
+        resp = requests.get(
+            NOMINATIM_REVERSE_URL,
+            params={'format': 'json', 'lat': latitude, 'lon': longitude},
+            headers={'User-Agent': 'FZDigitals/1.0'},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json().get('display_name')
+    except Exception as e:
+        logger.warning(f'Reverse geocode failed for {latitude},{longitude}: {e}')
+        return None
 
 
 def geocode_address(address):
