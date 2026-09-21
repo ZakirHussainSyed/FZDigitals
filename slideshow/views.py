@@ -1534,6 +1534,11 @@ def api_public_mosques(request):
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
         data = []
         for m in mosques:
+            if not m.timezone:
+                detected = timezone_for_coords(m.latitude, m.longitude)
+                if detected:
+                    m.timezone = detected
+                    m.save(update_fields=['timezone'])
             maybe_sync_mosque(m)
             prayer_time = m.prayer_times.filter(date=today).first()
             timings = {}
