@@ -1,12 +1,16 @@
 """Fetch prayer times from a mosque's website.
 
-Target sites (e.g. eastsidemosque.com) publish a monthly prayer schedule
-PDF linked from the homepage (/images/namaz/YYYY_MM-MM.pdf). We locate the
-PDF link, parse the timetable with pdfplumber, and upsert PrayerTime rows.
+Extraction strategies, tried in order:
+  1. Embedded widgets — MasjidNow and Mawaqit iframes are detected on the
+     homepage and their data fetched directly.
+  2. Schedule PDF — any PDF link whose URL or anchor text mentions prayer
+     times is parsed with pdfplumber (ICOE-style monthly timetable).
+  3. Page text — prayer names followed by times are scraped from the
+     homepage, then from one linked "prayer times" page if needed.
 
 Only IQAMA times are imported — that is what the mosque TV displays.
 Sunrise/sunset are computed from latitude/longitude, not taken from the
-PDF. Rows the user edited manually (source='manual') are never overwritten
+site. Rows the user edited manually (source='manual') are never overwritten
 unless a sync is explicitly forced.
 """
 
@@ -14,6 +18,7 @@ import io
 import logging
 import re
 from datetime import date, datetime, timedelta
+from html import unescape
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
 
@@ -27,8 +32,21 @@ from .models import PrayerTime
 logger = logging.getLogger(__name__)
 
 SYNC_INTERVAL = timedelta(hours=24)
-PDF_LINK_RE = re.compile(r'href=["\']([^"\']*namaz/[^"\']+\.pdf)["\']', re.I)
+UA = {'User-Agent': 'FZDigitals/1.0'}
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
+ANCHOR_RE = re.compile(r'href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
+PRAYER_WORDS_RE = re.compile(r'prayer|salah|salat|namaz|iqamah?|timing|schedule', re.I)
+MASJIDNOW_RE = re.compile(r'masjidnow\.com/(?:mosques|widgets)/(\d+)', re.I)
+MAWAQIT_RE = re.compile(r'mawaqit\.net/(?:[a-z]{2}/)?m/([a-z0-9][a-z0-9\-]*)', re.I)
+TIME_NEAR_RE = r'(\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?'
+PRAYER_NAMES = {
+    'fajr': r'fajr|fajar',
+    'dhuhr': r'dhuhr|dhur|zuhr|zohar|dohr',
+    'asr': r'asr|asar',
+    'maghrib': r'maghrib|magrib',
+    'isha': r'isha|ishaa|esha',
+    'jummah': r'jummah|jumuah|juma|friday',
+}
 MONTHS = {m: i for i, m in enumerate(
     ['January', 'February', 'March', 'April', 'May', 'June', 'July',
      'August', 'September', 'October', 'November', 'December'], 1)}
@@ -79,14 +97,140 @@ def _to_24h(t, pm):
     return datetime.strptime(f'{h:02d}:{m:02d}', '%H:%M').time()
 
 
-def find_schedule_pdf_url(website_url):
-    """Locate the monthly prayer PDF link on the mosque homepage."""
-    resp = requests.get(website_url, timeout=15, headers={'User-Agent': 'FZDigitals/1.0'})
-    resp.raise_for_status()
-    m = PDF_LINK_RE.search(resp.text)
+def find_schedule_pdf_url(html, base_url):
+    """Locate a prayer-schedule PDF link in page HTML — any .pdf whose URL
+    or anchor text mentions prayer times."""
+    for m in ANCHOR_RE.finditer(html):
+        href, text = m.group(1), re.sub(r'<[^>]+>', '', m.group(2))
+        if '.pdf' not in href.lower():
+            continue
+        if PRAYER_WORDS_RE.search(href) or PRAYER_WORDS_RE.search(text):
+            return urljoin(base_url, href)
+    return None
+
+
+def _masjidnow_times(html):
+    """MasjidNow widget embed -> today's iqama times."""
+    m = MASJIDNOW_RE.search(html)
     if not m:
         return None
-    return urljoin(website_url, m.group(1))
+    try:
+        resp = requests.get(f'https://masjidnow.com/mosques/{m.group(1)}',
+                            timeout=15, headers=UA)
+        resp.raise_for_status()
+        times = _html_prayer_times(resp.text)
+        return {None: times} if times else None
+    except Exception as e:
+        logger.warning(f'MasjidNow fetch failed: {e}')
+        return None
+
+
+def _mawaqit_times(html):
+    """Mawaqit widget embed -> today's iqama times."""
+    m = MAWAQIT_RE.search(html)
+    if not m:
+        return None
+    try:
+        resp = requests.get(f'https://mawaqit.net/en/m/{m.group(1)}',
+                            timeout=15, headers=UA)
+        resp.raise_for_status()
+        tm = re.search(r'"times"\s*:\s*\[([^\]]+)\]', resp.text)
+        if not tm:
+            return None
+        vals = re.findall(r'"(\d{1,2}:\d{2})"', tm.group(1))
+        if len(vals) == 6:  # fajr, shuruk, dhuhr, asr, maghrib, isha
+            vals = [vals[0], *vals[2:]]
+        if len(vals) < 5:
+            return None
+        keys = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
+        return {None: {k: datetime.strptime(v, '%H:%M').time() for k, v in zip(keys, vals)}}
+    except Exception as e:
+        logger.warning(f'Mawaqit fetch failed: {e}')
+        return None
+
+
+def _html_prayer_times(html):
+    """Scrape prayer names + times out of arbitrary page HTML.
+
+    When two times follow a prayer name (athan then iqama) the last is
+    used — iqama is what the TV displays. Returns None unless all five
+    daily prayers are found.
+    """
+    text = unescape(re.sub(r'<[^>]+>', ' ',
+              re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', html, flags=re.S | re.I)))
+    text = re.sub(r'\s+', ' ', text)
+    result = {}
+    for key, names in PRAYER_NAMES.items():
+        m = re.search(
+            rf'\b(?:{names})\b[^0-9]{{0,60}}?{TIME_NEAR_RE}(?:[^0-9]{{0,30}}?{TIME_NEAR_RE})?',
+            text, re.I)
+        if not m:
+            continue
+        pairs = [(m.group(i), m.group(i + 1)) for i in (1, 3) if m.group(i)]
+        if not pairs:
+            continue
+        t, ap = pairs[-1]
+        ap = (ap or '').replace('.', '').lower()
+        pm = (ap == 'pm') if ap else key != 'fajr'
+        result[key] = _to_24h(t, pm)
+    if all(k in result for k in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')):
+        return result
+    return None
+
+
+def _find_prayer_page(html, base_url):
+    """First link whose text or URL mentions prayer times — one level deep."""
+    for m in ANCHOR_RE.finditer(html):
+        href, text = m.group(1), re.sub(r'<[^>]+>', '', m.group(2))
+        if '.pdf' in href.lower():
+            continue
+        if PRAYER_WORDS_RE.search(text) or re.search(r'prayer|salah|namaz|iqamah?', href, re.I):
+            return urljoin(base_url, href)
+    return None
+
+
+def fetch_prayer_times(website_url):
+    """Try every known strategy to get prayer times from a mosque site.
+
+    Returns {date: {fajr: time, ...}} for schedule PDFs, or {None: {...}}
+    for single-day sources (widgets, page text) — the caller maps None to
+    today in the mosque's timezone.
+    """
+    resp = requests.get(website_url, timeout=15, headers=UA)
+    resp.raise_for_status()
+    html = resp.text
+
+    for fetcher in (_masjidnow_times, _mawaqit_times):
+        times = fetcher(html)
+        if times:
+            return times
+
+    pdf_url = find_schedule_pdf_url(html, website_url)
+    if pdf_url:
+        try:
+            presp = requests.get(pdf_url, timeout=30, headers=UA)
+            presp.raise_for_status()
+            times = parse_prayer_pdf(presp.content)
+            if times:
+                return times
+        except Exception as e:
+            logger.warning(f'Prayer PDF fetch failed ({pdf_url}): {e}')
+
+    times = _html_prayer_times(html)
+    if times:
+        return {None: times}
+
+    link = _find_prayer_page(html, website_url)
+    if link:
+        try:
+            r2 = requests.get(link, timeout=15, headers=UA)
+            r2.raise_for_status()
+            times = _html_prayer_times(r2.text)
+            if times:
+                return {None: times}
+        except Exception as e:
+            logger.warning(f'Prayer page fetch failed ({link}): {e}')
+    return None
 
 
 def parse_prayer_pdf(pdf_bytes):
@@ -149,21 +293,18 @@ def _sync(mosque, force):
     if not mosque.website_url:
         return 0, 'No website URL set'
     try:
-        pdf_url = find_schedule_pdf_url(mosque.website_url)
-        if not pdf_url:
-            return 0, 'No prayer schedule PDF link found on the website'
-        resp = requests.get(pdf_url, timeout=30, headers={'User-Agent': 'FZDigitals/1.0'})
-        resp.raise_for_status()
-        times = parse_prayer_pdf(resp.content)
+        times = fetch_prayer_times(mosque.website_url)
         if not times:
-            return 0, 'Could not parse prayer times from the PDF'
+            return 0, 'Could not find prayer times on the website'
     except Exception as e:
         logger.warning(f'Prayer sync failed for mosque {mosque.id}: {e}')
         return 0, str(e)
 
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
+    today = timezone.now().astimezone(tz).date()
     synced = 0
     for d, entry in times.items():
+        d = d or today  # single-day sources (widgets, page text) key on None
         defaults = {
             **entry,
             'sunset': sunset_time(mosque.latitude, mosque.longitude, d, tz),
