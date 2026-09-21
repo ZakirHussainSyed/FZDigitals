@@ -1529,9 +1529,7 @@ def _next_salah(prayer_time, now, tz):
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah."""
     try:
-        today = timezone.now().date()
-        tz = ZoneInfo(getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
-        now = datetime.now(tz)
+        default_tz = getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata')
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
         data = []
         for m in mosques:
@@ -1540,8 +1538,13 @@ def api_public_mosques(request):
                 if detected:
                     m.timezone = detected
                     m.save(update_fields=['timezone'])
+            # Sunrise/sunset/next-salah are computed in the MOSQUE's timezone
+            # and for its local date — not the server default.
+            m_tz = ZoneInfo(m.timezone or default_tz)
+            m_today = timezone.now().astimezone(m_tz).date()
+            m_now = datetime.now(m_tz)
             maybe_sync_mosque(m)
-            prayer_time = m.prayer_times.filter(date=today).first()
+            prayer_time = m.prayer_times.filter(date=m_today).first()
             timings = {}
             if prayer_time:
                 timings = {
@@ -1553,8 +1556,8 @@ def api_public_mosques(request):
                     'sunset': _format_prayer_time(prayer_time.sunset),
                     'jummah': _format_prayer_time(prayer_time.jummah),
                 }
-            timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, today, tz))
-            next_salah = _next_salah(prayer_time, now, tz)
+            timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, m_today, m_tz))
+            next_salah = _next_salah(prayer_time, m_now, m_tz)
             data.append({
                 'id': m.id,
                 'name': m.name,
