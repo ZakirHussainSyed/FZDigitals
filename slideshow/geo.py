@@ -96,13 +96,28 @@ def geocode_address(address):
 
 
 def timezone_for_coords(latitude, longitude):
-    """Resolve coordinates to an IANA timezone name, or None."""
+    """Resolve coordinates to an IANA timezone name, or None.
+
+    Uses timezonefinder when installed; falls back to a timeapi.io lookup
+    so deployments without the package still get correct timezones.
+    """
     try:
         from timezonefinder import TimezoneFinder
-    except ImportError:
-        return None
-    try:
         return TimezoneFinder().timezone_at(lat=float(latitude), lng=float(longitude))
+    except ImportError:
+        pass
     except Exception as e:
         logger.warning(f'Timezone lookup failed for {latitude},{longitude}: {e}')
+        return None
+    try:
+        resp = requests.get(
+            'https://timeapi.io/api/timezone/coordinate',
+            params={'latitude': float(latitude), 'longitude': float(longitude)},
+            headers={'User-Agent': 'FZDigitals/1.0'},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json().get('timeZone') or None
+    except Exception as e:
+        logger.warning(f'Timezone API lookup failed for {latitude},{longitude}: {e}')
         return None

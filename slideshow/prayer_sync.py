@@ -35,18 +35,28 @@ SYNC_INTERVAL = timedelta(hours=24)
 UA = {'User-Agent': 'FZDigitals/1.0'}
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
 ANCHOR_RE = re.compile(r'href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
-PRAYER_WORDS_RE = re.compile(r'prayer|salah|salat|namaz|iqamah?|timing|schedule', re.I)
+PRAYER_WORDS_RE = re.compile(r'prayer|sala[ah]?[ht]|namaz|iqamah?|timing|schedule', re.I)
 MASJIDNOW_RE = re.compile(r'masjidnow\.com/(?:mosques|widgets)/(\d+)', re.I)
 MAWAQIT_RE = re.compile(r'mawaqit\.net/(?:[a-z]{2}/)?m/([a-z0-9][a-z0-9\-]*)', re.I)
 TIME_NEAR_RE = r'(\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?'
 PRAYER_NAMES = {
     'fajr': r'fajr|fajar',
-    'dhuhr': r'dhuhr|dhur|zuhr|zohar|dohr',
+    'dhuhr': r'dhuhr|dhur|duhar|zuhr|zohar|dohr',
     'asr': r'asr|asar',
     'maghrib': r'maghrib|magrib',
     'isha': r'isha|ishaa|esha',
-    'jummah': r'jummah|jumuah|juma|friday',
+    'jummah': r"jummah|jumu'?ah|juma|friday",
 }
+NAME_TO_KEY = {
+    variant: key for key, names in PRAYER_NAMES.items()
+    for variant in names.replace("'?", '').split('|')
+}
+# JS/JSON configs: fajr: "05:30", "dhuhr_iqama": '1:40 PM', etc.
+JS_TIME_RE = re.compile(
+    r'\b(fajr|fajar|dhuhr|dhur|zuhr|zohar|dohr|asr|asar|maghrib|magrib|isha|ishaa|esha|jummah|jumuah|juma)\b'
+    r'([_\s]?(?:iqamah?|athan|adhan))?["\']?\s*[:=]\s*["\'](\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?',
+    re.I)
+REQUIRED_PRAYERS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
 MONTHS = {m: i for i, m in enumerate(
     ['January', 'February', 'March', 'April', 'May', 'June', 'July',
      'August', 'September', 'October', 'November', 'December'], 1)}
@@ -173,9 +183,40 @@ def _html_prayer_times(html):
         ap = (ap or '').replace('.', '').lower()
         pm = (ap == 'pm') if ap else key != 'fajr'
         result[key] = _to_24h(t, pm)
-    if all(k in result for k in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')):
-        return result
-    return None
+    return _validated(result)
+
+
+def _js_prayer_times(html):
+    """Prayer times embedded in a JS/JSON config on the page.
+
+    Catches widget data like {"fajr":"05:30","fajr_iqama":"06:15"} that
+    never appears in the rendered text. Iqama-labelled keys win over plain
+    or athan-labelled ones.
+    """
+    found = {}
+    for m in JS_TIME_RE.finditer(html):
+        key = NAME_TO_KEY.get(m.group(1).lower())
+        if not key:
+            continue
+        label = (m.group(2) or '').lower()
+        t, ap = m.group(3), (m.group(4) or '').replace('.', '').lower()
+        pm = (ap == 'pm') if ap else key != 'fajr'
+        slot = 'iqama' if 'iqama' in label else ('athan' if label else 'plain')
+        found.setdefault(key, {})[slot] = _to_24h(t, pm)
+    result = {}
+    for key, slots in found.items():
+        result[key] = slots.get('iqama') or slots.get('plain') or slots.get('athan')
+    return _validated(result)
+
+
+def _validated(result):
+    """Accept only complete, non-degenerate results — five identical times
+    means the scraper latched onto one unrelated clock on the page."""
+    if not all(k in result for k in REQUIRED_PRAYERS):
+        return None
+    if len({result[k] for k in REQUIRED_PRAYERS}) == 1:
+        return None
+    return result
 
 
 def _find_prayer_page(html, base_url):
@@ -184,7 +225,7 @@ def _find_prayer_page(html, base_url):
         href, text = m.group(1), re.sub(r'<[^>]+>', '', m.group(2))
         if '.pdf' in href.lower():
             continue
-        if PRAYER_WORDS_RE.search(text) or re.search(r'prayer|salah|namaz|iqamah?', href, re.I):
+        if PRAYER_WORDS_RE.search(text) or re.search(r'prayer|sala[ah]?[ht]|namaz|iqamah?', href, re.I):
             return urljoin(base_url, href)
     return None
 
@@ -216,7 +257,7 @@ def fetch_prayer_times(website_url):
         except Exception as e:
             logger.warning(f'Prayer PDF fetch failed ({pdf_url}): {e}')
 
-    times = _html_prayer_times(html)
+    times = _js_prayer_times(html) or _html_prayer_times(html)
     if times:
         return {None: times}
 
@@ -225,7 +266,7 @@ def fetch_prayer_times(website_url):
         try:
             r2 = requests.get(link, timeout=15, headers=UA)
             r2.raise_for_status()
-            times = _html_prayer_times(r2.text)
+            times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text)
             if times:
                 return {None: times}
         except Exception as e:
