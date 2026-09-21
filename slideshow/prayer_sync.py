@@ -219,15 +219,19 @@ def _validated(result):
     return result
 
 
-def _find_prayer_page(html, base_url):
-    """First link whose text or URL mentions prayer times — one level deep."""
+def _find_prayer_pages(html, base_url):
+    """Links whose text or URL mentions prayer times — one level deep."""
+    seen, pages = set(), []
     for m in ANCHOR_RE.finditer(html):
         href, text = m.group(1), re.sub(r'<[^>]+>', '', m.group(2))
         if '.pdf' in href.lower():
             continue
         if PRAYER_WORDS_RE.search(text) or re.search(r'prayer|sala[ah]?[ht]|namaz|iqamah?', href, re.I):
-            return urljoin(base_url, href)
-    return None
+            url = urljoin(base_url, href)
+            if url not in seen:
+                seen.add(url)
+                pages.append(url)
+    return pages
 
 
 def fetch_prayer_times(website_url):
@@ -240,13 +244,16 @@ def fetch_prayer_times(website_url):
     resp = requests.get(website_url, timeout=15, headers=UA)
     resp.raise_for_status()
     html = resp.text
+    # Resolve relative links against the FINAL url — the entered domain may
+    # redirect (e.g. .com -> .org) and sub-path redirects can drop the path.
+    base_url = resp.url
 
     for fetcher in (_masjidnow_times, _mawaqit_times):
         times = fetcher(html)
         if times:
             return times
 
-    pdf_url = find_schedule_pdf_url(html, website_url)
+    pdf_url = find_schedule_pdf_url(html, base_url)
     if pdf_url:
         try:
             presp = requests.get(pdf_url, timeout=30, headers=UA)
@@ -261,8 +268,7 @@ def fetch_prayer_times(website_url):
     if times:
         return {None: times}
 
-    link = _find_prayer_page(html, website_url)
-    if link:
+    for link in _find_prayer_pages(html, base_url)[:3]:
         try:
             r2 = requests.get(link, timeout=15, headers=UA)
             r2.raise_for_status()
