@@ -30,7 +30,8 @@ def geocode_address(address):
         results = resp.json()
         if not results:
             return None
-        return float(results[0]['lat']), float(results[0]['lon'])
+        # 8 decimals ≈ 1mm precision — plenty for a map pin, keeps values clean
+        return round(float(results[0]['lat']), 8), round(float(results[0]['lon']), 8)
     except Exception as e:
         logger.warning(f'Geocode failed for "{address}": {e}')
         return None

@@ -155,8 +155,8 @@ class Mosque(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     address = models.TextField(blank=True, default='')
-    latitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True)
+    latitude = models.DecimalField(max_digits=16, decimal_places=12, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=16, decimal_places=12, blank=True, null=True)
     website_url = models.URLField(blank=True, default='')
     sync_enabled = models.BooleanField(
         default=False,
