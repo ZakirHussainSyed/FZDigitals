@@ -898,6 +898,7 @@ def api_mosques(request):
                 'address': m.address,
                 'latitude': str(m.latitude) if m.latitude else None,
                 'longitude': str(m.longitude) if m.longitude else None,
+                'sync_error': m.sync_error,
                 'prayer_times': prayer_times,
             })
         return JsonResponse({'success': True, 'mosques': data})

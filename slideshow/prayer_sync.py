@@ -131,11 +131,21 @@ def sync_mosque_prayer_times(mosque, force=False):
     """Fetch the mosque's prayer PDF and upsert PrayerTime rows.
 
     Returns (synced_count, error_or_none). Stamps prayer_synced_at on every
-    attempt so failures don't retry on every page load.
+    attempt so failures don't retry on every page load, and records the
+    outcome on mosque.sync_error so failures are visible to the user.
     """
     mosque.prayer_synced_at = timezone.now()
     mosque.save(update_fields=['prayer_synced_at'])
 
+    synced, err = _sync(mosque, force)
+    err = err or ''
+    if err != mosque.sync_error:
+        mosque.sync_error = err
+        mosque.save(update_fields=['sync_error'])
+    return synced, err or None
+
+
+def _sync(mosque, force):
     if not mosque.website_url:
         return 0, 'No website URL set'
     try:

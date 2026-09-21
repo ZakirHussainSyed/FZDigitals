@@ -164,6 +164,10 @@ class Mosque(models.Model):
     )
     timezone = models.CharField(max_length=64, blank=True, default='')
     prayer_synced_at = models.DateTimeField(blank=True, null=True)
+    sync_error = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='Last website-sync failure message; empty when the last sync succeeded.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

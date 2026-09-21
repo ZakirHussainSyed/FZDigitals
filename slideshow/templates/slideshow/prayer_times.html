@@ -151,6 +151,12 @@
             {% endfor %}
         {% endif %}
 
+        {% if mosque.sync_error %}
+        <div class="message error">Website sync failed: {{ mosque.sync_error }}</div>
+        {% elif mosque.sync_enabled and mosque.prayer_synced_at %}
+        <div class="message success">Last synced {{ mosque.prayer_synced_at|date:"M d, Y g:i a" }}</div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
