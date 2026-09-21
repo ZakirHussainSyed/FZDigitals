@@ -259,7 +259,7 @@
                 const addrEl = document.getElementById('modal-address');
                 const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mosque.latitude + ',' + mosque.longitude)}`;
                 if (mosque.address) {
-                    addrEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">${mosque.address}</a>`;
+                    addrEl.innerHTML = `Get Direction: <a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">${mosque.address}</a>`;
                 } else {
                     addrEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">Get directions</a>`;
                 }

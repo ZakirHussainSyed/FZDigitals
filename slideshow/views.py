@@ -263,8 +263,8 @@ def user_management(request):
             'verticals': UserProfile.VERTICAL_CHOICES,
         }
 
-        if not username or not email or not password:
-            context['error'] = 'Username, email, and password are required.'
+        if not username or not password:
+            context['error'] = 'Username and password are required.'
             return render(request, 'slideshow/user_management.html', context)
 
         if password != confirm_password:
@@ -275,7 +275,7 @@ def user_management(request):
             context['error'] = 'Username already exists.'
             return render(request, 'slideshow/user_management.html', context)
 
-        if User.objects.filter(email=email).exists():
+        if email and User.objects.filter(email=email).exists():
             context['error'] = 'Email already exists.'
             return render(request, 'slideshow/user_management.html', context)
 
@@ -345,6 +345,12 @@ def user_management(request):
                         source='manual',
                         **manual_times,
                     )
+                if mosque.sync_enabled:
+                    synced, err = sync_mosque_prayer_times(mosque)
+                    if err:
+                        mosque_note = f' Prayer-time sync failed: {err}'
+                    else:
+                        mosque_note = f' Synced {synced} days of prayer times from the website.'
             except Exception as e:
                 logger.error(f"Mosque creation error: {str(e)}", exc_info=True)
 
@@ -1528,6 +1534,7 @@ def api_public_mosques(request):
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
         data = []
         for m in mosques:
+            maybe_sync_mosque(m)
             prayer_time = m.prayer_times.filter(date=today).first()
             timings = {}
             if prayer_time:
