@@ -160,17 +160,32 @@ TIME_ZONE = 'UTC'
 # Timezone for mosque prayer time comparisons (can be overridden per region)
 MOSQUE_TIMEZONE = os.environ.get('MOSQUE_TIMEZONE', 'Asia/Kolkata')
 
-# Map tile URL and attribution for the mosque map.
-# Default uses CARTO Voyager @2x tiles (Google-Maps-like styling, larger labels,
-# no API key). Override for Mapbox/Stadia/etc.
-MAP_TILE_URL = os.environ.get(
-    'MAP_TILE_URL',
-    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
-)
-MAP_ATTRIBUTION = os.environ.get(
-    'MAP_ATTRIBUTION',
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-)
+# Map tiles for the mosque map.
+# Mapbox (streets-v12) is used when MAPBOX_ACCESS_TOKEN is set — fresh labels,
+# generous free tier, built for production traffic. Without a token we fall
+# back to CARTO Voyager @2x tiles (free, no key, but OSM-based labels).
+MAPBOX_ACCESS_TOKEN = os.environ.get('MAPBOX_ACCESS_TOKEN', '')
+if MAPBOX_ACCESS_TOKEN:
+    MAP_TILE_URL = os.environ.get(
+        'MAP_TILE_URL',
+        f'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{{z}}/{{x}}/{{y}}@2x?access_token={MAPBOX_ACCESS_TOKEN}'
+    )
+    MAP_TILE_SUBDOMAINS = os.environ.get('MAP_TILE_SUBDOMAINS', 'abcd')
+    MAP_ATTRIBUTION = os.environ.get(
+        'MAP_ATTRIBUTION',
+        '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> '
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    )
+else:
+    MAP_TILE_URL = os.environ.get(
+        'MAP_TILE_URL',
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+    )
+    MAP_TILE_SUBDOMAINS = os.environ.get('MAP_TILE_SUBDOMAINS', 'abcd')
+    MAP_ATTRIBUTION = os.environ.get(
+        'MAP_ATTRIBUTION',
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    )
 
 USE_I18N = True
 
