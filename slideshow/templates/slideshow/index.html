@@ -418,6 +418,7 @@
             <a href="/screens/">My Screens</a>
             {% if user.userprofile.vertical == 'mosque' %}
                 <a href="{% url 'prayer-times' %}">Prayer Timings</a>
+                <a href="{% url 'mosque-tv' %}">Mosque TV</a>
                 <a href="{% url 'mosque-map' %}">Mosque Map</a>
             {% endif %}
             <a href="/accounts/logout/">Logout</a>
