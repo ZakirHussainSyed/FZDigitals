@@ -258,6 +258,15 @@ def user_management(request):
         mosque_has_website = request.POST.get('mosque_has_website') == 'on'
         mosque_timezone = request.POST.get('mosque_timezone', '').strip()
 
+        def _pos_int(name, default):
+            try:
+                return max(1, int(request.POST.get(name, '') or default))
+            except (TypeError, ValueError):
+                return default
+        number_of_screens = _pos_int('number_of_screens', 5)
+        max_slideshows = _pos_int('max_slideshows', 5)
+        storage_quota_mb = _pos_int('storage_quota_mb', 100)
+
         context = {
             'users': User.objects.all().order_by('-id'),
             'verticals': UserProfile.VERTICAL_CHOICES,
@@ -311,7 +320,10 @@ def user_management(request):
         user = User.objects.create_user(username=username, email=email, password=password)
         UserProfile.objects.create(
             user=user,
-            vertical=vertical
+            vertical=vertical,
+            number_of_screens=number_of_screens,
+            max_slideshows=max_slideshows,
+            storage_quota_mb=storage_quota_mb,
         )
 
         mosque_note = ''
