@@ -1592,8 +1592,9 @@ def api_public_mosques(request):
 def mosque_map(request):
     """Public map page showing mosques with prayer times."""
     return render(request, 'slideshow/mosque_map.html', {
-        'tile_url': getattr(settings, 'MAP_TILE_URL', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'),
-        'attribution': getattr(settings, 'MAP_ATTRIBUTION', 'Tiles &copy; Esri &mdash; Source: Esri, HERE, Garmin, OpenStreetMap contributors'),
+        'tile_url': getattr(settings, 'MAP_TILE_URL', 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+        'tile_subdomains': getattr(settings, 'MAP_TILE_SUBDOMAINS', '0123'),
+        'attribution': getattr(settings, 'MAP_ATTRIBUTION', '&copy; Google Maps'),
     })
 
 
