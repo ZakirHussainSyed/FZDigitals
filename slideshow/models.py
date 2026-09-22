@@ -189,6 +189,8 @@ class PrayerTime(models.Model):
     isha = models.TimeField()
     sunset = models.TimeField(blank=True, null=True)
     jummah = models.TimeField(blank=True, null=True)
+    jummah2 = models.TimeField(blank=True, null=True)
+    jummah3 = models.TimeField(blank=True, null=True)
     source = models.CharField(
         max_length=10,
         default='default',

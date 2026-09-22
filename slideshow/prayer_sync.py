@@ -46,14 +46,23 @@ PRAYER_NAMES = {
     'maghrib': r'maghrib|magrib',
     'isha': r'isha|ishaa|esha',
     'jummah': r"jummah|jumu'?ah|juma|friday",
+    'jummah2': r"(?:2nd|second)\s+jumu'?ah|jumu'?ah\s*2|jummah\s*2",
+    'jummah3': r"(?:3rd|third)\s+jumu'?ah|jumu'?ah\s*3|jummah\s*3",
 }
 NAME_TO_KEY = {
-    variant: key for key, names in PRAYER_NAMES.items()
-    for variant in names.replace("'?", '').split('|')
+    'fajr': 'fajr', 'fajar': 'fajr',
+    'dhuhr': 'dhuhr', 'dhur': 'dhuhr', 'duhar': 'dhuhr',
+    'zuhr': 'dhuhr', 'zohar': 'dhuhr', 'dohr': 'dhuhr',
+    'asr': 'asr', 'asar': 'asr',
+    'maghrib': 'maghrib', 'magrib': 'maghrib',
+    'isha': 'isha', 'ishaa': 'isha', 'esha': 'isha',
+    'jummah': 'jummah', 'jumuah': 'jummah', 'juma': 'jummah',
+    'jummah2': 'jummah2', 'jumuah2': 'jummah2', 'juma2': 'jummah2',
+    'jummah3': 'jummah3', 'jumuah3': 'jummah3', 'juma3': 'jummah3',
 }
 # JS/JSON configs: fajr: "05:30", "dhuhr_iqama": '1:40 PM', etc.
 JS_TIME_RE = re.compile(
-    r'\b(fajr|fajar|dhuhr|dhur|zuhr|zohar|dohr|asr|asar|maghrib|magrib|isha|ishaa|esha|jummah|jumuah|juma)\b'
+    r'\b(fajr|fajar|dhuhr|dhur|zuhr|zohar|dohr|asr|asar|maghrib|magrib|isha|ishaa|esha|jummah|jumuah|juma)[_\s]?([23])?\b'
     r'([_\s]?(?:iqamah?|athan|adhan))?["\']?\s*[:=]\s*["\'](\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?',
     re.I)
 REQUIRED_PRAYERS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
@@ -198,8 +207,10 @@ def _js_prayer_times(html):
         key = NAME_TO_KEY.get(m.group(1).lower())
         if not key:
             continue
-        label = (m.group(2) or '').lower()
-        t, ap = m.group(3), (m.group(4) or '').replace('.', '').lower()
+        if key == 'jummah' and m.group(2):
+            key = f'jummah{m.group(2)}'
+        label = (m.group(3) or '').lower()
+        t, ap = m.group(4), (m.group(5) or '').replace('.', '').lower()
         pm = (ap == 'pm') if ap else key != 'fajr'
         slot = 'iqama' if 'iqama' in label else ('athan' if label else 'plain')
         found.setdefault(key, {})[slot] = _to_24h(t, pm)

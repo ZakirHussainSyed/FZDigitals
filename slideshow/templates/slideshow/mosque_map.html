@@ -50,7 +50,7 @@
         }
         .modal-overlay.open { display: flex; }
         .modal {
-            background: #fff;
+            background: #43a047;
             border-radius: 16px;
             width: 100%;
             max-width: 420px;
@@ -60,7 +60,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .modal-header {
-            background: #1a237e;
+            background: #1b5e20;
             color: #fff;
             padding: 18px 20px;
             position: relative;
@@ -87,28 +87,28 @@
             padding: 20px;
         }
         .modal-address {
-            color: #555;
+            color: #fff;
             font-size: 14px;
             margin-bottom: 18px;
         }
         .maps-link {
-            color: #1a237e;
+            color: #fff;
             text-decoration: underline;
             word-break: break-word;
         }
         .maps-link:hover, .maps-link:active {
-            color: #0d47a1;
+            color: #e8f5e9;
         }
         .timing-row {
             display: flex;
             justify-content: space-between;
             padding: 12px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(255,255,255,0.25);
             font-size: 16px;
         }
         .timing-row:last-child { border-bottom: 0; }
-        .timing-label { color: #333; font-weight: 600; }
-        .timing-value { color: #1a237e; font-weight: 700; }
+        .timing-label { color: #fff; font-weight: 600; }
+        .timing-value { color: #fff; font-weight: 700; }
         .loader {
             position: fixed;
             inset: 0;
@@ -202,7 +202,9 @@
                 <div class="timing-row"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
-                <div class="timing-row"><span class="timing-label">Jummah</span><span class="timing-value" id="t-jummah">-</span></div>
+                <div class="timing-row"><span class="timing-label">Jummah 1</span><span class="timing-value" id="t-jummah">--</span></div>
+                <div class="timing-row"><span class="timing-label">Jummah 2</span><span class="timing-value" id="t-jummah2">--</span></div>
+                <div class="timing-row"><span class="timing-label">Jummah 3</span><span class="timing-value" id="t-jummah3">--</span></div>
             </div>
         </div>
     </div>
@@ -259,7 +261,7 @@
                 const addrEl = document.getElementById('modal-address');
                 const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mosque.latitude + ',' + mosque.longitude)}`;
                 if (mosque.address) {
-                    addrEl.innerHTML = `Get Direction: <a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">${mosque.address}</a>`;
+                    addrEl.innerHTML = `<strong>Get Direction:</strong> <a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">${mosque.address}</a>`;
                 } else {
                     addrEl.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" class="maps-link">Get directions</a>`;
                 }
@@ -271,7 +273,9 @@
                 document.getElementById('t-sunset').textContent = timings.sunset || '-';
                 document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
                 document.getElementById('t-isha').textContent = timings.isha || '-';
-                document.getElementById('t-jummah').textContent = timings.jummah || '-';
+                document.getElementById('t-jummah').textContent = timings.jummah || '--';
+                document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
+                document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
 
                 const distEl = document.getElementById('modal-distance');
                 if (userLat !== null && userLon !== null) {

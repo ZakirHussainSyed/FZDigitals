@@ -295,10 +295,10 @@ def user_management(request):
                 context['error'] = 'Enter the mosque website, or uncheck the website box and add manual prayer times.'
                 return render(request, 'slideshow/user_management.html', context)
             if not mosque_has_website:
-                for field in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'):
+                for field in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3'):
                     raw = request.POST.get(f'mosque_{field}', '').strip()
                     if not raw:
-                        if field == 'jummah':
+                        if field.startswith('jummah'):
                             continue
                         context['error'] = f'{field.capitalize()} iqama time is required when website sync is off.'
                         return render(request, 'slideshow/user_management.html', context)
@@ -889,6 +889,8 @@ def api_mosques(request):
                     'maghrib': pt.maghrib.strftime('%H:%M') if pt.maghrib else None,
                     'isha': pt.isha.strftime('%H:%M') if pt.isha else None,
                     'jummah': pt.jummah.strftime('%H:%M') if pt.jummah else None,
+                    'jummah2': pt.jummah2.strftime('%H:%M') if pt.jummah2 else None,
+                    'jummah3': pt.jummah3.strftime('%H:%M') if pt.jummah3 else None,
                 }
             except PrayerTime.DoesNotExist:
                 prayer_times = {}
@@ -1555,6 +1557,8 @@ def api_public_mosques(request):
                     'isha': _format_prayer_time(prayer_time.isha),
                     'sunset': _format_prayer_time(prayer_time.sunset),
                     'jummah': _format_prayer_time(prayer_time.jummah),
+                    'jummah2': _format_prayer_time(prayer_time.jummah2),
+                    'jummah3': _format_prayer_time(prayer_time.jummah3),
                 }
             timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, m_today, m_tz))
             next_salah = _next_salah(prayer_time, m_now, m_tz)
@@ -1677,19 +1681,22 @@ def prayer_times(request):
             if err:
                 messages.error(request, f'Sync failed: {err}')
                 return redirect('prayer-times')
-            # Website times own the row now; Jummah is not in the PDF so
-            # persist just that field from the form (update_fields avoids
-            # clobbering the freshly synced values on this stale object).
+            # Website times own the row now; persist any Jummah values the
+            # user typed (update_fields avoids clobbering the freshly synced
+            # values on this stale object).
             try:
-                prayer_time.jummah = _parse('jummah')
-                prayer_time.save(update_fields=['jummah'])
+                for jf in ('jummah', 'jummah2', 'jummah3'):
+                    val = _parse(jf)
+                    if val:
+                        setattr(prayer_time, jf, val)
+                prayer_time.save(update_fields=['jummah', 'jummah2', 'jummah3'])
             except Exception:
                 pass
             messages.success(request, f'Synced {synced} days of prayer times from the website.')
             return redirect('prayer-times')
 
         try:
-            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah']:
+            for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3']:
                 setattr(prayer_time, field, _parse(field))
             prayer_time.source = 'manual'
             prayer_time.save()
@@ -1708,7 +1715,9 @@ def prayer_times(request):
         ('sunset', 'Sunset', True, prayer_time.sunset),
         ('maghrib', 'Maghrib (Iqama)', False, prayer_time.maghrib),
         ('isha', 'Isha (Iqama)', False, prayer_time.isha),
-        ('jummah', 'Jummah', False, prayer_time.jummah),
+        ('jummah', 'Jummah 1', False, prayer_time.jummah),
+        ('jummah2', 'Jummah 2', False, prayer_time.jummah2),
+        ('jummah3', 'Jummah 3', False, prayer_time.jummah3),
     ]:
         entry = {'name': field, 'label': label, 'readonly': readonly}
         if readonly:
@@ -1773,6 +1782,8 @@ def mosque_tv(request):
         'maghrib': _format_prayer_time(prayer_time.maghrib),
         'isha': _format_prayer_time(prayer_time.isha),
         'jummah': _format_prayer_time(prayer_time.jummah),
+        'jummah2': _format_prayer_time(prayer_time.jummah2),
+        'jummah3': _format_prayer_time(prayer_time.jummah3),
     }
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)

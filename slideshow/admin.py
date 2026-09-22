@@ -44,7 +44,7 @@ class MosqueAdmin(admin.ModelAdmin):
 
 @admin.register(PrayerTime)
 class PrayerTimeAdmin(admin.ModelAdmin):
-    list_display = ('mosque', 'date', 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah')
+    list_display = ('mosque', 'date', 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3')
     list_filter = ('mosque', 'date')
     date_hierarchy = 'date'
 

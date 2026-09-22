@@ -125,7 +125,9 @@
                 <div class="timing"><div class="name">Sunset</div><div class="value">{{ timings.sunset }}</div></div>
                 <div class="timing"><div class="name">Maghrib</div><div class="value">{{ timings.maghrib }}</div></div>
                 <div class="timing"><div class="name">Isha</div><div class="value">{{ timings.isha }}</div></div>
-                <div class="timing"><div class="name">Jummah</div><div class="value">{{ timings.jummah }}</div></div>
+                <div class="timing"><div class="name">Jummah 1</div><div class="value">{{ timings.jummah }}</div></div>
+                {% if timings.jummah2 %}<div class="timing"><div class="name">Jummah 2</div><div class="value">{{ timings.jummah2 }}</div></div>{% endif %}
+                {% if timings.jummah3 %}<div class="timing"><div class="name">Jummah 3</div><div class="value">{{ timings.jummah3 }}</div></div>{% endif %}
             </div>
             <div class="clock" id="clock">--:--</div>
         </div>
