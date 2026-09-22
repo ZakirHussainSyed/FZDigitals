@@ -189,9 +189,16 @@ def _scrape_times(text, jummah_section=None):
     """
     jummah_text = text
     if jummah_section:
-        sec = re.search(re.escape(jummah_section), text, re.I)
-        if sec:
-            jummah_text = text[sec.start():sec.start() + 800]
+        # The keyword may appear earlier on the page (nav, footer) — use the
+        # occurrence closest to a following Jumu'ah mention (its section
+        # heading sits right above the Jumu'ah rows).
+        best_start, best_dist = None, None
+        for sec in re.finditer(re.escape(jummah_section), text, re.I):
+            jm = re.search(r"jummah|jumu'?ah|juma|friday", text[sec.end():], re.I)
+            if jm and (best_dist is None or jm.start() < best_dist):
+                best_start, best_dist = sec.start(), jm.start()
+        if best_start is not None:
+            jummah_text = text[best_start:best_start + 800]
     result = {}
     for key, names in PRAYER_NAMES.items():
         haystack = jummah_text if key.startswith('jummah') else text
