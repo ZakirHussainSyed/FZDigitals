@@ -179,7 +179,9 @@ def _scrape_times(text, jummah_section=None):
     """Pull every prayer name + time out of page text.
 
     When two times follow a prayer name (athan then iqama) the last is
-    used — iqama is what the TV displays.
+    used — iqama is what the TV displays. Jumu'ah is the exception: the
+    first time (khutbah start) is shown, e.g. 'First Jumu'ah 1:30 2:00'
+    displays 1:30.
 
     jummah_section: on multi-location sites (e.g. ICOE Main vs North) the
     Jumu'ah blocks repeat per location — this keyword selects the section
@@ -201,7 +203,7 @@ def _scrape_times(text, jummah_section=None):
         pairs = [(m.group(i), m.group(i + 1)) for i in (1, 3) if m.group(i)]
         if not pairs:
             continue
-        t, ap = pairs[-1]
+        t, ap = pairs[0] if key.startswith('jummah') else pairs[-1]
         if t.lstrip('0') == ':00':  # '0:00'/'00:00' = no prayer scheduled
             continue
         ap = (ap or '').replace('.', '').lower()
@@ -246,7 +248,10 @@ def _js_prayer_times(html):
         found.setdefault(key, {})[slot] = _to_24h(t, pm)
     result = {}
     for key, slots in found.items():
-        result[key] = slots.get('iqama') or slots.get('plain') or slots.get('athan')
+        if key.startswith('jummah'):  # khutbah start, not iqama
+            result[key] = slots.get('athan') or slots.get('plain') or slots.get('iqama')
+        else:
+            result[key] = slots.get('iqama') or slots.get('plain') or slots.get('athan')
     return _validated(result)
 
 
