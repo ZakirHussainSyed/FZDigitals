@@ -257,6 +257,7 @@ def user_management(request):
         mosque_website = request.POST.get('mosque_website', '').strip()
         mosque_has_website = request.POST.get('mosque_has_website') == 'on'
         mosque_timezone = request.POST.get('mosque_timezone', '').strip()
+        mosque_jummah_section = request.POST.get('mosque_jummah_section', '').strip()
 
         def _pos_int(name, default):
             try:
@@ -349,6 +350,7 @@ def user_management(request):
                     website_url=mosque_website if mosque_has_website else '',
                     sync_enabled=mosque_has_website,
                     timezone=tz_name,
+                    jummah_section=mosque_jummah_section,
                 )
                 if manual_times:
                     PrayerTime.objects.create(

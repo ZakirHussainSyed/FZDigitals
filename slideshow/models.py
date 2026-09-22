@@ -164,6 +164,11 @@ class Mosque(models.Model):
     )
     timezone = models.CharField(max_length=64, blank=True, default='')
     prayer_synced_at = models.DateTimeField(blank=True, null=True)
+    jummah_section = models.CharField(
+        max_length=100, blank=True,
+        help_text="Keyword locating this mosque's Jumu'ah section on a shared "
+                  "multi-location website (e.g. 'North' or '21 St'); blank = first Jumu'ah section",
+    )
     sync_error = models.CharField(
         max_length=255, blank=True, default='',
         help_text='Last website-sync failure message; empty when the last sync succeeded.',

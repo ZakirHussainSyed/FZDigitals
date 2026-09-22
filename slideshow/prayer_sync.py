@@ -168,27 +168,39 @@ def _mawaqit_times(html):
         return None
 
 
-def _html_prayer_times(html):
+def _html_prayer_times(html, jummah_section=None):
     """Scrape prayer names + times out of arbitrary page HTML.
 
     When two times follow a prayer name (athan then iqama) the last is
     used — iqama is what the TV displays. Returns None unless all five
     daily prayers are found.
+
+    jummah_section: on multi-location sites (e.g. ICOE Main vs North) the
+    Jumu'ah blocks repeat per location — this keyword selects the section
+    whose heading contains it; blank uses the first Jumu'ah on the page.
     """
     text = unescape(re.sub(r'<[^>]+>', ' ',
               re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', html, flags=re.S | re.I)))
     text = re.sub(r'\s+', ' ', text)
+    jummah_text = text
+    if jummah_section:
+        sec = re.search(re.escape(jummah_section), text, re.I)
+        if sec:
+            jummah_text = text[sec.start():sec.start() + 800]
     result = {}
     for key, names in PRAYER_NAMES.items():
+        haystack = jummah_text if key.startswith('jummah') else text
         m = re.search(
             rf'\b(?:{names})\b[^0-9]{{0,60}}?{TIME_NEAR_RE}(?:[^0-9]{{0,30}}?{TIME_NEAR_RE})?',
-            text, re.I)
+            haystack, re.I)
         if not m:
             continue
         pairs = [(m.group(i), m.group(i + 1)) for i in (1, 3) if m.group(i)]
         if not pairs:
             continue
         t, ap = pairs[-1]
+        if t.lstrip('0') == ':00':  # '0:00'/'00:00' = no prayer scheduled
+            continue
         ap = (ap or '').replace('.', '').lower()
         pm = (ap == 'pm') if ap else key != 'fajr'
         result[key] = _to_24h(t, pm)
@@ -211,6 +223,8 @@ def _js_prayer_times(html):
             key = f'jummah{m.group(2)}'
         label = (m.group(3) or '').lower()
         t, ap = m.group(4), (m.group(5) or '').replace('.', '').lower()
+        if t.lstrip('0') == ':00':  # '0:00'/'00:00' = no prayer scheduled
+            continue
         pm = (ap == 'pm') if ap else key != 'fajr'
         slot = 'iqama' if 'iqama' in label else ('athan' if label else 'plain')
         found.setdefault(key, {})[slot] = _to_24h(t, pm)
@@ -227,6 +241,11 @@ def _validated(result):
         return None
     if len({result[k] for k in REQUIRED_PRAYERS}) == 1:
         return None
+    # '0:00' placeholders (e.g. a location with no second Jumu'ah) aren't times
+    for k in ('jummah', 'jummah2', 'jummah3'):
+        t = result.get(k)
+        if t and t.hour == 0 and t.minute == 0:
+            del result[k]
     return result
 
 
@@ -245,7 +264,7 @@ def _find_prayer_pages(html, base_url):
     return pages
 
 
-def fetch_prayer_times(website_url):
+def fetch_prayer_times(website_url, jummah_section=None):
     """Try every known strategy to get prayer times from a mosque site.
 
     Returns {date: {fajr: time, ...}} for schedule PDFs, or {None: {...}}
@@ -275,7 +294,7 @@ def fetch_prayer_times(website_url):
         except Exception as e:
             logger.warning(f'Prayer PDF fetch failed ({pdf_url}): {e}')
 
-    times = _js_prayer_times(html) or _html_prayer_times(html)
+    times = _js_prayer_times(html) or _html_prayer_times(html, jummah_section)
     if times:
         return {None: times}
 
@@ -283,7 +302,7 @@ def fetch_prayer_times(website_url):
         try:
             r2 = requests.get(link, timeout=15, headers=UA)
             r2.raise_for_status()
-            times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text)
+            times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text, jummah_section)
             if times:
                 return {None: times}
         except Exception as e:
@@ -351,7 +370,7 @@ def _sync(mosque, force):
     if not mosque.website_url:
         return 0, 'No website URL set'
     try:
-        times = fetch_prayer_times(mosque.website_url)
+        times = fetch_prayer_times(mosque.website_url, mosque.jummah_section or None)
         if not times:
             return 0, 'Could not find prayer times on the website'
     except Exception as e:
