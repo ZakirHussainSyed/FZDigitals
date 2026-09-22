@@ -11,7 +11,7 @@
         #map { width: 100%; height: 100%; background: #111; }
         .mosque-pin {
             position: relative;
-            background: #1a237e;
+            background: #1b5e20;
             color: #fff;
             border: 2px solid #fff;
             border-radius: 10px;
@@ -33,11 +33,11 @@
             transform: translateX(-50%);
             border-width: 10px 10px 0;
             border-style: solid;
-            border-color: #1a237e transparent transparent transparent;
+            border-color: #1b5e20 transparent transparent transparent;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
         }
-        .mosque-pin strong { display: block; font-size: 16px; font-weight: 700; margin-bottom: 3px; }
-        .mosque-pin .next-salah { display: block; font-size: 13px; color: #e0e0ff; }
+        .mosque-pin strong { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
+        .mosque-pin .next-salah { display: block; font-size: 17px; font-weight: 700; color: #ffd54f; }
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -107,6 +107,14 @@
             font-size: 16px;
         }
         .timing-row:last-child { border-bottom: 0; }
+        .timing-row.next {
+            background: rgba(27,94,32,0.12);
+            border-radius: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+            margin-left: -8px;
+            margin-right: -8px;
+        }
         .timing-label { color: #333; font-weight: 600; }
         .timing-icon { flex: 1; text-align: center; font-size: 18px; }
         .timing-value { color: #333; font-weight: 700; }
@@ -278,6 +286,12 @@
                 document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
                 document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
 
+                modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
+                if (mosque.next_salah && mosque.next_salah.name) {
+                    const nextEl = document.getElementById('t-' + mosque.next_salah.name.toLowerCase());
+                    if (nextEl) nextEl.closest('.timing-row').classList.add('next');
+                }
+
                 const distEl = document.getElementById('modal-distance');
                 if (userLat !== null && userLon !== null) {
                     const km = mosque.distance_km || haversine(userLat, userLon, mosque.latitude, mosque.longitude);
@@ -306,7 +320,7 @@
                 const nextLabel = m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
                     : '';
-                const html = `<strong>${m.name}</strong>${nextLabel}`;
+                const html = `${nextLabel}<strong>${m.name}</strong>`;
                 return L.divIcon({
                     className: '',
                     html: `<div class="mosque-pin">${html}</div>`,
