@@ -108,6 +108,7 @@
         }
         .timing-row:last-child { border-bottom: 0; }
         .timing-label { color: #333; font-weight: 600; }
+        .timing-icon { flex: 1; text-align: center; font-size: 18px; }
         .timing-value { color: #333; font-weight: 700; }
         .loader {
             position: fixed;
@@ -196,10 +197,10 @@
             <div class="modal-body">
                 <div id="modal-address" class="modal-address"></div>
                 <div class="timing-row"><span class="timing-label">Fajr</span><span class="timing-value" id="t-fajr">-</span></div>
-                <div class="timing-row"><span class="timing-label">Sunrise</span><span class="timing-value" id="t-sunrise">-</span></div>
+                <div class="timing-row"><span class="timing-label">Sunrise</span><span class="timing-icon">🌅</span><span class="timing-value" id="t-sunrise">-</span></div>
                 <div class="timing-row"><span class="timing-label">Dhuhr</span><span class="timing-value" id="t-dhuhr">-</span></div>
                 <div class="timing-row"><span class="timing-label">Asr</span><span class="timing-value" id="t-asr">-</span></div>
-                <div class="timing-row"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
+                <div class="timing-row"><span class="timing-label">Sunset</span><span class="timing-icon">🌇</span><span class="timing-value" id="t-sunset">-</span></div>
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
                 <div class="timing-row"><span class="timing-label">Jummah 1</span><span class="timing-value" id="t-jummah">--</span></div>
