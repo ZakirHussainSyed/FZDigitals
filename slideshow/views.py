@@ -380,6 +380,42 @@ def user_management(request):
 
 
 @login_required
+def edit_user(request, user_id):
+    """Superuser edits a user's email, plan limits, and mosque details."""
+    if not request.user.is_superuser:
+        return redirect(f'/{request.user.id}/')
+    if request.method != 'POST':
+        return redirect('/user-management/')
+
+    user = get_object_or_404(User, id=user_id)
+    user.email = request.POST.get('email', '').strip()
+    user.save(update_fields=['email'])
+
+    def _pos_int(name, default):
+        try:
+            return max(1, int(request.POST.get(name, '') or default))
+        except (TypeError, ValueError):
+            return default
+
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.number_of_screens = _pos_int('number_of_screens', profile.number_of_screens)
+    profile.max_slideshows = _pos_int('max_slideshows', profile.max_slideshows)
+    profile.storage_quota_mb = _pos_int('storage_quota_mb', profile.storage_quota_mb)
+    profile.save()  # save() auto-creates pairings for newly added slideshows
+
+    for mosque in user.mosque_set.all():
+        name = request.POST.get(f'mosque_{mosque.id}_name', '').strip()
+        if name:
+            mosque.name = name
+        mosque.website_url = request.POST.get(f'mosque_{mosque.id}_website', '').strip()
+        mosque.jummah_section = request.POST.get(f'mosque_{mosque.id}_jummah_section', '').strip()
+        mosque.sync_enabled = request.POST.get(f'mosque_{mosque.id}_sync') == 'on'
+        mosque.save()
+
+    return redirect('/user-management/')
+
+
+@login_required
 def delete_user(request, user_id):
     """Delete a user - only for superusers"""
     if not request.user.is_superuser:

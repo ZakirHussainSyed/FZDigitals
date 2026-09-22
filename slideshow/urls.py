@@ -9,6 +9,7 @@ urlpatterns = [
     path('forget-password/verify/', views.forget_password_verify, name='forget-password-verify'),
     path('user-management/', views.user_management, name='user-management'),
     path('device-management/', views.device_management, name='device-management'),
+    path('edit-user/<int:user_id>/', views.edit_user, name='edit-user'),
     path('delete-user/<int:user_id>/', views.delete_user, name='delete-user'),
     path('admin-reset-password/<int:user_id>/', views.admin_reset_password, name='admin-reset-password'),
     path('<int:user_id>/', views.user_dashboard, name='user-dashboard'),

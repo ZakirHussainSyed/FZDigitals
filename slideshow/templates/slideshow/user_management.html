@@ -354,6 +354,7 @@
                         </td>
                         <td>{{ user.date_joined|date:"M d, Y" }}</td>
                         <td>
+                            <button class="reset-btn" onclick="document.getElementById('editModal-{{ user.id }}').style.display='flex'">Edit</button>
                             <button class="reset-btn" onclick="showResetPasswordModal('{{ user.id }}', '{{ user.username }}')">Reset Password</button>
                             <form method="post" action="/delete-user/{{ user.id }}/" style="display: inline;">
                                 {% csrf_token %}
@@ -376,6 +377,61 @@
         </div>
     </div>
     
+    <!-- Edit User Modals -->
+    {% for user in users %}
+    <div id="editModal-{{ user.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 16px; padding: 32px; max-width: 480px; width: 90%; max-height: 85vh; overflow-y: auto; backdrop-filter: blur(20px);">
+            <h2 style="font-size: 20px; margin-bottom: 16px;">Edit {{ user.username }}</h2>
+            <form method="post" action="/edit-user/{{ user.id }}/">
+                {% csrf_token %}
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; color: rgba(232,234,240,0.8);">Email</label>
+                    <input type="email" name="email" value="{{ user.email }}" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-size: 13px; color: rgba(232,234,240,0.8);">Screens</label>
+                        <input type="number" name="number_of_screens" min="1" value="{{ user.userprofile.number_of_screens }}" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-size: 13px; color: rgba(232,234,240,0.8);">Slideshows</label>
+                        <input type="number" name="max_slideshows" min="1" value="{{ user.userprofile.max_slideshows }}" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-size: 13px; color: rgba(232,234,240,0.8);">Quota (MB)</label>
+                        <input type="number" name="storage_quota_mb" min="1" value="{{ user.userprofile.storage_quota_mb }}" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                </div>
+                {% for mosque in user.mosque_set.all %}
+                <fieldset style="border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                    <legend style="font-size: 13px; color: #7c5cff; padding: 0 6px;">{{ mosque.name }}</legend>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(232,234,240,0.8);">Mosque Name</label>
+                        <input type="text" name="mosque_{{ mosque.id }}_name" value="{{ mosque.name }}" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(232,234,240,0.8);">Website</label>
+                        <input type="url" name="mosque_{{ mosque.id }}_website" value="{{ mosque.website_url }}" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(232,234,240,0.8);">Jummah section keyword</label>
+                        <input type="text" name="mosque_{{ mosque.id }}_jummah_section" value="{{ mosque.jummah_section }}" placeholder="e.g. North or 21 St — blank = first section" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(232,234,240,0.8); cursor: pointer;">
+                        <input type="checkbox" name="mosque_{{ mosque.id }}_sync" {% if mosque.sync_enabled %}checked{% endif %} style="width: auto;">
+                        Sync prayer times from website
+                    </label>
+                </fieldset>
+                {% endfor %}
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" onclick="document.getElementById('editModal-{{ user.id }}').style.display='none'" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #e8eaf0; font-size: 14px; cursor: pointer;">Cancel</button>
+                    <button type="submit" style="flex: 1; padding: 12px; background: #7c5cff; border: none; border-radius: 8px; color: #fff; font-size: 14px; cursor: pointer;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
     <!-- Password Reset Modal -->
     <div id="resetPasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
         <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 16px; padding: 32px; max-width: 400px; width: 90%;">

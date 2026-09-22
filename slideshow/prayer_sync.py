@@ -168,20 +168,23 @@ def _mawaqit_times(html):
         return None
 
 
-def _html_prayer_times(html, jummah_section=None):
-    """Scrape prayer names + times out of arbitrary page HTML.
+def _page_text(html):
+    """Visible text of a page — tags/scripts stripped, whitespace collapsed."""
+    text = unescape(re.sub(r'<[^>]+>', ' ',
+              re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', html, flags=re.S | re.I)))
+    return re.sub(r'\s+', ' ', text)
+
+
+def _scrape_times(text, jummah_section=None):
+    """Pull every prayer name + time out of page text.
 
     When two times follow a prayer name (athan then iqama) the last is
-    used — iqama is what the TV displays. Returns None unless all five
-    daily prayers are found.
+    used — iqama is what the TV displays.
 
     jummah_section: on multi-location sites (e.g. ICOE Main vs North) the
     Jumu'ah blocks repeat per location — this keyword selects the section
     whose heading contains it; blank uses the first Jumu'ah on the page.
     """
-    text = unescape(re.sub(r'<[^>]+>', ' ',
-              re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', html, flags=re.S | re.I)))
-    text = re.sub(r'\s+', ' ', text)
     jummah_text = text
     if jummah_section:
         sec = re.search(re.escape(jummah_section), text, re.I)
@@ -204,7 +207,20 @@ def _html_prayer_times(html, jummah_section=None):
         ap = (ap or '').replace('.', '').lower()
         pm = (ap == 'pm') if ap else key != 'fajr'
         result[key] = _to_24h(t, pm)
-    return _validated(result)
+    return result
+
+
+def _html_prayer_times(html, jummah_section=None):
+    """Scrape prayer names + times out of arbitrary page HTML.
+    Returns None unless all five daily prayers are found."""
+    return _validated(_scrape_times(_page_text(html), jummah_section))
+
+
+def _jummah_times(html, jummah_section=None):
+    """Jumu'ah times only — supplements sources (schedule PDFs) that carry
+    daily prayers but no Friday rows."""
+    scraped = _scrape_times(_page_text(html), jummah_section)
+    return {k: v for k, v in scraped.items() if k.startswith('jummah')}
 
 
 def _js_prayer_times(html):
@@ -290,6 +306,11 @@ def fetch_prayer_times(website_url, jummah_section=None):
             presp.raise_for_status()
             times = parse_prayer_pdf(presp.content)
             if times:
+                # Schedule PDFs rarely carry Jumu'ah — merge it from the page
+                jummah = _jummah_times(html, jummah_section)
+                for entry in times.values():
+                    for k, v in jummah.items():
+                        entry.setdefault(k, v)
                 return times
         except Exception as e:
             logger.warning(f'Prayer PDF fetch failed ({pdf_url}): {e}')
