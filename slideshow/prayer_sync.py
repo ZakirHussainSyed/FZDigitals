@@ -247,6 +247,60 @@ def _ezan_times(html):
     return {None: result} if _validated(result) else None
 
 
+MOHID_RE = re.compile(
+    r'https://[a-z0-9.-]*mohid\.co/[^"\'\s<>\\]*(?:widget|prayertiming)[^"\'\s<>\\]*',
+    re.I)
+MOHID_CELL_RE = re.compile(
+    r'prayer_(?:iqama|azaan)_div[^>]*>\s*(\d{1,2}:\d{2}\s*[ap]\.?m\.?)', re.I)
+
+
+def _mohid_times(html):
+    """MOHID widget (mohid.co) — server-rendered iframe embedded via
+    site-builder embed blocks (e.g. Zyro GridEmbed at faizanemadinah.com).
+
+    Daily <li>: label text + div.prayer_iqama_div (iqama preferred,
+    prayer_azaan_div adhan fallback). Jumu'ah rows are 'Friday Khutba N' /
+    'Friday Iqama N' — khutbah (start) is shown, iqama rows are the fallback.
+    """
+    m = MOHID_RE.search(html)
+    if not m:
+        return None
+    try:
+        resp = requests.get(unescape(m.group(0)), timeout=15, headers=UA)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning(f'MOHID fetch failed: {e}')
+        return None
+    result, khutbas, iqamas = {}, {}, {}
+    for li in re.findall(r'<li[^>]*>(.*?)</li>', resp.text, re.S | re.I):
+        cell = (re.search(r'prayer_iqama_div[^>]*>\s*(\d{1,2}:\d{2}\s*[ap]\.?m\.?)',
+                          li, re.I)
+                or re.search(r'prayer_azaan_div[^>]*>\s*(\d{1,2}:\d{2}\s*[ap]\.?m\.?)',
+                             li, re.I))
+        if not cell:
+            continue
+        t = _parse_ampm(cell.group(1))
+        if not t:
+            continue
+        label = re.sub(r'\s+', ' ', unescape(re.sub(r'<[^>]+>', ' ', li))).strip()
+        km = re.search(r'khutba\w*\s*(\d+)', label, re.I)
+        im = re.search(r'\biqama\w*\s*(\d+)', label, re.I)
+        if km:
+            khutbas[int(km.group(1))] = t
+            continue
+        if im:
+            iqamas[int(im.group(1))] = t
+            continue
+        key = next((k for k, pat in PRAYER_NAMES.items()
+                    if re.search(rf'\b(?:{pat})\b', label, re.I)), None)
+        if key:
+            result[key] = t
+    for n in sorted(set(khutbas) | set(iqamas))[:3]:
+        result['jummah' if n == 1 else f'jummah{n}'] = (
+            khutbas.get(n) or iqamas[n])
+    return {None: result} if _validated(result) else None
+
+
 def _wayback_html(url):
     """Latest Wayback Machine snapshot of a page, archive URL rewriting
     unwrapped. Used only to discover widget/PDF links on WAF-challenged
@@ -582,15 +636,16 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
             raise
         base_url = website_url
 
-    for fetcher in (_masjidnow_times, _mawaqit_times, _athanplus_times,
-                    _ezan_times):
+    widgets = (_masjidnow_times, _mawaqit_times, _athanplus_times,
+               _ezan_times, _mohid_times)
+    for fetcher in widgets:
         times = fetcher(html)
         if times:
             return times
 
     # The entered URL may itself be a widget embed — some mosques (e.g. ICOPS)
     # only link the Masjidal app and never embed the widget on their site.
-    times = _athanplus_times(base_url)
+    times = _athanplus_times(base_url) or _mohid_times(base_url)
     if times:
         return times
 
@@ -626,6 +681,12 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
         try:
             r2 = requests.get(link, timeout=15, headers=UA)
             r2.raise_for_status()
+            # Widgets can live on the prayer page rather than the homepage
+            # (e.g. MOHID iframe inside a Zyro embed block).
+            for fetcher in widgets:
+                times = fetcher(r2.text)
+                if times:
+                    return times
             times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text, jummah_section)
             if times:
                 return {None: times}
