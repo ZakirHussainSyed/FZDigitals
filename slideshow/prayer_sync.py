@@ -168,6 +168,60 @@ def _mawaqit_times(html):
         return None
 
 
+ATHANPLUS_RE = re.compile(
+    r'timing\.athanplus\.com/masjid/widgets/embed[^"\'\s<>]*masjid_id=([A-Za-z0-9]+)')
+
+
+def _athanplus_times(html):
+    """Masjidal/AthanPlus embed widget (timing.athanplus.com).
+
+    The widget is a day carousel — only the first (active) slide is today.
+    Daily rows are 'Name adhan iqamah'; Jumuah rows put the time BEFORE
+    the label ('1:15 PM Jumuah 1'), so they need their own pattern.
+    """
+    m = ATHANPLUS_RE.search(html)
+    if not m:
+        return None
+    try:
+        resp = requests.get(
+            'https://timing.athanplus.com/masjid/widgets/embed'
+            f'?theme=3&masjid_id={m.group(1)}', timeout=15, headers=UA)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning(f'AthanPlus fetch failed: {e}')
+        return None
+    slide = re.search(r'carousel-item active.*?(?=carousel-item|$)', resp.text, re.S)
+    text = _page_text(slide.group(0) if slide else resp.text)
+    result = _scrape_times(text)
+    for jm in re.finditer(r'(\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?\s+Jumua?h\s*(\d)?',
+                          text, re.I):
+        key = 'jummah' if jm.group(3) in (None, '1') else f'jummah{jm.group(3)}'
+        ap = (jm.group(2) or '').replace('.', '').lower()
+        result[key] = _to_24h(jm.group(1), ap != 'am')
+    return {None: result} if _validated(result) else None
+
+
+def _wayback_html(url):
+    """Latest Wayback Machine snapshot of a page, archive URL rewriting
+    unwrapped. Used only to discover widget/PDF links on WAF-challenged
+    sites (e.g. Cloudflare) — archived prayer times would be stale."""
+    try:
+        avail = requests.get(f'https://archive.org/wayback/available?url={url}',
+                             timeout=15, headers=UA).json()
+        snap = avail.get('archived_snapshots', {}).get('closest', {})
+        if not snap.get('available'):
+            return None
+        snap_url = re.sub(r'/web/(\d+)/', r'/web/\1id_/',
+                          snap['url'].replace('http://', 'https://'))
+        resp = requests.get(snap_url, timeout=20, headers=UA)
+        resp.raise_for_status()
+        return re.sub(r'https?://web\.archive\.org/web/\d+[a-z_]*/(https?://)',
+                      r'\1', resp.text)
+    except Exception as e:
+        logger.warning(f'Wayback fallback failed ({url}): {e}')
+        return None
+
+
 def _page_text(html):
     """Visible text of a page — tags/scripts stripped, whitespace collapsed."""
     text = unescape(re.sub(r'<[^>]+>', ' ',
@@ -299,14 +353,23 @@ def fetch_prayer_times(website_url, jummah_section=None):
     for single-day sources (widgets, page text) — the caller maps None to
     today in the mosque's timezone.
     """
-    resp = requests.get(website_url, timeout=15, headers=UA)
-    resp.raise_for_status()
-    html = resp.text
-    # Resolve relative links against the FINAL url — the entered domain may
-    # redirect (e.g. .com -> .org) and sub-path redirects can drop the path.
-    base_url = resp.url
+    try:
+        resp = requests.get(website_url, timeout=15, headers=UA)
+        resp.raise_for_status()
+        html = resp.text
+        # Resolve relative links against the FINAL url — the entered domain
+        # may redirect (e.g. .com -> .org) and sub-path redirects drop the path.
+        base_url = resp.url
+    except requests.HTTPError:
+        # WAF-challenged site (e.g. Cloudflare managed challenge) — pull the
+        # latest archived copy to discover widget/PDF links; the widget hosts
+        # themselves aren't challenged and serve live times.
+        html = _wayback_html(website_url)
+        if not html:
+            raise
+        base_url = website_url
 
-    for fetcher in (_masjidnow_times, _mawaqit_times):
+    for fetcher in (_masjidnow_times, _mawaqit_times, _athanplus_times):
         times = fetcher(html)
         if times:
             return times
