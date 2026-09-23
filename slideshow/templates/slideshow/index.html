@@ -806,6 +806,9 @@
             if (window.Sortable && elements.grid) {
                 state.sortable = Sortable.create(elements.grid, {
                     animation: 150,
+                    delay: 200,
+                    delayOnTouchOnly: true,
+                    touchStartThreshold: 5,
                     onEnd: () => persistOrder(screen)
                 });
             }
