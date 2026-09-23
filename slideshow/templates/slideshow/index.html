@@ -132,6 +132,9 @@
             border-radius: 12px;
             overflow: hidden;
             position: relative;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .thumb {
             width: 100%;
@@ -139,6 +142,10 @@
             object-fit: cover;
             display: block;
             background: #111;
+            -webkit-user-drag: none;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
         }
         .item-meta {
             padding: 8px 10px;
@@ -861,6 +868,7 @@
                 const thumb = document.createElement(f.type === 'image' ? 'img' : 'video');
                 thumb.className = 'thumb';
                 thumb.src = f.url;
+                thumb.draggable = false;
                 if (f.type === 'video') thumb.muted = true;
 
                 const meta = document.createElement('div');
@@ -893,6 +901,7 @@
                 el.addEventListener('click', () => {
                     if (state.selectMode) toggleSelect(screen, f.id, el, check);
                 });
+                el.addEventListener('contextmenu', (e) => e.preventDefault());
 
                 el.appendChild(thumb);
                 el.appendChild(meta);
