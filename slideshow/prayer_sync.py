@@ -222,6 +222,87 @@ def _wayback_html(url):
         return None
 
 
+FIREBASE_DB_RE = re.compile(r'databaseURL["\']?\s*:\s*["\'](https://[^"\']+)["\']')
+FIREBASE_PRAYER_REF_RE = re.compile(
+    r"ref\(\s*['\"]([^'\"]*prayer[^'\"]*?/)['\"]\s*\+\s*month", re.I)
+FIREBASE_JUMMAH_REF_RE = re.compile(r"ref\(\s*['\"]([^'\"]*jummah[^'\"]*?)['\"]\s*\)", re.I)
+FIREBASE_CONFIG_SRC_RE = re.compile(r'src=["\']([^"\']*firebase[^"\']*\.js[^"\']*)["\']', re.I)
+
+
+def _parse_ampm(s):
+    """'6:00 PM' -> time; None when unparseable."""
+    m = re.match(r'(\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?', s.strip(), re.I)
+    if not m:
+        return None
+    ap = (m.group(2) or '').replace('.', '').lower()
+    return _to_24h(m.group(1), ap != 'am')
+
+
+def _firebase_times(html, base_url, today):
+    """Mosque PWA backed by Firebase RTDB (e.g. ICOR's iant app).
+
+    The site renders times client-side from firebase.database() refs; the
+    RTDB REST endpoint serves the same data when rules allow public read.
+    Plain keys are iqamah, '*Begin' keys are adhan.
+    """
+    ref_m = FIREBASE_PRAYER_REF_RE.search(html)
+    if not ref_m:
+        return None
+    db_m = FIREBASE_DB_RE.search(html)
+    db_url = db_m.group(1) if db_m else None
+    if not db_url:
+        src_m = FIREBASE_CONFIG_SRC_RE.search(html)
+        if src_m:
+            try:
+                cfg = requests.get(urljoin(base_url, src_m.group(1)),
+                                   timeout=15, headers=UA)
+                db_m = FIREBASE_DB_RE.search(cfg.text)
+                db_url = db_m.group(1) if db_m else None
+            except Exception as e:
+                logger.warning(f'Firebase config fetch failed: {e}')
+    if not db_url:
+        return None
+    db_url = db_url.rstrip('/')
+
+    today = today or timezone.now().date()
+    try:
+        data = requests.get(
+            f'{db_url}/{ref_m.group(1)}{today.strftime("%B")}.json',
+            timeout=15, headers=UA).json()
+    except Exception as e:
+        logger.warning(f'Firebase prayer fetch failed: {e}')
+        return None
+    entries = data.values() if isinstance(data, dict) else (data or [])
+    row = next((e for e in entries
+                if isinstance(e, dict) and str(e.get('day')) == str(today.day)), None)
+    if not row:
+        return None
+    result = {}
+    for key in REQUIRED_PRAYERS:
+        t = _parse_ampm(str(row.get(key) or ''))
+        if t:
+            result[key] = t
+
+    jref_m = FIREBASE_JUMMAH_REF_RE.search(html)
+    if jref_m:
+        try:
+            jdata = requests.get(f'{db_url}/{jref_m.group(1).rstrip("/")}.json',
+                                 timeout=15, headers=UA).json()
+            jrows = jdata.values() if isinstance(jdata, dict) else (jdata or [])
+            active = sorted(
+                (j for j in jrows if isinstance(j, dict)
+                 and str(j.get('status', '1')) not in ('0', '', 'None')),
+                key=lambda j: j.get('ID') or 0)
+            for i, j in enumerate(active[:3]):
+                t = _parse_ampm(str(j.get('Jummah_Time') or ''))
+                if t:
+                    result['jummah' if i == 0 else f'jummah{i + 1}'] = t
+        except Exception as e:
+            logger.warning(f'Firebase jummah fetch failed: {e}')
+
+    return {None: result} if _validated(result) else None
+
+
 def _page_text(html):
     """Visible text of a page — tags/scripts stripped, whitespace collapsed."""
     text = unescape(re.sub(r'<[^>]+>', ' ',
@@ -346,7 +427,7 @@ def _find_prayer_pages(html, base_url):
     return pages
 
 
-def fetch_prayer_times(website_url, jummah_section=None):
+def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     """Try every known strategy to get prayer times from a mosque site.
 
     Returns {date: {fajr: time, ...}} for schedule PDFs, or {None: {...}}
@@ -373,6 +454,10 @@ def fetch_prayer_times(website_url, jummah_section=None):
         times = fetcher(html)
         if times:
             return times
+
+    times = _firebase_times(html, base_url, for_date)
+    if times:
+        return times
 
     pdf_url = find_schedule_pdf_url(html, base_url)
     if pdf_url:
@@ -465,16 +550,16 @@ def sync_mosque_prayer_times(mosque, force=False):
 def _sync(mosque, force):
     if not mosque.website_url:
         return 0, 'No website URL set'
+    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
+    today = timezone.now().astimezone(tz).date()
     try:
-        times = fetch_prayer_times(mosque.website_url, mosque.jummah_section or None)
+        times = fetch_prayer_times(mosque.website_url, mosque.jummah_section or None, today)
         if not times:
             return 0, 'Could not find prayer times on the website'
     except Exception as e:
         logger.warning(f'Prayer sync failed for mosque {mosque.id}: {e}')
         return 0, str(e)
 
-    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
-    today = timezone.now().astimezone(tz).date()
     synced = 0
     for d, entry in times.items():
         d = d or today  # single-day sources (widgets, page text) key on None
