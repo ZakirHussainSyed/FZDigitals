@@ -169,7 +169,8 @@ def _mawaqit_times(html):
 
 
 ATHANPLUS_RE = re.compile(
-    r'timing\.athanplus\.com/masjid/widgets/embed[^"\'\s<>]*masjid_id=([A-Za-z0-9]+)')
+    r'(?:timing\.athanplus\.com/masjid/widgets|masjidal\.com/widget)'
+    r'[^"\'\s<>]*masjid_id=([A-Za-z0-9]+)')
 
 
 def _athanplus_times(html):
