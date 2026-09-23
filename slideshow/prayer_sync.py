@@ -303,6 +303,74 @@ def _firebase_times(html, base_url, today):
     return {None: result} if _validated(result) else None
 
 
+JS_SCHEDULE_SRC_RE = re.compile(
+    r'src=["\']([^"\']*(?:prayer|salah|namaz)[^"\']*\.js[^"\']*)["\']', re.I)
+JS_SCHEDULE_ROW_RE = re.compile(
+    r"\{\s*date:\s*['\"](\d{4}-\d{2}-\d{2})['\"](.*?)\}", re.S)
+JS_SCHEDULE_KEY_RE = re.compile(r"(\w+)\s*:\s*['\"](\d{1,2}:\d{2})['\"]")
+JS_JUMAH_KHUTBA_RE = re.compile(
+    r"juma\w*(?:khutba|khutbah)\w*\s*=\s*['\"](\d{1,2}:\d{2})['\"]", re.I)
+JS_JUMAH_IQAMA_RE = re.compile(
+    r"juma\w*iqama\w*\s*=\s*['\"](\d{1,2}:\d{2})['\"]", re.I)
+
+
+def _js_schedule_times(html, base_url):
+    """Prayer schedule embedded in JS — inline or a linked prayer*.js file.
+
+    Rows look like { date: '2026-09-22', fajrAzan: '05:45', fajrIqama: '06:15',
+    ... } with 24h values; iqama keys win over azan. Returns {date: {...}}
+    like a schedule PDF.
+    """
+    texts = [html]
+    seen = set()
+    for m in JS_SCHEDULE_SRC_RE.finditer(html):
+        src = urljoin(base_url, m.group(1))
+        if src in seen:
+            continue
+        seen.add(src)
+        try:
+            texts.append(requests.get(src, timeout=15, headers=UA).text)
+        except Exception as e:
+            logger.warning(f'JS schedule fetch failed ({src}): {e}')
+
+    times = {}
+    jummah = None
+    for text in texts:
+        for dm in JS_SCHEDULE_ROW_RE.finditer(text):
+            try:
+                d = datetime.strptime(dm.group(1), '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            entry = times.setdefault(d, {})
+            for km in JS_SCHEDULE_KEY_RE.finditer(dm.group(2)):
+                key, val = km.group(1).lower(), km.group(2)
+                norm = re.sub(r'(iqamah?|az[ah]n|adhan|begin|start)$', '', key)
+                norm = {'duhr': 'dhuhr', 'zuhr': 'dhuhr', 'dohr': 'dhuhr'}.get(norm, norm)
+                if norm not in REQUIRED_PRAYERS:
+                    continue
+                try:
+                    t = datetime.strptime(val, '%H:%M').time()
+                except ValueError:
+                    continue
+                if 'iqama' in key or norm not in entry:
+                    entry[norm] = t
+        if not jummah:
+            jm = JS_JUMAH_KHUTBA_RE.search(text) or JS_JUMAH_IQAMA_RE.search(text)
+            if jm:
+                try:
+                    jummah = datetime.strptime(jm.group(1), '%H:%M').time()
+                except ValueError:
+                    pass
+
+    times = {d: e for d, e in times.items() if _validated(e)}
+    if not times:
+        return None
+    if jummah:
+        for e in times.values():
+            e.setdefault('jummah', jummah)
+    return times
+
+
 def _page_text(html):
     """Visible text of a page — tags/scripts stripped, whitespace collapsed."""
     text = unescape(re.sub(r'<[^>]+>', ' ',
@@ -456,6 +524,10 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
             return times
 
     times = _firebase_times(html, base_url, for_date)
+    if times:
+        return times
+
+    times = _js_schedule_times(html, base_url)
     if times:
         return times
 
