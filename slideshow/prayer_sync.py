@@ -201,6 +201,51 @@ def _athanplus_times(html):
     return {None: result} if _validated(result) else None
 
 
+EZAN_RE = re.compile(r'(?:src|href)=["\'](https://ezan\.io/[^"\']+)["\']', re.I)
+EZAN_CELL_RE = re.compile(r'(\d{1,2}:\d{2})\s*<small[^>]*>\s*([ap])\.?m?\.?', re.I)
+
+
+def _ezan_times(html):
+    """ezan.io widget — server-rendered iframe (e.g. farooqmasjid.org).
+
+    Daily rows: name in th.x-header-name, adhan in td.x-time, iqama in
+    td.x-time-iqama (iqama preferred, adhan fallback). Jumu'ah lives in
+    #xjumahtable — one td.x-time per prayer, in order (1st/2nd/3rd).
+    """
+    m = EZAN_RE.search(html)
+    if not m:
+        return None
+    try:
+        resp = requests.get(unescape(m.group(1)), timeout=15, headers=UA)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning(f'ezan.io fetch failed: {e}')
+        return None
+    result = {}
+    for row in re.findall(r'<tr[^>]*>(.*?)</tr>', resp.text, re.S | re.I):
+        nm = re.search(r'x-header-name[^>]*>\s*([^<]+)', row)
+        if not nm:
+            continue
+        key = next((k for k, pat in PRAYER_NAMES.items()
+                    if re.search(rf'\b(?:{pat})\b', nm.group(1).strip(), re.I)),
+                   None)
+        if not key:
+            continue
+        iq = re.search(r'x-time-iqama[^>]*>(.*?)</td>', row, re.S | re.I)
+        cell = EZAN_CELL_RE.search(iq.group(1)) if iq else None
+        if not cell:
+            ad = re.search(r'x-time(?!-iqama)[^>]*>(.*?)</td>', row, re.S | re.I)
+            cell = EZAN_CELL_RE.search(ad.group(1)) if ad else None
+        if cell:
+            result[key] = _to_24h(cell.group(1), cell.group(2).lower() == 'p')
+    jt = re.search(r'id=["\']xjumahtable["\'](.*?)</table>', resp.text, re.S | re.I)
+    if jt:
+        for i, (t, ap) in enumerate(EZAN_CELL_RE.findall(jt.group(1))[:3]):
+            result['jummah' if i == 0 else f'jummah{i + 1}'] = (
+                _to_24h(t, ap.lower() == 'p'))
+    return {None: result} if _validated(result) else None
+
+
 def _wayback_html(url):
     """Latest Wayback Machine snapshot of a page, archive URL rewriting
     unwrapped. Used only to discover widget/PDF links on WAF-challenged
@@ -536,7 +581,8 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
             raise
         base_url = website_url
 
-    for fetcher in (_masjidnow_times, _mawaqit_times, _athanplus_times):
+    for fetcher in (_masjidnow_times, _mawaqit_times, _athanplus_times,
+                    _ezan_times):
         times = fetcher(html)
         if times:
             return times
