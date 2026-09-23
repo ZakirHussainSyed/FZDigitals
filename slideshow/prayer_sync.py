@@ -588,6 +588,12 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
         if times:
             return times
 
+    # The entered URL may itself be a widget embed — some mosques (e.g. ICOPS)
+    # only link the Masjidal app and never embed the widget on their site.
+    times = _athanplus_times(base_url)
+    if times:
+        return times
+
     times = _firebase_times(html, base_url, for_date)
     if times:
         return times
