@@ -419,6 +419,24 @@ def _scrape_times(text, jummah_section=None):
         ap = (ap or '').replace('.', '').lower()
         pm = (ap == 'pm') if ap else key != 'fajr'
         result[key] = _to_24h(t, pm)
+
+    # Numbered-Jumu'ah widgets the generic patterns miss: "Jumuah 1: 1:30 PM"
+    # (label first — separator required so "Jumuah 1 2:30 PM" in time-first
+    # layouts can't grab the next entry's time) and "1:30 PM Jumuah 1"
+    # (time first, e.g. the WP muslim-prayer-times plugin).
+    for m in re.finditer(
+            rf"jumu'?ah\s*([123])\s*[-–—:]\s*{TIME_NEAR_RE}", jummah_text, re.I):
+        key = 'jummah' if m.group(1) == '1' else f'jummah{m.group(1)}'
+        if key not in result:
+            ap = (m.group(3) or 'pm').replace('.', '').lower()
+            result[key] = _to_24h(m.group(2), ap != 'am')
+    for m in re.finditer(
+            rf"{TIME_NEAR_RE}\s+jumu'?ah\s*([123])?\b", jummah_text, re.I):
+        n = m.group(3) or '1'
+        key = 'jummah' if n == '1' else f'jummah{n}'
+        if key not in result:
+            ap = (m.group(2) or 'pm').replace('.', '').lower()
+            result[key] = _to_24h(m.group(1), ap != 'am')
     return result
 
 
