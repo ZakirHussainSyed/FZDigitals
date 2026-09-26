@@ -406,6 +406,79 @@ def _firebase_times(html, base_url, today):
     return {None: result} if _validated(result) else None
 
 
+ALADHAN_RE = re.compile(
+    r'api\.aladhan\.com/v1/timings/[^"\'`\s?]*\?[^"\'`\s]*?'
+    r'latitude=(-?\d+(?:\.\d+)?)[^"\'`\s]*?longitude=(-?\d+(?:\.\d+)?)'
+    r'[^"\'`\s]*?method=(\d+)', re.I)
+FIREBASE_PROJECT_RE = re.compile(r'projectId\s*:\s*[`\'"]([\w-]+)')
+SCRIPT_SRC_RE = re.compile(
+    r'<script[^>]+src=["\']([^"\']+\.js[^"\']*)["\']', re.I)
+
+
+def _aladhan_times(html, base_url, today):
+    """Aladhan API times — SPAs that fetch api.aladhan.com/v1/timings
+    client-side (e.g. fjia.org's Vite bundle).
+
+    The API call lives in the JS bundle rather than the page HTML, so when
+    the page looks like an app shell we fetch script bundles hunting for
+    it. Times come back as 24h adhan. Jumu'ah is read from the site's
+    Firestore site_content/prayer_times doc when the bundle exposes a
+    projectId (public-read collections only).
+    """
+    src = html
+    m = ALADHAN_RE.search(src)
+    if not m and ('id="root"' in html or "id='root'" in html
+                  or 'id="app"' in html or len(html) < 15000):
+        # App shell — the API call is compiled into a script bundle.
+        for js_src in SCRIPT_SRC_RE.findall(html)[:6]:
+            try:
+                js = requests.get(urljoin(base_url, js_src), timeout=15,
+                                  headers=UA).text
+            except Exception:
+                continue
+            m = ALADHAN_RE.search(js)
+            if m:
+                src = js
+                break
+    if not m:
+        return None
+    lat, lng, method = m.groups()
+    day = (today or timezone.now().date()).strftime('%d-%m-%Y')
+    try:
+        data = requests.get(
+            f'https://api.aladhan.com/v1/timings/{day}'
+            f'?latitude={lat}&longitude={lng}&method={method}',
+            timeout=15, headers=UA).json()
+        timings = data['data']['timings']
+    except Exception as e:
+        logger.warning(f'Aladhan fetch failed: {e}')
+        return None
+    result = {}
+    for k in REQUIRED_PRAYERS:
+        hm = re.match(r'(\d{1,2}:\d{2})', str(timings.get(k.capitalize()) or ''))
+        if hm:
+            result[k] = datetime.strptime(hm.group(1), '%H:%M').time()
+    # Jumu'ah — these SPAs commonly keep it in Firestore site_content.
+    pj = FIREBASE_PROJECT_RE.search(src)
+    if pj and 'site_content' in src:
+        try:
+            doc = requests.get(
+                f'https://firestore.googleapis.com/v1/projects/{pj.group(1)}'
+                '/databases/(default)/documents/site_content/prayer_times',
+                timeout=15, headers=UA).json()
+            vals = (doc.get('fields', {}).get('jummah', {})
+                    .get('arrayValue', {}).get('values', []))
+            jumas = [t for t in (
+                _parse_ampm(str(v.get('mapValue', {}).get('fields', {})
+                                .get('time', {}).get('stringValue', '')))
+                for v in vals) if t]
+            for i, t in enumerate(jumas[:3]):
+                result['jummah' if i == 0 else f'jummah{i + 1}'] = t
+        except Exception as e:
+            logger.warning(f'Firestore jummah fetch failed: {e}')
+    return {None: result} if _validated(result) else None
+
+
 JS_SCHEDULE_SRC_RE = re.compile(
     r'src=["\']([^"\']*(?:prayer|salah|namaz)[^"\']*\.js[^"\']*)["\']', re.I)
 JS_SCHEDULE_ROW_RE = re.compile(
@@ -649,6 +722,10 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     # The entered URL may itself be a widget embed — some mosques (e.g. ICOPS)
     # only link the Masjidal app and never embed the widget on their site.
     times = _athanplus_times(base_url) or _mohid_times(base_url)
+    if times:
+        return times
+
+    times = _aladhan_times(html, base_url, for_date)
     if times:
         return times
 
