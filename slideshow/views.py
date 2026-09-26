@@ -1548,6 +1548,15 @@ def api_qr_svg(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+def _latest_prayer_time(mosque, on_date):
+    """Today's PrayerTime, falling back to the most recent prior row.
+
+    Iqama times are stable day-to-day, so a missed or failed sync should
+    keep showing the last known times rather than blanking the display.
+    """
+    return mosque.prayer_times.filter(date__lte=on_date).order_by('-date').first()
+
+
 def _format_prayer_time(t):
     if not t:
         return ''
@@ -1596,7 +1605,7 @@ def api_public_mosques(request):
             m_today = timezone.now().astimezone(m_tz).date()
             m_now = datetime.now(m_tz)
             maybe_sync_mosque(m)
-            prayer_time = m.prayer_times.filter(date=m_today).first()
+            prayer_time = _latest_prayer_time(m, m_today)
             timings = {}
             if prayer_time:
                 timings = {
@@ -1810,19 +1819,24 @@ def mosque_tv(request):
 
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
-    prayer_time, _ = PrayerTime.objects.get_or_create(
-        mosque=mosque,
-        date=today,
-        defaults={
-            'fajr': datetime.strptime('05:00', '%H:%M').time(),
-            'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
-            'asr': datetime.strptime('16:00', '%H:%M').time(),
-            'maghrib': datetime.strptime('18:30', '%H:%M').time(),
-            'isha': datetime.strptime('20:00', '%H:%M').time(),
-            'jummah': datetime.strptime('13:30', '%H:%M').time(),
-            'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
-        }
-    )
+    # Prefer the latest real row (today's, else the most recent prior) so a
+    # missed sync keeps showing times; only seed placeholder defaults when
+    # the mosque has never had any times at all.
+    prayer_time = _latest_prayer_time(mosque, today)
+    if not prayer_time:
+        prayer_time, _ = PrayerTime.objects.get_or_create(
+            mosque=mosque,
+            date=today,
+            defaults={
+                'fajr': datetime.strptime('05:00', '%H:%M').time(),
+                'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+                'asr': datetime.strptime('16:00', '%H:%M').time(),
+                'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+                'isha': datetime.strptime('20:00', '%H:%M').time(),
+                'jummah': datetime.strptime('13:30', '%H:%M').time(),
+                'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
+            }
+        )
 
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),

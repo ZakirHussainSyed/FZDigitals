@@ -32,6 +32,9 @@ from .models import PrayerTime
 logger = logging.getLogger(__name__)
 
 SYNC_INTERVAL = timedelta(hours=24)
+# Failed syncs retry much sooner than the daily interval so a transient
+# error recovers within the hour instead of leaving times blank for a day.
+RETRY_INTERVAL = timedelta(hours=1)
 UA = {'User-Agent': 'FZDigitals/1.0'}
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
 ANCHOR_RE = re.compile(r'href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
@@ -806,7 +809,10 @@ def maybe_sync_mosque(mosque):
             now_local.hour == 0
             and last.astimezone(tz).date() < now_local.date()
         )
-        stale = now - last >= SYNC_INTERVAL
+        # A failed last attempt (sync_error set) retries hourly; a good one
+        # waits for the daily window so we don't hammer the site.
+        interval = RETRY_INTERVAL if mosque.sync_error else SYNC_INTERVAL
+        stale = now - last >= interval
         if not (in_midnight_window or stale):
             return
     sync_mosque_prayer_times(mosque)
