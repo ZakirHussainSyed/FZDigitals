@@ -1578,7 +1578,10 @@ def _next_salah(prayer_time, now, tz):
     for name, t in today_prayers:
         if not t:
             continue
-        dt = datetime.combine(prayer_time.date, t).replace(tzinfo=tz)
+        # Anchor to the display date, not prayer_time.date — the row may be a
+        # fallback from a prior day (_latest_prayer_time), whose stored date
+        # would make every time "past" and incorrectly wrap to Fajr.
+        dt = datetime.combine(now.date(), t).replace(tzinfo=tz)
         if dt > now:
             return {'name': name, 'time': _format_prayer_time(t)}
     if prayer_time.fajr:
