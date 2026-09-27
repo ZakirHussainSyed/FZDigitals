@@ -498,12 +498,13 @@
             }
 
             // Coarse city-level fallback when browser geolocation fails —
-            // no permission prompt, good enough to frame the 5-mile view.
+            // server-side IP lookup via our own endpoint (no third-party
+            // client rate limits, no permission prompt).
             async function focusByIP() {
                 try {
-                    const res = await fetch('https://ipapi.co/json/');
+                    const res = await fetch('/api/approx-location/');
                     const data = await res.json();
-                    if (data && data.latitude && data.longitude) {
+                    if (data && data.success && data.latitude && data.longitude) {
                         focusNearMe(parseFloat(data.latitude), parseFloat(data.longitude));
                         return true;
                     }

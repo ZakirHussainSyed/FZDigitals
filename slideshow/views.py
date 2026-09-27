@@ -1591,6 +1591,32 @@ def _next_salah(prayer_time, now, tz):
 
 
 @require_http_methods(["GET"])
+def api_approx_location(request):
+    """Approximate client location from their IP — fallback for when the
+    browser's geolocation is denied, unavailable, or times out.
+    City-level accuracy at best."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    client_ip = xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', '')
+    if not client_ip or client_ip.startswith(('127.', '10.', '192.168.', '172.')):
+        return JsonResponse({'success': False})
+    try:
+        resp = requests.get(
+            'http://ip-api.com/json/{}?fields=status,lat,lon'.format(client_ip),
+            timeout=4,
+        )
+        data = resp.json()
+        if data.get('status') == 'success':
+            return JsonResponse({
+                'success': True,
+                'latitude': data['lat'],
+                'longitude': data['lon'],
+            })
+    except Exception:
+        logger.exception('IP geolocation failed for %s', client_ip)
+    return JsonResponse({'success': False})
+
+
+@require_http_methods(["GET"])
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah."""
     try:
