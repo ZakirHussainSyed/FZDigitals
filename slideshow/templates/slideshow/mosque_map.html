@@ -392,6 +392,9 @@
 
             const NEAR_ME_RADIUS_KM = 8; // ~5 miles
             const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com'];
+            // Coarse (network) location is plenty for a 5-mile view and returns
+            // fast; without a timeout the promise can hang forever in WebViews.
+            const GEO_OPTS = {enableHighAccuracy: false, timeout: 15000, maximumAge: 300000};
 
             function clearMarkers() {
                 markers.clearLayers();
@@ -501,9 +504,11 @@
                 navigator.geolocation.getCurrentPosition(function(position) {
                     statusMsg.style.display = 'none';
                     focusNearMe(position.coords.latitude, position.coords.longitude);
-                }, function() {
-                    showStatus('Could not get your location.', 3);
-                });
+                }, function(err) {
+                    showStatus(err && err.code === 1
+                        ? 'Location permission is blocked — enable it in site settings.'
+                        : 'Could not get your location.', 5);
+                }, GEO_OPTS);
             }
 
             let map;
@@ -588,7 +593,13 @@
                         } else {
                             setUserLocation(position.coords.latitude, position.coords.longitude);
                         }
-                    });
+                    }, function(err) {
+                        // Silent on load for non-auto hosts; nudge only on the
+                        // branded map where auto-zoom is expected.
+                        if (autoNearMe && err && err.code === 1) {
+                            showStatus('Enable location permission to see mosques near you.', 5);
+                        }
+                    }, GEO_OPTS);
                 }
             } catch (err) {
                 console.error('Map load error:', err);
