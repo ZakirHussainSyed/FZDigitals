@@ -512,9 +512,9 @@ def manifest(request):
         'theme_color': '#000000',
         'icons': [
             {
-                'src': '/static/slideshow/icon.svg',
-                'sizes': 'any',
-                'type': 'image/svg+xml',
+                'src': '/static/slideshow/icon.png',
+                'sizes': '1195x880',
+                'type': 'image/png',
                 'purpose': 'any maskable',
             }
         ],
