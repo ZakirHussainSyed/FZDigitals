@@ -1,4 +1,4 @@
-package com.fzscreens.qama;
+package com.fzscreens.takbir;
 
 import android.Manifest;
 import android.os.Bundle;

@@ -119,7 +119,7 @@
     <header class="header">
         <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
         <nav class="nav">
-            {% if brand.key == 'qama' %}<a href="{% url 'mosque-map' %}" class="btn">Mosque Map</a>{% endif %}
+            {% if brand.key == 'takbir' %}<a href="{% url 'mosque-map' %}" class="btn">Mosque Map</a>{% endif %}
             <a href="{% url 'django_login' %}" class="btn">Log In</a>
             <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn primary">Get Started</a>
         </nav>

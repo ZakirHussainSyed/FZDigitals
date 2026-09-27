@@ -1,10 +1,10 @@
 {
-  "appId": "com.fzscreens.qama",
-  "appName": "Qama",
+  "appId": "com.fzscreens.takbir",
+  "appName": "Takbir ul Ula",
   "webDir": "www",
   "backgroundColor": "#000000",
   "server": {
-    "url": "https://qama.fzscreens.com/mosque-map/?v=1"
+    "url": "https://takbir-al-ula.fzscreens.com/mosque-map/?v=1"
   },
   "android": {
     "backgroundColor": "#000000"

@@ -1,4 +1,4 @@
-package com.fzscreens.qama;
+package com.fzscreens.takbir;
 
 import android.net.Uri;
 import android.util.Base64;
@@ -29,7 +29,8 @@ import java.util.regex.Pattern;
 public class MosqueWebViewClient extends BridgeWebViewClient {
     private static final String TAG = "MosqueWebViewClient";
     private static final String[] APP_HOSTS = {
-        "qama.fzscreens.com", "www.fzscreens.com", "fzscreens.com"
+        "takbir-al-ula.fzscreens.com", "qama.fzscreens.com",
+        "www.fzscreens.com", "fzscreens.com"
     };
     // CDN assets the map shell depends on — cached so offline launches work.
     private static final String[] CDN_HOSTS = {"unpkg.com", "cdn.jsdelivr.net"};

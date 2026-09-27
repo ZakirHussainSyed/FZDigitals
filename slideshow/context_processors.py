@@ -1,13 +1,16 @@
-"""Per-host branding — qama.fzscreens.com serves the Qama mosque brand,
-everything else stays FZ Screens."""
+"""Per-host branding — takbir-al-ula.fzscreens.com serves the Takbir ul Ula
+mosque brand, everything else stays FZ Screens."""
+
+_TAKBIR = {
+    'key': 'takbir',
+    'name': 'Takbir ul Ula',
+    'logo': '/static/slideshow/logo_takbir.png',
+    'tagline': 'Never miss the jamaah — live iqamah times from your masjid, on every screen.',
+}
 
 BRANDS = {
-    'qama': {
-        'key': 'qama',
-        'name': 'Qama',
-        'logo': '/static/slideshow/logo_takbir.png',
-        'tagline': 'Never miss the jamaah — live iqamah times from your masjid, on every screen.',
-    },
+    'takbir-al-ula': _TAKBIR,
+    'qama': _TAKBIR,  # legacy subdomain → same brand
 }
 
 DEFAULT_BRAND = {
