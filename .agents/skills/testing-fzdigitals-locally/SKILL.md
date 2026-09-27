@@ -21,7 +21,7 @@ Gotchas:
 - `HTTPS_ONLY=False` is required locally: otherwise `DEBUG=False` turns on `SECURE_SSL_REDIRECT` and secure-only cookies, so plain-http localhost redirects to https and login fails.
 - `SECRET_KEY` is mandatory when `DEBUG=False` (settings raise `ImproperlyConfigured` without it).
 - With `DEBUG=False`, WhiteNoise indexes `STATIC_ROOT` **once at process start**. After running (or removing) `collectstatic`, you MUST restart the server or `/static/...` results will not change.
-- Templates hardcode `/static/logo.png` (not `{% static %}`), so the non-hashed copy in `staticfiles/` is what gets served even with `CompressedManifestStaticFilesStorage`.
+- Templates hardcode `/static/logo.jpg` (not `{% static %}`), so the non-hashed copy in `staticfiles/` is what gets served even with `CompressedManifestStaticFilesStorage`.
 - Browsers aggressively cache the logo; use ctrl+shift+R when checking whether a static asset now 404s/renders.
 - Start the server detached with `setsid nohup ... &`; plain background jobs in a short-lived shell tool call can be killed when the call times out.
 

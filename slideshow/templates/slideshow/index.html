@@ -418,7 +418,7 @@
 {% csrf_token %}
     <!-- Header -->
     <header class="header">
-        <img src="/static/logo.png" alt="Logo" class="logo" />
+        <img src="/static/logo.jpg" alt="Logo" class="logo" />
         {% if user.is_authenticated %}
         <div class="user-info">
             <span>Welcome, {{ user.email|default:user.username }}</span>
