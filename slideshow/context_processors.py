@@ -13,7 +13,7 @@ BRANDS = {
 DEFAULT_BRAND = {
     'key': 'fzscreens',
     'name': 'FZ Screens',
-    'logo': '/static/logo.jpg',
+    'logo': '/static/logo.png',
     'tagline': 'Run and manage ads on multi screens remotely from anywhere.',
 }
 
