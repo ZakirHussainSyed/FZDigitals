@@ -400,7 +400,7 @@
                 markers.clearLayers();
             }
 
-            function renderMosques(mosques) {
+            function renderMosques(mosques, fitToMarkers) {
                 clearMarkers();
                 const bounds = [];
                 mosques.forEach(function(m) {
@@ -409,12 +409,12 @@
                     marker.on('click', function() { openModal(m); });
                     markers.addLayer(marker);
                 });
-                if (mosques.length > 0) {
+                if (mosques.length > 0 && fitToMarkers !== false) {
                     map.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
                 }
             }
 
-            function filterByDistance(centerLat, centerLon, radiusKm) {
+            function filterByDistance(centerLat, centerLon, radiusKm, fitToMarkers) {
                 const filtered = allMosques.filter(function(m) {
                     return haversine(centerLat, centerLon, m.latitude, m.longitude) <= radiusKm;
                 }).sort(function(a, b) {
@@ -426,7 +426,7 @@
                 } else {
                     statusMsg.style.display = 'none';
                 }
-                renderMosques(filtered);
+                renderMosques(filtered, fitToMarkers);
             }
 
             async function fetchSuggestions(query) {
@@ -492,7 +492,9 @@
                     L.circle([lat, lon], {radius: NEAR_ME_RADIUS_KM * 1000}).getBounds(),
                     {padding: [20, 20]}
                 );
-                filterByDistance(lat, lon, NEAR_ME_RADIUS_KM);
+                // Don't refit to markers — keep the full 5-mile view even if
+                // it only contains one pin.
+                filterByDistance(lat, lon, NEAR_ME_RADIUS_KM, false);
             }
 
             function onNearMe() {
@@ -560,8 +562,16 @@
                     if (!e.target.closest('.search-box')) hideDropdown();
                 });
 
+                // Only offer "Search this area" after the user physically
+                // gestures on the map — initial fitBounds and programmatic
+                // moves (Current Location, search picks) don't count.
+                let userGestured = false;
+                map._container.addEventListener('pointerdown', function() {
+                    userGestured = true;
+                });
                 map.on('moveend', function() {
-                    areaBtn.style.display = 'block';
+                    if (userGestured) areaBtn.style.display = 'block';
+                    userGestured = false;
                 });
                 areaBtn.addEventListener('click', function() {
                     areaBtn.style.display = 'none';
