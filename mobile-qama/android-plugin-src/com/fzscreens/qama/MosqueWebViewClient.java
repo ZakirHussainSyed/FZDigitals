@@ -98,9 +98,22 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
         if (isTileRequest(url)) {
             return tileResponse(url);
         }
-        // App shell, /static/ assets, CDN libs, and the mosque-times API:
-        // network-first, but every success is snapshotted to disk and served
-        // as the offline fallback.
+        // Versioned CDN libs (leaflet@1.9.4, sortable@1.15.2, ...) are just as
+        // immutable — the URL changes when the version changes.
+        if (isCdnAsset(url)) {
+            WebResourceResponse res = cachedImmutable(url);
+            if (res != null) return res;
+        }
+        // /static/ assets: serve the disk copy while it's within Whitenoise's
+        // 4h max-age; refresh from network only once it's stale.
+        if (isStaticAsset(url)) {
+            WebResourceResponse res = staticThroughCache(request, url);
+            if (res != null) return res;
+        }
+        // Main frame, mosque-map page, and the times API stay network-first —
+        // next_salah is computed at request time, so caching it would show a
+        // prayer that already passed. Every success is snapshotted to disk and
+        // served as the offline fallback.
         if (isAppRequest(url, request)) {
             WebResourceResponse res = fetchThroughCache(request, url);
             if (res != null) return res;
@@ -113,24 +126,38 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
         return path != null && TILE_PATH.matcher(path).matches();
     }
 
-    private boolean isAppRequest(Uri url, WebResourceRequest request) {
+    private boolean isCdnAsset(Uri url) {
         String host = url.getHost();
         if (host == null) return false;
         for (String cdn : CDN_HOSTS) {
             if (host.endsWith(cdn)) return true;
         }
+        return false;
+    }
+
+    private boolean isAppHost(String host) {
         for (String app : APP_HOSTS) {
-            if (host.equals(app)) {
-                if (request.isForMainFrame()) return true;
-                String path = url.getPath();
-                return path != null && (
-                    path.startsWith("/static/")
-                    || path.startsWith("/mosque-map")
-                    || path.startsWith("/api/public/mosques/")
-                    || path.equals("/manifest.webmanifest"));
-            }
+            if (app.equals(host)) return true;
         }
         return false;
+    }
+
+    private boolean isStaticAsset(Uri url) {
+        String host = url.getHost();
+        String path = url.getPath();
+        return host != null && isAppHost(host)
+            && path != null && path.startsWith("/static/");
+    }
+
+    private boolean isAppRequest(Uri url, WebResourceRequest request) {
+        String host = url.getHost();
+        if (host == null || !isAppHost(host)) return false;
+        if (request.isForMainFrame()) return true;
+        String path = url.getPath();
+        return path != null && (
+            path.startsWith("/mosque-map")
+            || path.startsWith("/api/public/mosques/")
+            || path.equals("/manifest.webmanifest"));
     }
 
     /**
@@ -146,12 +173,69 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
                 Log.w(TAG, "failed to serve cached tile " + file, e);
             }
         }
-        byte[] body = fetchBytes(url, conn -> {}, 8 * 1024 * 1024);
+        byte[] body = fetchBytes(url, null, 8 * 1024 * 1024);
         if (body != null && body.length > 0) {
             writeAtomic(file, body);
             return tileHeaders(guessMime(url), body.length, new ByteArrayInputStream(body));
         }
         return tileHeaders("image/png", EMPTY_TILE.length, new ByteArrayInputStream(EMPTY_TILE));
+    }
+
+    /**
+     * Disk-first for immutable assets (versioned CDN libs): serve the stored
+     * copy, or fetch once and keep it forever. Returns null when there's no
+     * cache and the fetch fails, letting the WebView error normally.
+     */
+    private WebResourceResponse cachedImmutable(Uri url) {
+        File file = cacheFileFor(url);
+        WebResourceResponse cached = serveFile(file, url, "public, max-age=31536000, immutable");
+        if (cached != null) return cached;
+        byte[] body = fetchBytes(url, null, 8 * 1024 * 1024);
+        if (body != null && body.length > 0) {
+            writeAtomic(file, body);
+            String mime = guessMime(url);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", mime);
+            headers.put("Content-Length", String.valueOf(body.length));
+            headers.put("Cache-Control", "public, max-age=31536000, immutable");
+            return new WebResourceResponse(mime, encodingFor(mime), 200, "OK",
+                    headers, new ByteArrayInputStream(body));
+        }
+        return null;
+    }
+
+    // Matches Whitenoise's cache-control: public, max-age=14400 on /static/.
+    private static final long STATIC_TTL_MS = 4L * 60 * 60 * 1000;
+
+    /**
+     * /static/ assets: serve the disk copy while it's fresher than the
+     * server's 4h max-age — zero network traffic on repeat launches. Past
+     * that, refresh network-first so deploys do reach the app.
+     */
+    private WebResourceResponse staticThroughCache(WebResourceRequest request, Uri url) {
+        File cacheFile = cacheFileFor(url);
+        long age = System.currentTimeMillis() - cacheFile.lastModified();
+        if (cacheFile.exists() && cacheFile.length() > 0 && age < STATIC_TTL_MS) {
+            WebResourceResponse res = serveFile(cacheFile, url, "public, max-age=14400");
+            if (res != null) return res;
+        }
+        return fetchThroughCache(request, url);
+    }
+
+    private WebResourceResponse serveFile(File file, Uri url, String cacheControl) {
+        if (!file.exists() || file.length() == 0) return null;
+        try {
+            String mime = guessMime(url);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", mime);
+            headers.put("Content-Length", String.valueOf(file.length()));
+            headers.put("Cache-Control", cacheControl);
+            return new WebResourceResponse(mime, encodingFor(mime), 200, "OK",
+                    headers, new FileInputStream(file));
+        } catch (Exception e) {
+            Log.w(TAG, "failed to serve " + file, e);
+            return null;
+        }
     }
 
     private WebResourceResponse tileHeaders(String mime, long length, InputStream body) {
@@ -177,10 +261,11 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
     }
 
     /**
-     * GET the resource and, on success, store it under filesDir/webcache.
-     * Returns body+mime on success, null on any failure.
+     * GET the resource. extraHeaders are mirrored onto the connection (the
+     * WebView's own request headers for app-shell fetches); may be null.
+     * Returns the body on success, null on any failure.
      */
-    private byte[] fetchBytes(Uri url, java.util.function.Consumer<HttpURLConnection> configure, int max) {
+    private byte[] fetchBytes(Uri url, Map<String, String> extraHeaders, int max) {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(url.toString()).openConnection();
@@ -190,7 +275,16 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
             conn.setInstanceFollowRedirects(true);
             conn.setRequestProperty("Accept-Encoding", "identity");
             if (userAgent != null) conn.setRequestProperty("User-Agent", userAgent);
-            configure.accept(conn);
+            if (extraHeaders != null) {
+                for (Map.Entry<String, String> h : extraHeaders.entrySet()) {
+                    String k = h.getKey();
+                    if (k == null || h.getValue() == null) continue;
+                    String lk = k.toLowerCase(Locale.US);
+                    if (lk.equals("host") || lk.equals("connection")
+                            || lk.equals("accept-encoding") || lk.equals("user-agent")) continue;
+                    conn.setRequestProperty(k, h.getValue());
+                }
+            }
             int code = conn.getResponseCode();
             if (code >= 200 && code < 300) {
                 return readFully(conn.getInputStream(), max);
@@ -210,19 +304,7 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
      */
     private WebResourceResponse fetchThroughCache(WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
-        byte[] body = fetchBytes(url, conn -> {
-            Map<String, String> reqHeaders = request.getRequestHeaders();
-            if (reqHeaders != null) {
-                for (Map.Entry<String, String> h : reqHeaders.entrySet()) {
-                    String k = h.getKey();
-                    if (k == null || h.getValue() == null) continue;
-                    String lk = k.toLowerCase(Locale.US);
-                    if (lk.equals("host") || lk.equals("connection")
-                            || lk.equals("accept-encoding") || lk.equals("user-agent")) continue;
-                    conn.setRequestProperty(k, h.getValue());
-                }
-            }
-        }, 8 * 1024 * 1024);
+        byte[] body = fetchBytes(url, request.getRequestHeaders(), 8 * 1024 * 1024);
         if (body != null && body.length > 0) {
             writeAtomic(cacheFile, body);
             String mime = guessMime(url);
