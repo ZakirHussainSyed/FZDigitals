@@ -486,10 +486,11 @@
 
             function focusNearMe(lat, lon) {
                 setUserLocation(lat, lon);
-                // Frame exactly ~5 miles around the user (fitBounds on a circle
-                // beats a fixed zoom level — zoom 13 overshoots at low latitudes).
+                // Frame exactly ~5 miles around the user. L.circle().getBounds()
+                // throws here (detached circle has no _map) — toBounds(size in
+                // meters) is the same math without needing the map.
                 map.fitBounds(
-                    L.circle([lat, lon], {radius: NEAR_ME_RADIUS_KM * 1000}).getBounds(),
+                    L.latLng(lat, lon).toBounds(NEAR_ME_RADIUS_KM * 2000),
                     {padding: [20, 20]}
                 );
                 // Don't refit to markers — keep the full 5-mile view even if
