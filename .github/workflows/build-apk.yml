@@ -76,7 +76,7 @@ jobs:
       - name: Apply FZDigitals app icon
         working-directory: mobile
         run: |
-          LOGO=../slideshow/static/slideshow/logo.jpg
+          LOGO=../slideshow/static/slideshow/logo.png
           rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
           for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
             dir=${d%%:*}; size=${d##*:}
