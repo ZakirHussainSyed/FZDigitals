@@ -193,6 +193,24 @@
             align-items: center;
         }
         .login-btn:hover { opacity: 0.92; }
+        .area-btn {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            padding: 8px 18px;
+            border: none;
+            border-radius: 20px;
+            background: #1a237e;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            display: none;
+            white-space: nowrap;
+        }
         .status-msg {
             position: absolute;
             top: 66px;
@@ -225,6 +243,7 @@
         {% endif %}
     </div>
     <div id="status-msg" class="status-msg"></div>
+    <button id="search-area-btn" class="area-btn">Search this area</button>
     <div id="map"></div>
 
     <div id="modal" class="modal-overlay" aria-hidden="true">
@@ -260,6 +279,7 @@
             const searchInput = document.getElementById('search-input');
             const dropdown = document.getElementById('search-dropdown');
             const ddResults = document.getElementById('dd-results');
+            const areaBtn = document.getElementById('search-area-btn');
 
             function showStatus(text, seconds) {
                 statusMsg.textContent = text;
@@ -533,6 +553,23 @@
 
                 document.addEventListener('click', function(e) {
                     if (!e.target.closest('.search-box')) hideDropdown();
+                });
+
+                map.on('moveend', function() {
+                    areaBtn.style.display = 'block';
+                });
+                areaBtn.addEventListener('click', function() {
+                    areaBtn.style.display = 'none';
+                    const b = map.getBounds();
+                    const inView = allMosques.filter(function(m) {
+                        return b.contains([m.latitude, m.longitude]);
+                    });
+                    if (inView.length === 0) {
+                        showStatus('No mosques found in this area.', 4);
+                    } else {
+                        statusMsg.style.display = 'none';
+                    }
+                    renderMosques(inView);
                 });
 
                 if (!data.success || !data.mosques || !data.mosques.length) {
