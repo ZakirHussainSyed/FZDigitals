@@ -141,30 +141,58 @@
             max-width: 600px;
             margin: 0 auto;
         }
+        .search-box { position: relative; flex: 1; }
         .search-input {
-            flex: 1;
+            width: 100%;
             padding: 12px 14px;
             border: none;
             border-radius: 10px;
             font-size: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.25);
             outline: none;
+            box-sizing: border-box;
         }
-        .search-btn, .near-btn, .login-btn {
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 6px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: none;
+        }
+        .search-dropdown.open { display: block; }
+        .dropdown-item {
+            padding: 12px 14px;
+            font-size: 14px;
+            color: #222;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: rgba(26,35,126,0.08); }
+        .dropdown-item.current-loc { font-weight: 600; color: #0d47a1; }
+        .dropdown-item .dd-main { font-weight: 600; }
+        .dropdown-item .dd-sub { font-size: 12px; color: #666; margin-top: 2px; }
+        .login-btn {
             padding: 12px 16px;
             border: none;
             border-radius: 10px;
-            background: #1a237e;
+            background: #0e9f8a;
             color: #fff;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(0,0,0,0.25);
             white-space: nowrap;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
         }
-        .near-btn { background: #0d47a1; }
-        .login-btn { background: #0e9f8a; text-decoration: none; display: inline-flex; align-items: center; }
-        .search-btn:hover, .near-btn:hover, .login-btn:hover { opacity: 0.92; }
+        .login-btn:hover { opacity: 0.92; }
         .status-msg {
             position: absolute;
             top: 66px;
@@ -183,9 +211,13 @@
 <body>
     <div id="loader" class="loader">Loading mosques...</div>
     <div class="search-bar">
-        <input type="text" id="search-input" class="search-input" placeholder="Enter zipcode or city name">
-        <button id="search-btn" class="search-btn">Search</button>
-        <button id="near-btn" class="near-btn">Near Me</button>
+        <div class="search-box">
+            <input type="text" id="search-input" class="search-input" placeholder="Zipcode, city, or address" autocomplete="off">
+            <div id="search-dropdown" class="search-dropdown">
+                <div class="dropdown-item current-loc" id="dd-current-loc">&#x1F4CD; Current Location</div>
+                <div id="dd-results"></div>
+            </div>
+        </div>
         {% if request.user.is_authenticated %}
         <a href="{% url 'user-dashboard' request.user.id %}" class="login-btn">Dashboard</a>
         {% else %}
@@ -225,6 +257,9 @@
             const modal = document.getElementById('modal');
             const closeBtn = modal.querySelector('.close');
             const statusMsg = document.getElementById('status-msg');
+            const searchInput = document.getElementById('search-input');
+            const dropdown = document.getElementById('search-dropdown');
+            const ddResults = document.getElementById('dd-results');
 
             function showStatus(text, seconds) {
                 statusMsg.textContent = text;
@@ -335,6 +370,9 @@
             let userLon = null;
             let userMarker = null;
 
+            const NEAR_ME_RADIUS_KM = 8; // ~5 miles
+            const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com'];
+
             function clearMarkers() {
                 markers.clearLayers();
             }
@@ -368,6 +406,41 @@
                 renderMosques(filtered);
             }
 
+            async function fetchSuggestions(query) {
+                try {
+                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(query);
+                    const res = await fetch(url, {headers: {'Accept-Language': 'en'}});
+                    const results = await res.json();
+                    ddResults.innerHTML = '';
+                    (results || []).forEach(function(r) {
+                        const parts = (r.display_name || '').split(', ');
+                        const item = document.createElement('div');
+                        item.className = 'dropdown-item';
+                        const main = document.createElement('div');
+                        main.className = 'dd-main';
+                        main.textContent = parts.slice(0, 2).join(', ');
+                        const sub = document.createElement('div');
+                        sub.className = 'dd-sub';
+                        sub.textContent = parts.slice(2).join(', ');
+                        item.appendChild(main);
+                        item.appendChild(sub);
+                        item.addEventListener('click', function() {
+                            hideDropdown();
+                            searchInput.value = parts.slice(0, 2).join(', ');
+                            const lat = parseFloat(r.lat);
+                            const lon = parseFloat(r.lon);
+                            map.setView([lat, lon], 13);
+                            filterByDistance(lat, lon, 50);
+                        });
+                        ddResults.appendChild(item);
+                    });
+                } catch (err) {
+                    console.error('Suggest error:', err);
+                }
+            }
+
+            function hideDropdown() { dropdown.classList.remove('open'); }
+
             async function geocodeAndFocus(query) {
                 if (!query.trim()) return;
                 try {
@@ -388,6 +461,17 @@
                 }
             }
 
+            function focusNearMe(lat, lon) {
+                setUserLocation(lat, lon);
+                // Frame exactly ~5 miles around the user (fitBounds on a circle
+                // beats a fixed zoom level — zoom 13 overshoots at low latitudes).
+                map.fitBounds(
+                    L.circle([lat, lon], {radius: NEAR_ME_RADIUS_KM * 1000}).getBounds(),
+                    {padding: [20, 20]}
+                );
+                filterByDistance(lat, lon, NEAR_ME_RADIUS_KM);
+            }
+
             function onNearMe() {
                 if (!navigator.geolocation) {
                     showStatus('Geolocation is not supported by your browser.', 3);
@@ -396,11 +480,7 @@
                 showStatus('Finding your location...', 5);
                 navigator.geolocation.getCurrentPosition(function(position) {
                     statusMsg.style.display = 'none';
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    setUserLocation(lat, lon);
-                    map.setView([lat, lon], 13);
-                    filterByDistance(lat, lon, 50);
+                    focusNearMe(position.coords.latitude, position.coords.longitude);
                 }, function() {
                     showStatus('Could not get your location.', 3);
                 });
@@ -423,13 +503,37 @@
                     attribution: '{{ attribution|safe }}'
                 }).addTo(map);
 
-                document.getElementById('search-btn').addEventListener('click', function() {
-                    geocodeAndFocus(document.getElementById('search-input').value);
+                searchInput.addEventListener('focus', function() {
+                    dropdown.classList.add('open');
                 });
-                document.getElementById('search-input').addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') geocodeAndFocus(e.target.value);
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        hideDropdown();
+                        geocodeAndFocus(e.target.value);
+                    } else if (e.key === 'Escape') {
+                        hideDropdown();
+                        searchInput.blur();
+                    }
                 });
-                document.getElementById('near-btn').addEventListener('click', onNearMe);
+
+                let suggestTimer = null;
+                searchInput.addEventListener('input', function() {
+                    dropdown.classList.add('open');
+                    clearTimeout(suggestTimer);
+                    const q = searchInput.value.trim();
+                    if (q.length < 3) { ddResults.innerHTML = ''; return; }
+                    suggestTimer = setTimeout(function() { fetchSuggestions(q); }, 350);
+                });
+
+                document.getElementById('dd-current-loc').addEventListener('click', function() {
+                    hideDropdown();
+                    searchInput.value = '';
+                    onNearMe();
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.search-box')) hideDropdown();
+                });
 
                 if (!data.success || !data.mosques || !data.mosques.length) {
                     showStatus('No mosques found.', 4);
@@ -440,8 +544,13 @@
                 renderMosques(allMosques);
 
                 if (navigator.geolocation) {
+                    const autoNearMe = AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
                     navigator.geolocation.getCurrentPosition(function(position) {
-                        setUserLocation(position.coords.latitude, position.coords.longitude);
+                        if (autoNearMe) {
+                            focusNearMe(position.coords.latitude, position.coords.longitude);
+                        } else {
+                            setUserLocation(position.coords.latitude, position.coords.longitude);
+                        }
                     });
                 }
             } catch (err) {
