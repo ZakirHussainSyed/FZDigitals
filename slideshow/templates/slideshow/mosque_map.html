@@ -351,7 +351,7 @@
                 if (userLat !== null && userLon !== null) {
                     const km = mosque.distance_km || haversine(userLat, userLon, mosque.latitude, mosque.longitude);
                     const mi = km * 0.621371;
-                    distEl.textContent = 'Distance: ' + km.toFixed(1) + ' km (' + mi.toFixed(1) + ' mi)';
+                    distEl.textContent = 'Distance: ' + mi.toFixed(1) + ' mi (' + km.toFixed(1) + ' km)';
                     distEl.style.display = 'block';
                 } else {
                     distEl.style.display = 'none';
@@ -390,9 +390,10 @@
             let userLon = null;
             let userMarker = null;
 
-            const NEAR_ME_RADIUS_KM = 8; // ~5 miles
+            const NEAR_ME_RADIUS_MILES = 6;
+            const NEAR_ME_RADIUS_M = NEAR_ME_RADIUS_MILES * 1609.34;
             const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com'];
-            // Coarse (network) location is plenty for a 5-mile view and returns
+            // Coarse (network) location is plenty for a 6-mile view and returns
             // fast; without a timeout the promise can hang forever in WebViews.
             const GEO_OPTS = {enableHighAccuracy: false, timeout: 10000, maximumAge: 300000};
 
@@ -414,7 +415,8 @@
                 }
             }
 
-            function filterByDistance(centerLat, centerLon, radiusKm, fitToMarkers) {
+            function filterByDistance(centerLat, centerLon, radiusMiles, fitToMarkers) {
+                const radiusKm = radiusMiles * 1.60934;
                 const filtered = allMosques.filter(function(m) {
                     return haversine(centerLat, centerLon, m.latitude, m.longitude) <= radiusKm;
                 }).sort(function(a, b) {
@@ -422,7 +424,7 @@
                            haversine(centerLat, centerLon, b.latitude, b.longitude);
                 });
                 if (filtered.length === 0) {
-                    showStatus('No mosques found within ' + radiusKm + ' km of this area.', 4);
+                    showStatus('No mosques found within ' + radiusMiles + ' miles of this area.', 4);
                 } else {
                     statusMsg.style.display = 'none';
                 }
@@ -453,7 +455,7 @@
                             const lat = parseFloat(r.lat);
                             const lon = parseFloat(r.lon);
                             map.setView([lat, lon], 13);
-                            filterByDistance(lat, lon, 50);
+                            filterByDistance(lat, lon, 31); // ~50 km
                         });
                         ddResults.appendChild(item);
                     });
@@ -477,7 +479,7 @@
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
                     map.setView([lat, lon], 13);
-                    filterByDistance(lat, lon, 50);
+                    filterByDistance(lat, lon, 31); // ~50 km
                 } catch (err) {
                     console.error('Geocode error:', err);
                     showStatus('Search failed. Please try again.', 3);
@@ -486,16 +488,22 @@
 
             function focusNearMe(lat, lon) {
                 setUserLocation(lat, lon);
-                // Frame exactly ~5 miles around the user. L.circle().getBounds()
+                // Frame ~6 miles around the user. L.circle().getBounds()
                 // throws here (detached circle has no _map) — toBounds(size in
                 // meters) is the same math without needing the map.
                 map.fitBounds(
-                    L.latLng(lat, lon).toBounds(NEAR_ME_RADIUS_KM * 2000),
+                    L.latLng(lat, lon).toBounds(NEAR_ME_RADIUS_M * 2),
                     {padding: [20, 20]}
                 );
-                // Don't refit to markers — keep the full 5-mile view even if
-                // it only contains one pin.
-                filterByDistance(lat, lon, NEAR_ME_RADIUS_KM, false);
+                // No distance filter — render every mosque; the 6-mile frame
+                // is the viewport itself. Pins outside stay visible on pan.
+                renderMosques(allMosques, false);
+                const b = map.getBounds();
+                if (!allMosques.some(function(m) {
+                    return b.contains([m.latitude, m.longitude]);
+                })) {
+                    showStatus('No mosques near you yet — drag the map to explore.', 5);
+                }
             }
 
             // Coarse city-level fallback when browser geolocation fails —
