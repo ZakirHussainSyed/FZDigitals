@@ -390,10 +390,10 @@
             let userLon = null;
             let userMarker = null;
 
-            const NEAR_ME_RADIUS_MILES = 6;
+            const NEAR_ME_RADIUS_MILES = 8; // horizontal radius of the near-me frame
             const NEAR_ME_RADIUS_M = NEAR_ME_RADIUS_MILES * 1609.34;
             const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com'];
-            // Coarse (network) location is plenty for a 6-mile view and returns
+            // Coarse (network) location is plenty for a near-me view and returns
             // fast; without a timeout the promise can hang forever in WebViews.
             const GEO_OPTS = {enableHighAccuracy: false, timeout: 10000, maximumAge: 300000};
 
@@ -488,14 +488,19 @@
 
             function focusNearMe(lat, lon) {
                 setUserLocation(lat, lon);
-                // Frame ~6 miles around the user. L.circle().getBounds()
-                // throws here (detached circle has no _map) — toBounds(size in
-                // meters) is the same math without needing the map.
+                // Frame by horizontal radius (8 mi). Zoom is single-scale, so
+                // vertical extent = horizontal × screen aspect (taller on
+                // portrait phones, shallower on landscape desktops).
+                const px = map.getSize();
+                const halfLngM = NEAR_ME_RADIUS_M;
+                const halfLatM = NEAR_ME_RADIUS_M * (px.y / px.x);
+                const latD = halfLatM / 111320;
+                const lngD = halfLngM / (111320 * Math.cos(lat * Math.PI / 180));
                 map.fitBounds(
-                    L.latLng(lat, lon).toBounds(NEAR_ME_RADIUS_M * 2),
+                    [[lat - latD, lon - lngD], [lat + latD, lon + lngD]],
                     {padding: [20, 20]}
                 );
-                // No distance filter — render every mosque; the 6-mile frame
+                // No distance filter — render every mosque; the framed radius
                 // is the viewport itself. Pins outside stay visible on pan.
                 renderMosques(allMosques, false);
                 const b = map.getBounds();
