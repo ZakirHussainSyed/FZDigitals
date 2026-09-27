@@ -1,5 +1,5 @@
-# FZDigitals
-FZDigitals Advertisement
+# FZ Screens
+FZ Screens Advertisement
 
 ## Local Development
 

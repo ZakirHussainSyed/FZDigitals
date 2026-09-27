@@ -15,11 +15,11 @@ try:
     # Configure Sites
     site, created = Site.objects.get_or_create(
         id=1,
-        defaults={'domain': '127.0.0.1:8000', 'name': 'FZDigitals Local'}
+        defaults={'domain': '127.0.0.1:8000', 'name': 'FZ Screens Local'}
     )
     if not created:
         site.domain = '127.0.0.1:8000'
-        site.name = 'FZDigitals Local'
+        site.name = 'FZ Screens Local'
         site.save()
     print(f"Site configured: {site.domain} - {site.name}", file=sys.stderr)
 
@@ -31,10 +31,10 @@ try:
     # Create Social App
     app, created = SocialApp.objects.get_or_create(
         provider='google',
-        defaults={'name': 'FZDigitals Google', 'client_id': GOOGLE_CLIENT_ID, 'secret': GOOGLE_CLIENT_SECRET}
+        defaults={'name': 'FZ Screens Google', 'client_id': GOOGLE_CLIENT_ID, 'secret': GOOGLE_CLIENT_SECRET}
     )
     if not created:
-        app.name = 'FZDigitals Google'
+        app.name = 'FZ Screens Google'
         app.client_id = GOOGLE_CLIENT_ID
         app.secret = GOOGLE_CLIENT_SECRET
         app.save()
