@@ -394,7 +394,7 @@
             const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com'];
             // Coarse (network) location is plenty for a 5-mile view and returns
             // fast; without a timeout the promise can hang forever in WebViews.
-            const GEO_OPTS = {enableHighAccuracy: false, timeout: 15000, maximumAge: 300000};
+            const GEO_OPTS = {enableHighAccuracy: false, timeout: 10000, maximumAge: 300000};
 
             function clearMarkers() {
                 markers.clearLayers();
@@ -497,19 +497,43 @@
                 filterByDistance(lat, lon, NEAR_ME_RADIUS_KM, false);
             }
 
-            function onNearMe() {
+            // Coarse city-level fallback when browser geolocation fails —
+            // no permission prompt, good enough to frame the 5-mile view.
+            async function focusByIP() {
+                try {
+                    const res = await fetch('https://ipapi.co/json/');
+                    const data = await res.json();
+                    if (data && data.latitude && data.longitude) {
+                        focusNearMe(parseFloat(data.latitude), parseFloat(data.longitude));
+                        return true;
+                    }
+                } catch (err) {
+                    console.error('IP geolocation error:', err);
+                }
+                return false;
+            }
+
+            async function onNearMe() {
                 if (!navigator.geolocation) {
-                    showStatus('Geolocation is not supported by your browser.', 3);
+                    if (await focusByIP()) {
+                        showStatus('Approximate location via network.', 3);
+                    } else {
+                        showStatus('Geolocation is not supported by your browser.', 3);
+                    }
                     return;
                 }
                 showStatus('Finding your location...', 5);
                 navigator.geolocation.getCurrentPosition(function(position) {
                     statusMsg.style.display = 'none';
                     focusNearMe(position.coords.latitude, position.coords.longitude);
-                }, function(err) {
-                    showStatus(err && err.code === 1
-                        ? 'Location permission is blocked — enable it in site settings.'
-                        : 'Could not get your location.', 5);
+                }, async function(err) {
+                    if (await focusByIP()) {
+                        showStatus('Approximate location via network.', 3);
+                    } else {
+                        showStatus(err && err.code === 1
+                            ? 'Location permission is blocked — enable it in site settings.'
+                            : 'Could not get your location.', 5);
+                    }
                 }, GEO_OPTS);
             }
 
@@ -595,19 +619,26 @@
                 allMosques = data.mosques;
                 renderMosques(allMosques);
 
-                if (navigator.geolocation) {
-                    const autoNearMe = AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
+                const autoNearMe = AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
+                if (!navigator.geolocation && autoNearMe) {
+                    focusByIP();
+                } else if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(function(position) {
                         if (autoNearMe) {
                             focusNearMe(position.coords.latitude, position.coords.longitude);
                         } else {
                             setUserLocation(position.coords.latitude, position.coords.longitude);
                         }
-                    }, function(err) {
-                        // Silent on load for non-auto hosts; nudge only on the
-                        // branded map where auto-zoom is expected.
-                        if (autoNearMe && err && err.code === 1) {
-                            showStatus('Enable location permission to see mosques near you.', 5);
+                    }, async function(err) {
+                        if (autoNearMe) {
+                            // Browser geo failed (permission, OS-level off, or
+                            // timeout) — fall back to IP so the map still
+                            // zooms to the user's area.
+                            if (await focusByIP()) {
+                                showStatus('Approximate location via network.', 3);
+                            } else if (err && err.code === 1) {
+                                showStatus('Enable location permission to see mosques near you.', 5);
+                            }
                         }
                     }, GEO_OPTS);
                 }
