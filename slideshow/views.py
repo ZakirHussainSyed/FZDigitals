@@ -1659,6 +1659,7 @@ def api_public_mosques(request):
                 'longitude': float(m.longitude),
                 'next_salah': next_salah,
                 'timings': timings,
+                'website': m.website_url,
             })
         return JsonResponse({'success': True, 'mosques': data})
     except Exception as e:
