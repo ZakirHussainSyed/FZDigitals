@@ -1787,8 +1787,20 @@ def prayer_times(request):
             return redirect('prayer-times')
 
         try:
+            after_sunset = request.POST.get('maghrib_after_sunset') == 'on'
             for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3']:
+                if field == 'maghrib' and after_sunset:
+                    # 'After Sunset' checked — Maghrib = sunset + 1 min for
+                    # this date; skips parsing so disabled inputs can't fail.
+                    sunset_t = prayer_time.sunset or sunset_time(
+                        mosque.latitude, mosque.longitude, today, tz)
+                    if sunset_t:
+                        prayer_time.maghrib = (
+                            datetime.combine(today, sunset_t) + timedelta(minutes=1)
+                        ).time()
+                    continue
                 setattr(prayer_time, field, _parse(field))
+            prayer_time.maghrib_after_sunset = after_sunset
             prayer_time.source = 'manual'
             prayer_time.save()
             messages.success(request, 'Prayer times updated.')

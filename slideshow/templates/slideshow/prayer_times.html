@@ -197,6 +197,12 @@
                         <option value="PM" {% if f.ampm == 'PM' %}selected{% endif %}>PM</option>
                     </select>
                 </div>
+                {% if f.name == 'maghrib' and not mosque.sync_enabled %}
+                <label class="sync-toggle" for="id_maghrib_after_sunset">
+                    <input type="checkbox" name="maghrib_after_sunset" id="id_maghrib_after_sunset" {% if prayer_time.maghrib_after_sunset %}checked{% endif %}>
+                    <span>After Sunset — sets Maghrib to 1 min after the day's sunset</span>
+                </label>
+                {% endif %}
                 {% endif %}
             </div>
             {% endfor %}
@@ -210,6 +216,18 @@
         document.getElementById('id_sync_enabled').addEventListener('change', function () {
             document.getElementById('website-url-group').style.display = this.checked ? 'block' : 'none';
         });
+        const msBox = document.getElementById('id_maghrib_after_sunset');
+        if (msBox) {
+            const msFields = ['id_maghrib_hour', 'id_maghrib_minute', 'id_maghrib_ampm'];
+            const toggleMs = function () {
+                msFields.forEach(function (id) {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = msBox.checked;
+                });
+            };
+            msBox.addEventListener('change', toggleMs);
+            toggleMs();
+        }
     </script>
 </body>
 </html>
