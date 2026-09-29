@@ -579,7 +579,10 @@
                     vid.loop = false;
                     vid.setAttribute('playsinline', '');
                     vid.setAttribute('muted', '');
-                    vid.setAttribute('preload', 'auto');
+                    // 'metadata' not 'auto': every slide preloading its full
+                    // video at once starves weak TV hardware — data is fetched
+                    // on play over localhost anyway, so nothing is lost.
+                    vid.setAttribute('preload', 'metadata');
                     const logVideo = (e) => dlog(`video [${f.title}] ${e}:`, 'readyState:', vid.readyState, 'networkState:', vid.networkState, 'currentTime:', vid.currentTime, 'duration:', vid.duration, 'paused:', vid.paused, 'currentSrc:', vid.currentSrc);
                     ['loadstart', 'loadeddata', 'canplay', 'canplaythrough', 'playing', 'stalled', 'waiting', 'ended'].forEach(evt => {
                         vid.addEventListener(evt, () => logVideo(evt));
@@ -665,12 +668,19 @@
             if (deviceToken && deviceId) {
                 dlog('refresh: using existing pairing');
                 let res, data;
+                const ctl = new AbortController();
+                // navigator.onLine is true on dead WAN — cap the fetch so a
+                // flaky link can't stall refresh indefinitely.
+                const fetchTimer = setTimeout(() => ctl.abort(), 8000);
                 try {
                     res = await fetch(
-                        `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`
+                        `/api/device/${encodeURIComponent(deviceId)}/slideshow/?token=${encodeURIComponent(deviceToken)}`,
+                        {signal: ctl.signal}
                     );
                     data = await res.json();
+                    clearTimeout(fetchTimer);
                 } catch (err) {
+                    clearTimeout(fetchTimer);
                     // Network failed even though navigator.onLine was true
                     // (e.g. WiFi up but no WAN). Fall back to cached media.
                     dwarn('refresh: slideshow fetch failed, trying cache', err);
