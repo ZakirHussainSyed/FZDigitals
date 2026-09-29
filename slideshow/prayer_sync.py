@@ -547,6 +547,97 @@ def _js_schedule_times(html, base_url):
     return times
 
 
+JSON_URL_RE = re.compile(
+    r'["\']([^"\']+\.json(?:[?#][^"\']*)?)["\']', re.I)
+IFRAME_SRC_RE = re.compile(r'<iframe[^>]+src=["\']([^"\']+)["\']', re.I)
+PRAYER_IFRAME_RE = re.compile(r'prayer|sala[ah]?[ht]|namaz|iqamah?|timing', re.I)
+DATE_KEY_RE = re.compile(r'^(\d{4})-?(\d{2})-?(\d{2})$')
+
+
+def _hhmm(v):
+    """'6:00' / '13:09' → time, None on anything else."""
+    try:
+        return datetime.strptime(str(v).strip(), '%H:%M').time()
+    except (ValueError, TypeError):
+        return None
+
+
+def _timetable_json_parse(data):
+    """{YYYYMMDD: {prayer: [athan, iqama]}} → {date: {fajr: time, ...}}.
+
+    Iqama (index 1) wins; '+N min' iqama = athan + N (e.g. maghrib).
+    Falls back to athan when iqama is missing/blank.
+    """
+    if not isinstance(data, dict):
+        return None
+    times = {}
+    for key, entry in data.items():
+        dm = DATE_KEY_RE.match(str(key).strip())
+        if not dm or not isinstance(entry, dict):
+            continue
+        try:
+            d = date(int(dm.group(1)), int(dm.group(2)), int(dm.group(3)))
+        except ValueError:
+            continue
+        e = {}
+        for prayer in REQUIRED_PRAYERS:
+            vals = entry.get(prayer)
+            if not isinstance(vals, (list, tuple)) or not vals:
+                continue
+            athan = _hhmm(vals[0])
+            iqama = vals[1] if len(vals) > 1 else None
+            t = _hhmm(iqama)
+            if not t and athan and iqama:
+                off = re.match(r'\+\s*(\d+)\s*min', str(iqama).strip(), re.I)
+                if off:
+                    t = (datetime.combine(d, athan)
+                         + timedelta(minutes=int(off.group(1)))).time()
+            e[prayer] = t or athan
+        if _validated(e):
+            times[d] = e
+    return times or None
+
+
+def _timetable_json_times(html, base_url, _depth=0):
+    """Pages that render a timetable from a static JSON schedule — e.g.
+    berkeleymasjid.org whose /prayer-times-display/ widget does
+    fetch('./timetable.json'). Finds .json URLs in scripts, fetches each,
+    and accepts whichever parses as a prayer schedule. Follows
+    prayer-related iframes one level (the widget often sits inside a
+    bare-bones prayer page)."""
+    json_urls = []
+    for m in JSON_URL_RE.finditer(html):
+        u = urljoin(base_url, unescape(m.group(1)))
+        if u not in json_urls:
+            json_urls.append(u)
+    for u in json_urls[:5]:
+        try:
+            data = requests.get(u, timeout=20, headers=UA).json()
+        except Exception as e:
+            logger.warning(f'timetable JSON fetch failed ({u}): {e}')
+            continue
+        times = _timetable_json_parse(data)
+        if times:
+            logger.info(f'timetable JSON schedule loaded from {u} ({len(times)} days)')
+            return times
+    if _depth == 0:
+        for m in IFRAME_SRC_RE.finditer(html):
+            src = unescape(m.group(1))
+            if not PRAYER_IFRAME_RE.search(src):
+                continue
+            u = urljoin(base_url, src)
+            try:
+                r = requests.get(u, timeout=15, headers=UA)
+                r.raise_for_status()
+            except Exception as e:
+                logger.warning(f'prayer iframe fetch failed ({u}): {e}')
+                continue
+            times = _timetable_json_times(r.text, u, _depth + 1)
+            if times:
+                return times
+    return None
+
+
 def _page_text(html):
     """Visible text of a page — tags/scripts stripped, whitespace collapsed."""
     text = unescape(re.sub(r'<[^>]+>', ' ',
@@ -737,6 +828,10 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     if times:
         return times
 
+    times = _timetable_json_times(html, base_url)
+    if times:
+        return times
+
     pdf_url = find_schedule_pdf_url(html, base_url)
     if pdf_url:
         try:
@@ -767,6 +862,9 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
                 times = fetcher(r2.text)
                 if times:
                     return times
+            times = _timetable_json_times(r2.text, link)
+            if times:
+                return times
             times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text, jummah_section)
             if times:
                 return {None: times}
