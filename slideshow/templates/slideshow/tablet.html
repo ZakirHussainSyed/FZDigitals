@@ -283,6 +283,7 @@
                 if (devlogOn && level === 'E') flushLogs();
             } catch (e) { /* never break logging */ }
         }
+        let flushFails = 0;
         function flushLogs() {
             if (!devlogOn || !logBuf.length || !deviceId || !deviceToken) return;
             const lines = logBuf.splice(0, logBuf.length);
@@ -293,10 +294,30 @@
                     'X-Device-Token': deviceToken,
                 },
                 body: JSON.stringify({logs: lines}),
-            }).catch(() => { /* best effort */ });
+            }).then(() => {
+                if (flushFails) {
+                    // first success after a gap — report it so the missing
+                    // window is attributable to network loss, not a JS stall
+                    bufLog('W', [`devlog: ${flushFails} failed flushes — network gap ~${flushFails * 15}s`])
+                    flushFails = 0;
+                }
+            }).catch(() => {
+                flushFails++;
+                // restore the lines instead of dropping them — bounded by the
+                // 300-line cap so a long outage doesn't grow memory unbounded
+                logBuf.unshift(...lines);
+                if (logBuf.length > 300) logBuf.length = 300;
+            });
         }
         setInterval(flushLogs, 15000);
         window.addEventListener('beforeunload', flushLogs);
+        // Screensaver / display-off detection: if the WebView goes hidden the
+        // next flush after resume will carry this line → separates "TV slept"
+        // from "network died" in remote diagnostics.
+        document.addEventListener('visibilitychange', () =>
+            dlog('visibility:', document.visibilityState));
+        window.addEventListener('offline', () => dwarn('network: offline'));
+        window.addEventListener('online', () => dlog('network: online'));
         window.addEventListener('error', e =>
             derror('window.onerror:', e.message, e.filename, e.lineno));
         window.addEventListener('unhandledrejection', e =>
@@ -353,6 +374,16 @@
             el.removeAttribute('src');
             if (el.tagName === 'VIDEO') { try { el.pause(); el.load(); } catch (e) {} }
         }
+
+        // Re-assert the screen-on flag periodically — some TV builds drop it.
+        // Failures surface in devlog once per attempt instead of silently.
+        function keepScreenAwake() {
+            if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
+                Capacitor.Plugins.KeepAwake.keepAwake()
+                    .catch(err => dwarn('KeepAwake failed:', err && err.message));
+            }
+        }
+        setInterval(keepScreenAwake, 5 * 60 * 1000);
 
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) {
@@ -1031,9 +1062,7 @@
             }
 
             requestAutoFullscreen();
-            if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
-                Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});
-            }
+            keepScreenAwake();
         }
 
         // Keep list updated
