@@ -330,6 +330,14 @@
             return f.url;
         }
 
+        // Slides are created with a deferred data-src; only the active and
+        // next slide get a real src so at most 2 media items load at once.
+        function hydrateSlide(node) {
+            if (!node) return;
+            const el = node.querySelector('img[data-src], video[data-src]');
+            if (el) { el.src = el.dataset.src; delete el.dataset.src; }
+        }
+
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) return files;
             try {
@@ -379,7 +387,11 @@
 
         function saveCachedMedia(files) {
             if (files && files.length) {
-                localStorage.setItem('fz_media', JSON.stringify(files));
+                // Strip per-session fields: localUrl carries the local server's
+                // random port which is dead after restart (playCachedMedia
+                // re-resolves it through the plugin anyway).
+                const persisted = files.map(({localUrl, ...rest}) => rest);
+                localStorage.setItem('fz_media', JSON.stringify(persisted));
             }
         }
         
@@ -600,10 +612,14 @@
 
                 if (f.type === 'image') {
                     const img = document.createElement('img');
-                    img.src = getMediaSrc(f);
+                    // Defer the src: assigning it to all N slides at render
+                    // fires N concurrent downloads/decodes — enough to OOM the
+                    // WebView renderer (black screen) on low-RAM sticks. The
+                    // real src is set only when the slide is about to show.
+                    img.dataset.src = getMediaSrc(f);
                     img.alt = f.title;
                     img.onerror = () => {
-                        dwarn('image load error:', f.title);
+                        dwarn('image load error:', f.title, 'src:', img.currentSrc);
                         if (img.parentElement && img.parentElement.classList.contains('active')) {
                             setTimeout(() => show(current + 1), 500);
                         }
@@ -611,7 +627,7 @@
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
-                    vid.src = getMediaSrc(f);
+                    vid.dataset.src = getMediaSrc(f);  // deferred — see image branch
                     vid.controls = false;
                     vid.muted = true;
                     vid.playsInline = true;
@@ -655,6 +671,8 @@
                 'src:', cur && cur.localUrl ? 'local-cache' : 'remote');
             const nodes = slidesEl.querySelectorAll('.slide');
             dlog('show: found', nodes.length, 'slide nodes');
+            hydrateSlide(nodes[current]);
+            hydrateSlide(nodes[(current + 1) % nodes.length]);
 
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
@@ -735,7 +753,13 @@
                     const currentIds = JSON.stringify(media.map(f => f.id));
                     const newIds = JSON.stringify(data.files.map(f => f.id));
                     if (currentIds === newIds && media.length === data.files.length && pairingScreen.classList.contains('hidden')) {
-                        // No change; don't re-render, keep current playback running
+                        // No change; don't re-render. But if localUrls are
+                        // missing (e.g. restored list, or plugin sync was
+                        // skipped), re-resolve so slides stop hitting remote.
+                        if (MediaDownloader && media.some(f => !f.localUrl)) {
+                            dlog('refresh: media unchanged but localUrl missing, re-resolving');
+                            media = await syncMediaToLocal(media);
+                        }
                         return;
                     }
                     dlog('refresh: slideshow changed, syncing diff');
