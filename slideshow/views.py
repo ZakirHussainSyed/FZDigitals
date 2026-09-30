@@ -1235,6 +1235,31 @@ def api_device_slideshow(request, device_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_device_log(request, device_id):
+    """Remote diagnostics from the tablet app — it buffers its dlog output
+    and POSTs it here so playback stalls on unreachable TV sticks can be
+    read from the server logs ('devlog <device_id> | ...')."""
+    try:
+        device = Device.objects.get(device_id=device_id)
+    except Device.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Device not found'}, status=404)
+
+    token = request.headers.get('X-Device-Token', '') or request.GET.get('token', '')
+    if not constant_time_compare(token, device.token):
+        return JsonResponse({'success': False, 'error': 'Invalid device token'}, status=403)
+
+    try:
+        payload = json.loads(request.body[:65536])
+        lines = payload.get('logs', [])[:100]
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'bad payload'}, status=400)
+    for line in lines:
+        logger.info('devlog %s | %s', device_id, str(line)[:500])
+    return JsonResponse({'success': True, 'count': len(lines)})
+
+
 @login_required
 @require_http_methods(["GET"])
 def api_user_devices(request):

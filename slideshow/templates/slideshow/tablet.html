@@ -263,14 +263,50 @@
         const rawWarn = console.warn;
         const rawError = console.error;
 
+        // Remote diagnostics: buffer every dlog/dwarn/derror and POST it to
+        // the server — this is how we debug sticks we can't physically reach
+        // (read Render logs filtered on 'devlog <device-id>').
+        const logBuf = [];
+        function bufLog(level, args) {
+            try {
+                const msg = args.map(a =>
+                    typeof a === 'string' ? a : JSON.stringify(a)
+                ).join(' ').slice(0, 500);
+                logBuf.push(`${new Date().toISOString()} ${level} ${msg}`);
+                if (logBuf.length > 300) logBuf.shift();
+            } catch (e) { /* never break logging */ }
+        }
+        function flushLogs() {
+            if (!logBuf.length || !deviceId || !deviceToken) return;
+            const lines = logBuf.splice(0, logBuf.length);
+            fetch(`/api/device/${encodeURIComponent(deviceId)}/log/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Token': deviceToken,
+                },
+                body: JSON.stringify({logs: lines}),
+            }).catch(() => { /* best effort */ });
+        }
+        setInterval(flushLogs, 15000);
+        window.addEventListener('beforeunload', flushLogs);
+        window.addEventListener('error', e =>
+            derror('window.onerror:', e.message, e.filename, e.lineno));
+        window.addEventListener('unhandledrejection', e =>
+            derror('unhandledrejection:', e.reason && (e.reason.message || e.reason)));
+
         function dlog(...args) {
             rawLog.apply(console, args);
+            bufLog('I', args);
         }
         function dwarn(...args) {
             rawWarn.apply(console, args);
+            bufLog('W', args);
         }
         function derror(...args) {
             rawError.apply(console, args);
+            bufLog('E', args);
+            flushLogs();  // errors ship immediately, not on the next interval
         }
 
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
