@@ -270,7 +270,10 @@
         const logBuf = [];
         let devlogOn = false;
         function bufLog(level, args) {
-            if (!devlogOn) return;
+            // Buffer even before devlogOn is known — boot lines (plugin
+            // presence, sync result) all precede the slideshow response that
+            // enables shipping, so gating here would drop exactly the lines
+            // needed to diagnose a cold start. Gate on the POST instead.
             try {
                 const msg = args.map(a =>
                     typeof a === 'string' ? a : JSON.stringify(a)
@@ -281,7 +284,7 @@
             } catch (e) { /* never break logging */ }
         }
         function flushLogs() {
-            if (!logBuf.length || !deviceId || !deviceToken) return;
+            if (!devlogOn || !logBuf.length || !deviceId || !deviceToken) return;
             const lines = logBuf.splice(0, logBuf.length);
             fetch(`/api/device/${encodeURIComponent(deviceId)}/log/`, {
                 method: 'POST',
@@ -339,7 +342,10 @@
         }
 
         async function syncMediaToLocal(files) {
-            if (!MediaDownloader) return files;
+            if (!MediaDownloader) {
+                dwarn('MediaDownloader plugin unavailable — serving remote');
+                return files;
+            }
             try {
                 dlog('MediaDownloader.sync starting for', files.length, 'files');
                 const res = await MediaDownloader.sync({ files: files });
