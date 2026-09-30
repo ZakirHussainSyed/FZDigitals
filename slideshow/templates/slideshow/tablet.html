@@ -1020,8 +1020,14 @@
         // Keep list updated
         showSplash().then(startApp);
 
-        if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        // Register the media-cache SW whenever the native plugin can't run —
+        // browsers AND old-WebView sticks where the Capacitor bridge never
+        // initialized (window.Capacitor undefined → isNativePlatform() would
+        // throw). On a healthy native bridge the plugin owns the disk cache.
+        if (!MediaDownloader && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(() => dlog('SW registered — plugin unavailable, media will cache via service worker'))
+                .catch(err => dwarn('SW register failed:', err));
         }
     </script>
 </body>
