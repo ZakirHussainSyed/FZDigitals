@@ -341,6 +341,19 @@
             if (el) { el.src = el.dataset.src; delete el.dataset.src; }
         }
 
+        // Opposite of hydrate: move src back to data-src so the WebView
+        // releases the decoded bitmap / video decoder. Without this, every
+        // slide that plays stays resident and ~37 decoded slides OOM the
+        // renderer on low-RAM sticks (hang + black screen ~30 min in).
+        function dehydrateSlide(node) {
+            if (!node) return;
+            const el = node.querySelector('img[src], video[src]');
+            if (!el || !el.src || el.src.startsWith('data:')) return;
+            el.dataset.src = el.src;
+            el.removeAttribute('src');
+            if (el.tagName === 'VIDEO') { try { el.pause(); el.load(); } catch (e) {} }
+        }
+
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) {
                 dwarn('MediaDownloader plugin unavailable — serving remote');
@@ -677,8 +690,14 @@
                 'src:', cur && cur.localUrl ? 'local-cache' : 'remote');
             const nodes = slidesEl.querySelectorAll('.slide');
             dlog('show: found', nodes.length, 'slide nodes');
+            const nextIdx = (current + 1) % nodes.length;
             hydrateSlide(nodes[current]);
-            hydrateSlide(nodes[(current + 1) % nodes.length]);
+            hydrateSlide(nodes[nextIdx]);
+            // Release decoded media on everything outside the current/next
+            // window — caps renderer memory at ~2 slides regardless of count.
+            nodes.forEach((n, idx) => {
+                if (idx !== current && idx !== nextIdx) dehydrateSlide(n);
+            });
 
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
