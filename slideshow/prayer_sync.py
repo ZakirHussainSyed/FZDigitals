@@ -942,28 +942,46 @@ def _sync(mosque, force):
         logger.warning(f'Prayer sync failed for mosque {mosque.id}: {e}')
         return 0, str(e)
 
-    synced = 0
+    # Full-schedule sources can return decades of dates (Berkeley's JSON
+    # timetable spans 2021-2051). Cap to a rolling window — nightly syncs
+    # keep extending it — or a single sync makes tens of thousands of
+    # writes and the request worker is killed mid-write.
+    rows = {}
     for d, entry in times.items():
         d = d or today  # single-day sources (widgets, page text) key on None
-        defaults = {
+        if not (today - timedelta(days=7) <= d <= today + timedelta(days=370)):
+            continue
+        rows[d] = {
             **entry,
             'sunset': sunset_time(mosque.latitude, mosque.longitude, d, tz),
             'source': 'pdf',
         }
-        if force:
-            PrayerTime.objects.update_or_create(mosque=mosque, date=d, defaults=defaults)
-            synced += 1
-        else:
-            obj, created = PrayerTime.objects.get_or_create(
-                mosque=mosque, date=d, defaults=defaults)
-            if not created and obj.source == 'manual':
-                continue  # never clobber a manual edit on lazy syncs
-            if not created:
-                for k, v in defaults.items():
-                    setattr(obj, k, v)
-                obj.save()
-            synced += 1
-    return synced, None
+
+    manual_dates = set()
+    if not force:
+        # never clobber a manual edit on lazy syncs
+        manual_dates = set(
+            PrayerTime.objects
+            .filter(mosque=mosque, date__in=rows, source='manual')
+            .values_list('date', flat=True))
+
+    objs = [PrayerTime(mosque=mosque, date=d, **defaults)
+            for d, defaults in rows.items() if d not in manual_dates]
+    if objs:
+        # Bulk upsert — one query per 500 rows instead of 2+ per row.
+        # update_fields = keys every row carries (fields absent from all
+        # rows, e.g. jummah on schedules without it, are left untouched
+        # on existing rows — same as update_or_create(defaults)).
+        update_fields = sorted(
+            {k for r in rows.values() for k in r}
+            & {f.name for f in PrayerTime._meta.fields}
+            - {'id', 'mosque', 'date'})
+        PrayerTime.objects.bulk_create(
+            objs, batch_size=500,
+            update_conflicts=True,
+            unique_fields=['mosque', 'date'],
+            update_fields=update_fields)
+    return len(objs), None
 
 
 def maybe_sync_mosque(mosque):

@@ -104,7 +104,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     DATABASES = {
-        'default': dj_database_url.config(conn_max_age=600)
+        # conn_health_checks recycles conns Render's Postgres dropped while
+        # pooled — otherwise the first query on a stale conn dies with
+        # "SSL SYSCALL error: EOF detected" (api_device_slideshow 500s).
+        'default': dj_database_url.config(conn_max_age=600, conn_health_checks=True)
     }
 else:
     # Only use SQLite for local development when DATABASE_URL is not set
