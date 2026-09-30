@@ -1214,6 +1214,9 @@ def api_device_slideshow(request, device_id):
             'device_id': device.device_id,
             'user_id': device.user.id,
             'screen': device.screen,
+            # Server-side switch for remote diagnostics: tablet only ships
+            # its dlog buffer when this device's id is in DEVICE_DEBUG_LOGS.
+            'debug': device.device_id in settings.DEVICE_DEBUG_LOGS,
             'files': [
                 {
                     'id': f.id,

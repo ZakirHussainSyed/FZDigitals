@@ -265,15 +265,19 @@
 
         // Remote diagnostics: buffer every dlog/dwarn/derror and POST it to
         // the server — this is how we debug sticks we can't physically reach
-        // (read Render logs filtered on 'devlog <device-id>').
+        // (read Render logs filtered on 'devlog <device-id>'). OFF unless the
+        // server says debug:true for this device (DEVICE_DEBUG_LOGS env var).
         const logBuf = [];
+        let devlogOn = false;
         function bufLog(level, args) {
+            if (!devlogOn) return;
             try {
                 const msg = args.map(a =>
                     typeof a === 'string' ? a : JSON.stringify(a)
                 ).join(' ').slice(0, 500);
                 logBuf.push(`${new Date().toISOString()} ${level} ${msg}`);
                 if (logBuf.length > 300) logBuf.shift();
+                if (devlogOn && level === 'E') flushLogs();
             } catch (e) { /* never break logging */ }
         }
         function flushLogs() {
@@ -305,8 +309,7 @@
         }
         function derror(...args) {
             rawError.apply(console, args);
-            bufLog('E', args);
-            flushLogs();  // errors ship immediately, not on the next interval
+            bufLog('E', args);  // bufLog flushLogs immediately on errors
         }
 
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
@@ -728,6 +731,7 @@
                 }
                 if (data.success) {
                     devicePaired = true;
+                    devlogOn = !!data.debug;  // server-opt-in remote diagnostics
                     const currentIds = JSON.stringify(media.map(f => f.id));
                     const newIds = JSON.stringify(data.files.map(f => f.id));
                     if (currentIds === newIds && media.length === data.files.length && pairingScreen.classList.contains('hidden')) {

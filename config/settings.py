@@ -278,3 +278,8 @@ LOGGING = {
         },
     },
 }
+
+# Comma-separated device_ids whose tablets ship debug logs to the server
+# (the 'devlog' lines in Render). Empty = remote diagnostics OFF — zero log
+# noise in production; flip it per-stick via env var, no redeploy of app code.
+DEVICE_DEBUG_LOGS = set(filter(None, os.environ.get('DEVICE_DEBUG_LOGS', '').split(',')))
