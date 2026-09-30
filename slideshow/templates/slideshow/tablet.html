@@ -647,6 +647,9 @@
             const prev = current;
             current = (i + media.length) % media.length;
             dlog('show: updated current to:', current);
+            const cur = media[current];
+            dlog('show: slide', current, cur && cur.title,
+                'src:', cur && cur.localUrl ? 'local-cache' : 'remote');
             const nodes = slidesEl.querySelectorAll('.slide');
             dlog('show: found', nodes.length, 'slide nodes');
 
