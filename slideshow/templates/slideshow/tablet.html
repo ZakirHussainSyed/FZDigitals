@@ -36,14 +36,17 @@
             opacity: 0;
             transform: translateX(100%);
             transition: opacity 1000ms ease, transform 1000ms ease;
-            will-change: opacity, transform;
+            /* will-change only on animating slides — promoting all 37 to
+               GPU layers starves low-RAM sticks and causes flicker */
         }
         .slide.active {
             opacity: 1;
             transform: translateX(0);
+            will-change: opacity, transform;
         }
         .slide.prev {
             transform: translateX(-100%);
+            will-change: opacity, transform;
         }
         img, video {
             max-width: 100%;
@@ -726,9 +729,12 @@
             hydrateSlide(nodes[nextIdx]);
             // Release decoded media on everything outside the current/next
             // window — caps renderer memory at ~2 slides regardless of count.
+            // EXCEPT prev: it's still sliding/fading out for ~1s and removing
+            // src now blanks it to black mid-transition (the black flash).
             nodes.forEach((n, idx) => {
-                if (idx !== current && idx !== nextIdx) dehydrateSlide(n);
+                if (idx !== current && idx !== nextIdx && idx !== prev) dehydrateSlide(n);
             });
+            const outgoing = nodes[prev];
 
             nodes.forEach((n, idx) => {
                 n.classList.remove('active', 'prev');
@@ -753,6 +759,15 @@
             updateCounter();
             startAutoplay();
             setTimeout(() => { transitioning = false; }, 300);
+            setTimeout(() => {
+                // outgoing transition done — now safe to release its bitmap.
+                // Skip if a fast manual show() reactivated it meanwhile.
+                if (outgoing && outgoing.isConnected &&
+                        !outgoing.classList.contains('active') &&
+                        !outgoing.classList.contains('prev')) {
+                    dehydrateSlide(outgoing);
+                }
+            }, 1100);
         }
 
         // Show cached media from localStorage, re-resolving local URLs through
