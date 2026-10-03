@@ -275,7 +275,7 @@
         <p>Watch how {{ brand.name }} transforms your displays.</p>
         <div class="videos">
             <div class="video-card">
-                <video controls poster="/static/video1-poster.jpg">
+                <video muted loop playsinline>
                     <source src="/static/demo-video-1.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
@@ -285,7 +285,7 @@
                 </div>
             </div>
             <div class="video-card">
-                <video controls poster="/static/video2-poster.jpg">
+                <video muted loop playsinline>
                     <source src="/static/demo-video-2.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
@@ -295,13 +295,13 @@
                 </div>
             </div>
             <div class="video-card">
-                <video controls poster="/static/video3-poster.jpg">
+                <video muted loop playsinline>
                     <source src="/static/demo-video-3.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
                 <div class="video-card-content">
                     <h3>Mobile Vehicle Setup</h3>
-                    <p>Perfect for food trucks and promotional vehicles.</p>
+                    <p>Perfect for government campaigns and village outreach.</p>
                 </div>
             </div>
         </div>
@@ -338,5 +338,23 @@
         <p>Join hundreds of businesses and mosques using {{ brand.name }} today.</p>
         <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn primary" style="padding: 14px 28px; font-size: 16px;">Contact Us</a>
     </section>
+
+    <script>
+        // Auto-play videos when they come into view
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                if (entry.isIntersecting) {
+                    video.play().catch(() => {});
+                } else {
+                    video.pause();
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.video-card video').forEach(video => {
+            observer.observe(video);
+        });
+    </script>
 </body>
 </html>
