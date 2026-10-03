@@ -730,6 +730,26 @@ def _scrape_times(text, jummah_section=None):
         pm = (ap == 'pm') if ap else key != 'fajr'
         result[key] = _to_24h(t, pm)
 
+    # Fallback for layouts where prayer names and times are in separate lists
+    # (e.g., masjidulhaqq.com: all names first, then all times in order)
+    if not result or len(result) < 3:
+        # Find all prayer names in order
+        name_order = []
+        for key, names in PRAYER_NAMES.items():
+            if key.startswith('jummah'):
+                continue
+            m = re.search(rf'\b(?:{names})\b', text, re.I)
+            if m:
+                name_order.append((key, m.start()))
+        name_order.sort(key=lambda x: x[1])
+        # Find all times in order
+        times = list(TIME_RE.findall(text))
+        if len(name_order) == len(times):
+            for i, (key, _) in enumerate(name_order):
+                t = times[i]
+                pm = key != 'fajr'  # Assume PM except Fajr
+                result[key] = _to_24h(t, pm)
+
     # Numbered-Jumu'ah widgets the generic patterns miss: "Jumuah 1: 1:30 PM"
     # (label first — separator required so "Jumuah 1 2:30 PM" in time-first
     # layouts can't grab the next entry's time) and "1:30 PM Jumuah 1"
