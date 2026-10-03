@@ -5,9 +5,7 @@ Extraction strategies, tried in order:
      homepage and their data fetched directly.
   2. Schedule PDF — any PDF link whose URL or anchor text mentions prayer
      times is parsed with pdfplumber (ICOE-style monthly timetable).
-  3. Schedule image — any image (JPG/PNG) whose URL or anchor text mentions
-     prayer times is OCR'd with pytesseract to extract text.
-  4. Page text — prayer names followed by times are scraped from the
+  3. Page text — prayer names followed by times are scraped from the
      homepage, then from one linked "prayer times" page if needed.
 
 Only IQAMA times are imported — that is what the mosque TV displays.
@@ -30,15 +28,6 @@ from django.utils import timezone
 from suntime import Sun
 
 from .models import PrayerTime
-
-try:
-    import pytesseract
-    from PIL import Image
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning('pytesseract/Pillow not available — OCR disabled')
 
 logger = logging.getLogger(__name__)
 
@@ -140,38 +129,6 @@ def find_schedule_pdf_url(html, base_url):
         if PRAYER_WORDS_RE.search(href) or PRAYER_WORDS_RE.search(text):
             return urljoin(base_url, href)
     return None
-
-
-def find_schedule_image_url(html, base_url):
-    """Locate a prayer-schedule image link in page HTML — any .jpg/.png whose URL
-    or anchor text mentions prayer times."""
-    if not OCR_AVAILABLE:
-        return None
-    for m in ANCHOR_RE.finditer(html):
-        href, text = m.group(1), re.sub(r'<[^>]+>', '', m.group(2))
-        ext = href.lower().split('.')[-1] if '.' in href else ''
-        if ext not in ('jpg', 'jpeg', 'png', 'webp'):
-            continue
-        if PRAYER_WORDS_RE.search(href) or PRAYER_WORDS_RE.search(text):
-            return urljoin(base_url, href)
-    return None
-
-
-def _ocr_prayer_times(image_url):
-    """Download an image and OCR it to extract prayer times."""
-    if not OCR_AVAILABLE:
-        return None
-    try:
-        resp = requests.get(image_url, timeout=20, headers=UA)
-        resp.raise_for_status()
-        img = Image.open(io.BytesIO(resp.content))
-        # Convert to grayscale and increase contrast for better OCR
-        img = img.convert('L')
-        text = pytesseract.image_to_string(img, config='--psm 6')
-        return _html_prayer_times(text)
-    except Exception as e:
-        logger.warning(f'OCR failed for {image_url}: {e}')
-        return None
 
 
 def _masjidnow_times(html):
@@ -891,13 +848,6 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
         except Exception as e:
             logger.warning(f'Prayer PDF fetch failed ({pdf_url}): {e}')
 
-    # Try OCR on prayer schedule images (scanned JPG/PNG schedules)
-    image_url = find_schedule_image_url(html, base_url)
-    if image_url:
-        times = _ocr_prayer_times(image_url)
-        if times:
-            return {None: times}
-
     times = _js_prayer_times(html) or _html_prayer_times(html, jummah_section)
     if times:
         return {None: times}
@@ -915,12 +865,6 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
             times = _timetable_json_times(r2.text, link)
             if times:
                 return times
-            # Try OCR on prayer schedule images on linked pages
-            image_url = find_schedule_image_url(r2.text, link)
-            if image_url:
-                times = _ocr_prayer_times(image_url)
-                if times:
-                    return {None: times}
             times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text, jummah_section)
             if times:
                 return {None: times}
