@@ -196,6 +196,7 @@ class PrayerTime(models.Model):
     jummah = models.TimeField(blank=True, null=True)
     jummah2 = models.TimeField(blank=True, null=True)
     jummah3 = models.TimeField(blank=True, null=True)
+    maghrib_after_sunset = models.BooleanField(default=False)
     source = models.CharField(
         max_length=10,
         default='default',
