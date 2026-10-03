@@ -688,7 +688,7 @@ def _page_text(html):
     return re.sub(r'\s+', ' ', text)
 
 
-def _scrape_times(text, jummah_section=None):
+def _scrape_times(text, jummah_section=None, mosque_coords=None):
     """Pull every prayer name + time out of page text.
 
     When two times follow a prayer name (athan then iqama) the last is
@@ -699,6 +699,9 @@ def _scrape_times(text, jummah_section=None):
     jummah_section: on multi-location sites (e.g. ICOE Main vs North) the
     Jumu'ah blocks repeat per location — this keyword selects the section
     whose heading contains it; blank uses the first Jumu'ah on the page.
+
+    mosque_coords: (latitude, longitude) tuple for computing sunset/sunrise
+    when times are listed as "Sunset" or "Sunrise".
     """
     jummah_text = text
     if jummah_section:
@@ -742,19 +745,31 @@ def _scrape_times(text, jummah_section=None):
             if m:
                 name_order.append((key, m.start()))
         name_order.sort(key=lambda x: x[1])
-        # Find all times in order (filter out "Sunset" and similar non-time text)
+        # Find all times in order (filter out "Sunrise" and "Sunset" text)
         times = []
+        time_positions = []
         for t_match in TIME_RE.finditer(text):
             t = t_match.group()
-            # Skip if this is part of "Sunrise" or "Sunset"
+            # Skip if this is part of "Sunrise" or "Sunset" (we'll handle those separately)
             if re.search(r'sun(?:rise|set)', text[max(0, t_match.start()-10):t_match.start()+10], re.I):
                 continue
             times.append(t)
+            time_positions.append(t_match.start())
         if len(name_order) == len(times):
             for i, (key, _) in enumerate(name_order):
                 t = times[i]
                 pm = key != 'fajr'  # Assume PM except Fajr
                 result[key] = _to_24h(t, pm)
+        # Handle "Sunset" for Maghrib if coordinates available
+        if 'maghrib' not in result and mosque_coords and re.search(r'maghrib.*sunrise|sunrise.*maghrib|sunset', text, re.I):
+            lat, lon = mosque_coords
+            try:
+                sun = Sun(lat, lon)
+                today = date.today()
+                sunset_time = sun.get_sunset_time(today)
+                result['maghrib'] = sunset_time.time()
+            except Exception as e:
+                logger.warning(f'Failed to compute sunset from coords: {e}')
 
     # Numbered-Jumu'ah widgets the generic patterns miss: "Jumuah 1: 1:30 PM"
     # (label first — separator required so "Jumuah 1 2:30 PM" in time-first
@@ -776,16 +791,16 @@ def _scrape_times(text, jummah_section=None):
     return result
 
 
-def _html_prayer_times(html, jummah_section=None):
+def _html_prayer_times(html, jummah_section=None, mosque_coords=None):
     """Scrape prayer names + times out of arbitrary page HTML.
     Returns None unless all five daily prayers are found."""
-    return _validated(_scrape_times(_page_text(html), jummah_section))
+    return _validated(_scrape_times(_page_text(html), jummah_section, mosque_coords))
 
 
-def _jummah_times(html, jummah_section=None):
+def _jummah_times(html, jummah_section=None, mosque_coords=None):
     """Jumu'ah times only — supplements sources (schedule PDFs) that carry
     daily prayers but no Friday rows."""
-    scraped = _scrape_times(_page_text(html), jummah_section)
+    scraped = _scrape_times(_page_text(html), jummah_section, mosque_coords)
     return {k: v for k, v in scraped.items() if k.startswith('jummah')}
 
 
