@@ -3,49 +3,32 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ brand.name }}</title>
+    <title>{{ brand.name }} - Digital Signage Made Simple</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        .video-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -2;
-        }
-        .video-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.55);
-            z-index: -1;
-        }
         body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            background: #000000;
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #0a0a0f;
             color: #e8eaf0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            line-height: 1.6;
         }
         .header {
-            position: relative;
-            z-index: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 30px;
-            background: transparent;
+            padding: 20px 40px;
+            background: rgba(10,10,15,0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         .logo {
-            max-width: 135px;
+            max-width: 140px;
             display: block;
             border-radius: 16px;
         }
@@ -60,7 +43,7 @@
             padding: 10px 20px;
             border-radius: 8px;
             color: #e8eaf0;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             font-size: 14px;
             font-weight: 600;
             text-decoration: none;
@@ -68,54 +51,176 @@
             transition: 0.2s;
             white-space: nowrap;
         }
-        .btn:hover { background: rgba(255,255,255,0.15); }
+        .btn:hover { background: rgba(255,255,255,0.12); }
         .btn.primary {
             background: #7c5cff;
             color: #fff;
         }
         .btn.primary:hover { background: #6a4ce6; }
+        
         .hero {
-            position: relative;
-            z-index: 1;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
+            padding: 80px 40px 60px;
             text-align: center;
-            padding: 30px 24px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .hero h1 {
-            font-size: 42px;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #a8a8ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: 20px;
+            color: rgba(232,234,240,0.7);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .section {
+            padding: 80px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .section p {
+            font-size: 18px;
+            color: rgba(232,234,240,0.7);
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+        
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+        .use-case {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: left;
+        }
+        .use-case h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #7c5cff;
+        }
+        .use-case p {
+            font-size: 15px;
+            color: rgba(232,234,240,0.6);
+            text-align: left;
+            margin: 0;
+        }
+        
+        .videos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+            margin-top: 40px;
+        }
+        .video-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .video-card video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            background: #111;
+        }
+        .video-card-content {
+            padding: 20px;
+        }
+        .video-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .video-card p {
+            font-size: 14px;
+            color: rgba(232,234,240,0.6);
+            margin: 0;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+        .feature {
+            text-align: center;
+            padding: 24px;
+        }
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .feature h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .feature p {
+            font-size: 14px;
+            color: rgba(232,234,240,0.6);
+            margin: 0;
+        }
+        
+        .cta {
+            text-align: center;
+            padding: 80px 40px;
+            background: linear-gradient(135deg, rgba(124,92,255,0.1) 0%, rgba(124,92,255,0.05) 100%);
+            border-top: 1px solid rgba(124,92,255,0.2);
+            border-bottom: 1px solid rgba(124,92,255,0.2);
+        }
+        .cta h2 {
+            font-size: 36px;
             font-weight: 700;
             margin-bottom: 16px;
         }
-        .hero p {
-            font-family: 'Dancing Script', cursive;
-            font-size: 54px;
-            font-style: italic;
-            font-weight: 400;
-            color: #e8eaf0;
-            line-height: 1.3;
-            max-width: 900px;
+        .cta p {
+            font-size: 18px;
+            color: rgba(232,234,240,0.7);
             margin-bottom: 32px;
         }
-        @media (max-width: 600px) {
-            .header { padding: 14px 16px; }
-            .logo { max-width: 75px; }
+        
+        @media (max-width: 768px) {
+            .header { padding: 16px 20px; }
+            .logo { max-width: 100px; }
             .nav { gap: 10px; }
             .btn { padding: 8px 14px; font-size: 13px; }
-            .hero { padding: 16px 16px 32px; }
-            .hero p { font-size: 32px; line-height: 1.4; }
+            .hero { padding: 40px 20px; }
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .section { padding: 40px 20px; }
+            .section h2 { font-size: 28px; }
+            .videos { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <video class="video-bg" autoplay muted loop playsinline>
-        <source src="/static/landing-bg.mp4" type="video/mp4">
-    </video>
-    <div class="video-overlay"></div>
-
     <header class="header">
         <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
         <nav class="nav">
@@ -125,8 +230,105 @@
         </nav>
     </header>
 
-    <main class="hero">
-        <p>{{ brand.tagline }}</p>
-    </main>
+    <section class="hero">
+        <h1>Digital Signage Made Simple</h1>
+        <p>Beautiful displays for mosques, restaurants, banks, and mobile vehicles. Manage your screens from anywhere.</p>
+        <div class="hero-buttons">
+            <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn primary">Start Free Trial</a>
+            <a href="#videos" class="btn">Watch Demo</a>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Who It's For</h2>
+        <p>From community spaces to mobile businesses, {{ brand.name }} adapts to your needs.</p>
+        <div class="use-cases">
+            <div class="use-case">
+                <h3>🕌 Mosques</h3>
+                <p>Prayer times, announcements, and event slides. Automatic prayer time sync for hundreds of mosques.</p>
+            </div>
+            <div class="use-case">
+                <h3>🍽️ Restaurants</h3>
+                <p>Daily specials, menu highlights, and promotions. Update your displays in seconds.</p>
+            </div>
+            <div class="use-case">
+                <h3>🏦 Banks</h3>
+                <p>Queue information, service hours, and financial tips. Professional displays for your customers.</p>
+            </div>
+            <div class="use-case">
+                <h3>🚚 Mobile Vehicles</h3>
+                <p>Food trucks, delivery vans, and promotional vehicles. Take your brand on the road.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="videos">
+        <h2>See It In Action</h2>
+        <p>Watch how {{ brand.name }} transforms your displays.</p>
+        <div class="videos">
+            <div class="video-card">
+                <video controls poster="/static/video1-poster.jpg">
+                    <source src="/static/demo-video-1.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-card-content">
+                    <h3>Getting Started</h3>
+                    <p>Learn how to set up your first screen in minutes.</p>
+                </div>
+            </div>
+            <div class="video-card">
+                <video controls poster="/static/video2-poster.jpg">
+                    <source src="/static/demo-video-2.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-card-content">
+                    <h3>Managing Content</h3>
+                    <p>Upload, organize, and schedule your slides easily.</p>
+                </div>
+            </div>
+            <div class="video-card">
+                <video controls poster="/static/video3-poster.jpg">
+                    <source src="/static/demo-video-3.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-card-content">
+                    <h3>Mobile Vehicle Setup</h3>
+                    <p>Perfect for food trucks and promotional vehicles.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Why Choose {{ brand.name }}?</h2>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">✨</div>
+                <h3>Easy to Use</h3>
+                <p>No technical expertise required. Upload and go.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <h3>Manage Anywhere</h3>
+                <p>Update your displays from any device, anywhere.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💰</div>
+                <h3>Affordable</h3>
+                <p>Professional displays at a fraction of the cost.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <h3>Beautiful</h3>
+                <p>Stunning slides that capture attention.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <h2>Ready to Get Started?</h2>
+        <p>Join hundreds of businesses and mosques using {{ brand.name }} today.</p>
+        <a href="https://wa.me/919989985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn primary" style="padding: 14px 28px; font-size: 16px;">Contact Us</a>
+    </section>
 </body>
 </html>
