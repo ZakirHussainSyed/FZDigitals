@@ -742,8 +742,14 @@ def _scrape_times(text, jummah_section=None):
             if m:
                 name_order.append((key, m.start()))
         name_order.sort(key=lambda x: x[1])
-        # Find all times in order
-        times = list(TIME_RE.findall(text))
+        # Find all times in order (filter out "Sunset" and similar non-time text)
+        times = []
+        for t_match in TIME_RE.finditer(text):
+            t = t_match.group()
+            # Skip if this is part of "Sunrise" or "Sunset"
+            if re.search(r'sun(?:rise|set)', text[max(0, t_match.start()-10):t_match.start()+10], re.I):
+                continue
+            times.append(t)
         if len(name_order) == len(times):
             for i, (key, _) in enumerate(name_order):
                 t = times[i]
