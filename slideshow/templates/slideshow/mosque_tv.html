@@ -21,13 +21,39 @@
         }
         .prayer-panel {
             position: relative;
-            background: #0b2e1a url("{% static 'background.png' %}") top center/cover no-repeat;
+            background: linear-gradient(180deg, #0b2e1a, #14532d);
             color: #fff;
-            padding: 70px 15% 16px;
+            padding: 20px 12% 16px;
             display: flex;
             flex-direction: column;
             border-right: 2px solid rgba(255,255,255,0.1);
             overflow: hidden;
+        }
+        .top-arch-wrap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 300px;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .top-arch-wrap::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 70%;
+            background: linear-gradient(to bottom, rgba(11,46,26,0), rgba(11,46,26,1));
+            pointer-events: none;
+        }
+        .top-arch {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
         }
 
         .arch-header {
@@ -184,6 +210,9 @@
 <body>
     <div class="tv-layout">
         <div class="prayer-panel">
+            <div class="top-arch-wrap">
+                <img class="top-arch" src="{% static 'slideshow/logo_takbir_transparent.png' %}" alt="" />
+            </div>
 
             <div class="arch-header">
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
