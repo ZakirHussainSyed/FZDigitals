@@ -83,6 +83,15 @@
                         {% endfor %}
                     </select>
 
+                    {% if mosques %}
+                    <label for="mosque_id">Mosque</label>
+                    <select id="mosque_id" name="mosque_id">
+                        {% for m in mosques %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+
                     <label for="name">Display name</label>
                     <input id="name" name="name" type="text" value="{{ default_name }}" placeholder="e.g. Store Entrance">
 

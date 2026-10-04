@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Pair Mosque TV</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta http-equiv="Cache-Control" content="no-store, must-revalidate, no-cache" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; background: #000; color: #fff; overflow: hidden; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .logo { width: 140px; margin-bottom: 28px; }
+        .status { font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 18px; text-align: center; }
+        #qrWrap { background: #fff; padding: 16px; border-radius: 20px; margin-bottom: 18px; display: none; }
+        #qrImg { width: 260px; height: 260px; display: block; }
+        .hint { color: rgba(255,255,255,0.6); font-size: 14px; text-align: center; max-width: 360px; line-height: 1.5; }
+        .error { color: #ff6b6b; text-align: center; margin-top: 12px; max-width: 360px; }
+    </style>
+</head>
+<body>
+    <img class="logo" src="/static/slideshow/logo.png" alt="FZ Screens" />
+    <div class="status" id="status">Starting Mosque TV…</div>
+    <div id="qrWrap"><img id="qrImg" alt="Pairing QR code" /></div>
+    <p class="hint" id="hint">Use your phone to scan the QR code, log in, and link this TV to your mosque.</p>
+    <p class="error" id="error"></p>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const qrWrap = document.getElementById('qrWrap');
+        const qrImg = document.getElementById('qrImg');
+        const errorEl = document.getElementById('error');
+
+        const LS_DEVICE = 'mosqueTvDeviceId';
+        const LS_TOKEN = 'mosqueTvToken';
+        const LS_BROWSER = 'mosqueTvBrowserId';
+
+        function makeBrowserId() {
+            return 'TV-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+        }
+
+        function getOrCreate(key, factory) {
+            const existing = localStorage.getItem(key);
+            if (existing) return existing;
+            const value = factory();
+            localStorage.setItem(key, value);
+            return value;
+        }
+
+        function redirectToTv(deviceId, token) {
+            window.location.href = '/mosque-tv/device/?device_id=' + encodeURIComponent(deviceId) + '&token=' + encodeURIComponent(token);
+        }
+
+        async function checkLinked(deviceId, token) {
+            const res = await fetch('/api/device/' + encodeURIComponent(deviceId) + '/slideshow/?token=' + encodeURIComponent(token), {
+                cache: 'no-store',
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (data.success) {
+                redirectToTv(deviceId, token);
+                return true;
+            }
+            return false;
+        }
+
+        async function startPairing() {
+            const existingDevice = localStorage.getItem(LS_DEVICE);
+            const existingToken = localStorage.getItem(LS_TOKEN);
+
+            if (existingDevice && existingToken) {
+                statusEl.textContent = 'Checking existing pairing…';
+                try {
+                    const linked = await checkLinked(existingDevice, existingToken);
+                    if (linked) return;
+                } catch (e) {
+                    // Existing credentials may be invalid; fall through to create a new QR
+                }
+            }
+
+            statusEl.textContent = 'Preparing QR code…';
+            const browserId = getOrCreate(LS_BROWSER, makeBrowserId);
+
+            try {
+                const res = await fetch('/api/pairing/new/?browser_id=' + encodeURIComponent(browserId), {
+                    cache: 'no-store',
+                    credentials: 'same-origin'
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Unable to create pairing');
+                }
+
+                localStorage.setItem(LS_DEVICE, data.device_id);
+                localStorage.setItem(LS_TOKEN, data.token);
+
+                statusEl.textContent = 'Scan this code with your phone';
+                qrImg.src = '/api/qr/?data=' + encodeURIComponent(data.setup_url);
+                qrImg.onload = () => { qrWrap.style.display = 'block'; };
+                qrImg.onerror = () => {
+                    errorEl.textContent = 'Could not load QR code. Please refresh.';
+                };
+
+                pollForAssignment(data.device_id, data.token);
+            } catch (err) {
+                errorEl.textContent = 'Error: ' + err.message;
+                statusEl.textContent = 'Pairing failed';
+            }
+        }
+
+        async function pollForAssignment(deviceId, token) {
+            let attempts = 0;
+            while (true) {
+                await new Promise(r => setTimeout(r, 3000));
+                try {
+                    if (await checkLinked(deviceId, token)) return;
+                } catch (err) {
+                    attempts++;
+                    if (attempts > 20) {
+                        errorEl.textContent = 'Timed out waiting for pairing. Please refresh to try again.';
+                        return;
+                    }
+                }
+            }
+        }
+
+        startPairing();
+    </script>
+</body>
+</html>

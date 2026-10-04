@@ -1462,6 +1462,7 @@ def setup_pairing(request):
 
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     max_screens = profile.max_slideshows
+    mosques = Mosque.objects.filter(user=request.user, is_active=True)
 
     if request.method == 'POST':
         try:
@@ -1471,14 +1472,19 @@ def setup_pairing(request):
                     'device_id': device_id,
                     'token': token,
                     'screens': range(1, max_screens + 1),
+                    'mosques': mosques,
                     'error': f'Screen must be between 1 and {max_screens}',
                 })
 
             name = request.POST.get('name', '').strip() or f'Display {screen}'
 
+            mosque_id = request.POST.get('mosque_id')
+            mosque = mosques.filter(id=mosque_id).first() if mosque_id else mosques.first()
+
             device.user = request.user
             device.screen = screen
             device.name = name
+            device.mosque = mosque
             device.is_active = True
             device.save()
 
@@ -1493,6 +1499,7 @@ def setup_pairing(request):
                 'device_id': device_id,
                 'token': token,
                 'screens': range(1, max_screens + 1),
+                'mosques': mosques,
                 'error': f'Something went wrong: {str(e)}',
             })
 
@@ -1500,6 +1507,7 @@ def setup_pairing(request):
         'device_id': device_id,
         'token': token,
         'screens': range(1, max_screens + 1),
+        'mosques': mosques,
         'default_name': f'Display {device.screen}',
     })
 
@@ -1937,6 +1945,11 @@ def mosque_tv(request):
         'media_files': media_files,
         'today': today,
     })
+
+
+def mosque_tv_setup(request):
+    """TV pairing screen: shows a QR code the user scans with a phone to link this display."""
+    return render(request, 'slideshow/mosque_tv_setup.html')
 
 
 def mosque_tv_device(request):
