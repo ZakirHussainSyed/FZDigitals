@@ -140,6 +140,7 @@ class Device(models.Model):
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='browser')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Assigned user
     screen = models.IntegerField(default=1, validators=[MinValueValidator(1)])  # Assigned screen
+    mosque = models.ForeignKey('Mosque', on_delete=models.SET_NULL, null=True, blank=True, related_name='devices')  # Assigned mosque for Mosque TV
     last_seen = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

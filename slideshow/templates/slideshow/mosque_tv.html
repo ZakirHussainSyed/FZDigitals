@@ -16,49 +16,59 @@
             position: fixed;
             inset: 0;
             display: grid;
-            grid-template-rows: auto 1fr;
+            grid-template-columns: 50% 50%;
         }
         .prayer-panel {
-            background: linear-gradient(90deg, #14532d, #1b5e20);
+            background: linear-gradient(180deg, #14532d, #1b5e20);
             color: #fff;
-            padding: 20px 28px;
+            padding: 32px 24px;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 24px;
-            flex-wrap: wrap;
-            border-bottom: 2px solid rgba(255,255,255,0.1);
-            z-index: 10;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+        .prayer-header {
+            margin-bottom: 32px;
+            text-align: center;
         }
         .prayer-header h1 {
-            font-size: 26px;
-            margin: 0 0 6px;
+            font-size: 32px;
+            margin: 0 0 12px;
+            line-height: 1.2;
         }
         .prayer-header .next-salah {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 700;
             color: #ffd54f;
+            margin-bottom: 8px;
+        }
+        .prayer-header .clock {
+            font-size: 28px;
+            color: rgba(255,255,255,0.85);
+            font-weight: 600;
         }
         .timings {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            flex-wrap: wrap;
             align-items: center;
-            font-size: 15px;
         }
         .timing {
             text-align: center;
-            min-width: 62px;
+            padding: 16px 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
         }
         .timing .name {
-            color: rgba(255,255,255,0.65);
-            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
         .timing .value {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: 700;
         }
         .stage {
@@ -97,13 +107,23 @@
             color: rgba(255,255,255,0.7);
             font-size: 18px;
             text-align: center;
+            padding: 24px;
         }
         .empty.show { display: flex; }
-        .clock {
-            font-size: 16px;
-            color: rgba(255,255,255,0.85);
-            min-width: 80px;
-            text-align: right;
+        @media (max-width: 768px) {
+            .tv-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            .prayer-panel {
+                border-right: none;
+                border-bottom: 2px solid rgba(255,255,255,0.1);
+                padding: 20px;
+            }
+            .prayer-header h1 { font-size: 24px; }
+            .timings { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            .timing .name { font-size: 12px; }
+            .timing .value { font-size: 18px; }
         }
     </style>
 </head>
@@ -117,6 +137,7 @@
                 {% else %}
                     <div class="next-salah">Today's Prayer Timings</div>
                 {% endif %}
+                <div class="clock" id="clock">--:--</div>
             </div>
             <div class="timings">
                 <div class="timing"><div class="name">Fajr</div><div class="value">{{ timings.fajr }}</div></div>
@@ -130,7 +151,6 @@
                 {% if timings.jummah2 %}<div class="timing"><div class="name">Jummah 2</div><div class="value">{{ timings.jummah2 }}</div></div>{% endif %}
                 {% if timings.jummah3 %}<div class="timing"><div class="name">Jummah 3</div><div class="value">{{ timings.jummah3 }}</div></div>{% endif %}
             </div>
-            <div class="clock" id="clock">--:--</div>
         </div>
         <div class="stage" id="stage">
             <div class="empty" id="empty">No media uploaded yet.</div>

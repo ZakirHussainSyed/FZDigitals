@@ -1937,3 +1937,73 @@ def mosque_tv(request):
         'media_files': media_files,
         'today': today,
     })
+
+
+def mosque_tv_device(request):
+    """Mosque TV view for paired devices (TV sticks) - split screen with prayer times + slideshow."""
+    device_id = request.GET.get('device_id')
+    token = request.GET.get('token') or request.headers.get('X-Device-Token')
+    
+    if not device_id or not token:
+        return HttpResponse('Missing device_id or token', status=401)
+    
+    try:
+        device = Device.objects.get(device_id=device_id, token=token)
+    except Device.DoesNotExist:
+        return HttpResponse('Invalid device credentials', status=403)
+    
+    # Get assigned mosque
+    mosque = device.mosque
+    if not mosque:
+        return HttpResponse('No mosque assigned to this device', status=400)
+    
+    maybe_sync_mosque(mosque)
+    
+    today = timezone.now().date()
+    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
+    prayer_time = _latest_prayer_time(mosque, today)
+    if not prayer_time:
+        prayer_time, _ = PrayerTime.objects.get_or_create(
+            mosque=mosque,
+            date=today,
+            defaults={
+                'fajr': datetime.strptime('05:00', '%H:%M').time(),
+                'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+                'asr': datetime.strptime('16:00', '%H:%M').time(),
+                'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+                'isha': datetime.strptime('20:00', '%H:%M').time(),
+                'jummah': datetime.strptime('13:30', '%H:%M').time(),
+                'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
+            }
+        )
+    
+    timings = {
+        'fajr': _format_prayer_time(prayer_time.fajr),
+        'sunrise': _format_prayer_time(sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
+        'dhuhr': _format_prayer_time(prayer_time.dhuhr),
+        'asr': _format_prayer_time(prayer_time.asr),
+        'sunset': _format_prayer_time(prayer_time.sunset),
+        'maghrib': _format_prayer_time(prayer_time.maghrib),
+        'isha': _format_prayer_time(prayer_time.isha),
+        'jummah': _format_prayer_time(prayer_time.jummah),
+        'jummah2': _format_prayer_time(prayer_time.jummah2),
+        'jummah3': _format_prayer_time(prayer_time.jummah3),
+    }
+    now = timezone.now().astimezone(tz)
+    next_salah = _next_salah(prayer_time, now, tz)
+    
+    # Get media from the mosque's user (device owner)
+    media = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
+    media_files = [
+        {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
+        for m in media
+    ]
+    
+    return render(request, 'slideshow/mosque_tv.html', {
+        'mosque': mosque,
+        'timings': timings,
+        'next_salah': next_salah,
+        'media_files': media_files,
+        'today': today,
+    })
+
