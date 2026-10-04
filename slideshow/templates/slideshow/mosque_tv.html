@@ -21,7 +21,10 @@
         }
         .prayer-panel {
             position: relative;
-            background: #0b2e1a url("{% static 'slideshow/logo_takbir1.png' %}") center/cover no-repeat;
+            background:
+                radial-gradient(circle, rgba(212,175,55,0.15) 1px, transparent 1px),
+                linear-gradient(180deg, #0b2e1a, #14532d);
+            background-size: 24px 24px, 100% 100%;
             color: #0f3d22;
             padding: 20px 24px;
             display: flex;
@@ -42,13 +45,13 @@
         .prayer-card {
             position: relative;
             flex: 1;
+            margin-top: 40px;
             background: #fff;
             clip-path: url(#archClip);
             display: flex;
             flex-direction: column;
-            padding: 60px 24px 16px;
+            padding: 45px 24px 16px;
             overflow: hidden;
-            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
         }
         .mosque-name {
             font-size: 44px;
