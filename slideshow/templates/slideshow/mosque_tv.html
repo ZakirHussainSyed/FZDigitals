@@ -129,6 +129,7 @@
             font-weight: 700;
             color: #fff;
         }
+        .prayer-row.sunrise span, .prayer-row.sunset span { color: #1e90ff; }
         .stage {
             position: relative;
             background: #000;
@@ -204,10 +205,10 @@
             </div>
             <div class="prayer-list">
                 <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span></div>
-                <div class="prayer-row"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span></div>
+                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span></div>
                 <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span></div>
                 <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span></div>
-                <div class="prayer-row"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span></div>
+                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span></div>
                 <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span></div>
                 <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span></div>
                 <div class="prayer-row"><span class="name">Jummah 1</span><span class="value">{{ timings.jummah }}</span></div>
