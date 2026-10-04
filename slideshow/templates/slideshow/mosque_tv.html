@@ -276,6 +276,38 @@
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(media)); } catch (e) { /* ignore */ }
         }
 
+        function toHijri(date) {
+            const d = date.getUTCDate();
+            const m = date.getUTCMonth() + 1;
+            const y = date.getUTCFullYear();
+            let jd;
+            if (y > 1582 || (y === 1582 && (m > 10 || (m === 10 && d > 14)))) {
+                jd = Math.floor((1461 * (y + 4800 + Math.floor((m - 14) / 12))) / 4) +
+                     Math.floor((367 * (m - 2 - 12 * Math.floor((m - 14) / 12))) / 12) -
+                     Math.floor((3 * Math.floor((y + 4900 + Math.floor((m - 14) / 12)) / 100)) / 4) +
+                     d - 32075;
+            } else {
+                jd = 367 * y - Math.floor((7 * (y + 5001 + Math.floor((m - 9) / 7))) / 4) +
+                     Math.floor((275 * m) / 9) + d + 1729777;
+            }
+            let l = jd - 1948440 + 10632;
+            const n = Math.floor((l - 1) / 10631);
+            let r = l - 10631 * n + 354;
+            let j = Math.floor((10985 - r) / 5316) * Math.floor((50 * r) / 17719) +
+                    Math.floor(r / 5670) * Math.floor((43 * r) / 15238);
+            r = r - Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) -
+                Math.floor(j / 16) * Math.floor((15238 * j) / 43) + 29;
+            const mh = Math.floor((24 * r) / 709);
+            const day = r - Math.floor((709 * mh) / 24);
+            const year = 30 * n + j - 30;
+            const months = [
+                'محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی',
+                'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان',
+                'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'
+            ];
+            return day + ' ' + months[mh] + '، ' + year;
+        }
+
         function updateClock() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -284,12 +316,7 @@
             const rest = parts[1] || '';
             clockEl.innerHTML = hour + '<span style="visibility:' + (showColon ? 'visible' : 'hidden') + '">:</span>' + rest;
             showColon = !showColon;
-            try {
-                const hijri = new Intl.DateTimeFormat('ur-u-ca-islamic-umalqura', {dateStyle:'long'}).format(now);
-                islamicDateEl.textContent = hijri;
-            } catch (e) {
-                islamicDateEl.textContent = '';
-            }
+            islamicDateEl.textContent = toHijri(now);
         }
         setInterval(updateClock, 1000);
         updateClock();
