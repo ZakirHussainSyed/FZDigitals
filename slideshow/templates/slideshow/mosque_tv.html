@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,39 +30,23 @@
         }
         .arch-header {
             position: relative;
-            height: 180px;
+            height: 220px;
             background: #0b2e1a;
             border-bottom: 2px solid rgba(212, 175, 55, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            overflow: hidden;
         }
-        .arch-header::before {
-            content: '';
+        .arch-bg {
             position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 90%;
-            height: 120px;
-            transform: translateX(-50%);
-            border: 3px solid #d4af37;
-            border-bottom: none;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
-        }
-        .arch-header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 80%;
-            height: 100px;
-            transform: translateX(-50%);
-            border: 2px solid rgba(212, 175, 55, 0.5);
-            border-bottom: none;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center bottom;
+            opacity: 0.95;
             pointer-events: none;
         }
         .mosque-name {
@@ -71,8 +56,10 @@
             font-weight: 800;
             text-align: center;
             color: #fff;
-            text-shadow: 0 2px 12px rgba(0,0,0,0.4);
-            padding: 0 24px;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+            padding: 8px 24px;
+            background: rgba(0,0,0,0.35);
+            border-radius: 20px;
             margin-top: 20px;
         }
         .info-bar {
@@ -95,7 +82,7 @@
         .info-bar .center {
             flex: 1;
             text-align: center;
-            font-size: 24px;
+            font-size: 40px;
             font-weight: 700;
             color: #ffd54f;
         }
@@ -203,6 +190,7 @@
     <div class="tv-layout">
         <div class="prayer-panel">
             <div class="arch-header">
+                <img class="arch-bg" src="{% static 'slideshow/logo_takbir1.png' %}" alt="" />
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
             <div class="info-bar">
