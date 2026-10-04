@@ -30,7 +30,7 @@
         }
         .arch-header {
             position: relative;
-            height: 100px;
+            height: 150px;
             background: #0b2e1a;
             border-bottom: 1px solid rgba(212, 175, 55, 0.3);
             display: flex;
@@ -39,18 +39,14 @@
             flex-shrink: 0;
             overflow: hidden;
         }
-        .arch-gold {
+        .arch-svg {
             position: absolute;
-            bottom: -5px;
+            bottom: 0;
             left: 50%;
-            width: 95%;
-            height: 90px;
             transform: translateX(-50%);
-            border: 3px solid #d4af37;
-            border-bottom: none;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            width: 90%;
+            height: 140px;
             pointer-events: none;
-            box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
         }
         .mosque-name {
             position: relative;
@@ -196,7 +192,17 @@
     <div class="tv-layout">
         <div class="prayer-panel">
             <div class="arch-header">
-                <div class="arch-gold"></div>
+                <svg class="arch-svg" viewBox="0 0 260 160" preserveAspectRatio="xMidYMax meet">
+                    <defs>
+                        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#b8860b"/>
+                            <stop offset="50%" stop-color="#ffd54f"/>
+                            <stop offset="100%" stop-color="#b8860b"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M40,160 L40,100 Q130,20 220,100 L220,160" fill="none" stroke="url(#goldGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M40,160 L40,100 Q130,20 220,100 L220,160" fill="none" stroke="#fff6d5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                </svg>
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
             <div class="info-bar">
