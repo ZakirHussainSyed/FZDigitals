@@ -2018,5 +2018,7 @@ def mosque_tv_device(request):
         'next_salah': next_salah,
         'media_files': media_files,
         'today': today,
+        'device_id': device_id,
+        'token': token,
     })
 

@@ -229,7 +229,10 @@
 
     <script type="application/json" id="media-data">{{ media_files|safe }}</script>
     <script>
-        const media = JSON.parse(document.getElementById('media-data').textContent);
+        window.DEVICE_ID = {{ device_id|default:''|escapejs }};
+        window.DEVICE_TOKEN = {{ token|default:''|escapejs }};
+        const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
+
         let current = 0;
         let autoplayTimer = null;
 
@@ -237,6 +240,22 @@
         const emptyEl = document.getElementById('empty');
         const clockEl = document.getElementById('clock');
         const islamicDateEl = document.getElementById('islamic-date');
+
+        function loadInitialMedia() {
+            const serverMedia = JSON.parse(document.getElementById('media-data').textContent);
+            if (serverMedia && serverMedia.length) return serverMedia;
+            try {
+                const cached = localStorage.getItem(STORAGE_KEY);
+                if (cached) return JSON.parse(cached);
+            } catch (e) { /* ignore */ }
+            return [];
+        }
+
+        let media = loadInitialMedia();
+
+        function saveMediaCache() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(media)); } catch (e) { /* ignore */ }
+        }
 
         function updateClock() {
             const now = new Date();
@@ -344,6 +363,38 @@
                 }
             }
         }
+
+        async function refreshSlideshow() {
+            if (!window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+            try {
+                const ctl = new AbortController();
+                const fetchTimer = setTimeout(() => ctl.abort(), 8000);
+                const res = await fetch(
+                    `/api/device/${encodeURIComponent(window.DEVICE_ID)}/slideshow/?token=${encodeURIComponent(window.DEVICE_TOKEN)}`,
+                    { signal: ctl.signal, cache: 'no-store' }
+                );
+                clearTimeout(fetchTimer);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success) return;
+                const newFiles = data.files || [];
+                const newIds = JSON.stringify(newFiles.map(f => f.id));
+                const curIds = JSON.stringify(media.map(f => f.id));
+                if (newIds === curIds && newFiles.length === media.length) return;
+
+                const currentId = media.length && media[current] ? media[current].id : null;
+                media = newFiles;
+                saveMediaCache();
+                const kept = currentId == null ? -1 : media.findIndex(f => f.id === currentId);
+                current = kept >= 0 ? kept : 0;
+                renderSlides();
+                playCurrent();
+            } catch (e) {
+                /* network hiccup — keep playing cached list */
+            }
+        }
+
+        setInterval(refreshSlideshow, 30000);
 
         renderSlides();
         playCurrent();
