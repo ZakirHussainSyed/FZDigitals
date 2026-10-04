@@ -22,29 +22,28 @@
             position: relative;
             background: linear-gradient(180deg, #0b2e1a, #14532d);
             color: #fff;
-            padding: 0 24px 16px;
+            padding: 30px 10% 16px;
             display: flex;
             flex-direction: column;
             border-right: 2px solid rgba(255,255,255,0.1);
             overflow: hidden;
         }
+        .frame-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
         .arch-header {
             position: relative;
-            height: 160px;
+            height: 130px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            overflow: hidden;
-        }
-        .arch-svg {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 92%;
-            height: 150px;
-            pointer-events: none;
+            z-index: 1;
         }
         .mosque-name {
             position: relative;
@@ -173,7 +172,8 @@
             .tv-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
             .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); padding: 0 16px 12px; }
             .arch-header { height: 120px; }
-            .arch-svg { height: 110px; }
+            .arch-header { height: 100px; }
+            .prayer-panel { padding: 20px 12% 12px; }
             .mosque-name { font-size: 28px; }
             .info-bar { font-size: 15px; }
             .info-bar .center { font-size: 20px; }
@@ -185,18 +185,17 @@
 <body>
     <div class="tv-layout">
         <div class="prayer-panel">
+            <svg class="frame-svg" viewBox="0 0 100 112" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#b8860b"/>
+                        <stop offset="50%" stop-color="#ffd54f"/>
+                        <stop offset="100%" stop-color="#b8860b"/>
+                    </linearGradient>
+                </defs>
+                <path d="M10,110 L10,35 C10,10 40,25 45,35 C48,25 49,10 50,5 C51,10 52,25 55,35 C60,25 90,10 90,35 L90,110 Z" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+            </svg>
             <div class="arch-header">
-                <svg class="arch-svg" viewBox="0 0 260 170" preserveAspectRatio="xMidYMax meet">
-                    <defs>
-                        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#b8860b"/>
-                            <stop offset="50%" stop-color="#ffd54f"/>
-                            <stop offset="100%" stop-color="#b8860b"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M30,170 L30,100 C30,60 70,80 100,110 C120,130 120,70 130,35 C140,70 140,130 160,110 C190,80 230,60 230,100 L230,170" fill="none" stroke="url(#goldGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M30,170 L30,100 C30,60 70,80 100,110 C120,130 120,70 130,35 C140,70 140,130 160,110 C190,80 230,60 230,100 L230,170" fill="none" stroke="#fff6d5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
-                </svg>
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
             <div class="info-bar">
