@@ -1933,10 +1933,10 @@ def mosque_tv(request):
     next_salah = _next_salah(prayer_time, now, tz)
 
     media = MediaFile.objects.filter(user=request.user, screen=1).order_by('position', '-id')
-    media_files = [
+    media_files = json.dumps([
         {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
         for m in media
-    ]
+    ])
 
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
@@ -2007,10 +2007,10 @@ def mosque_tv_device(request):
     
     # Get media from the mosque's user (device owner)
     media = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
-    media_files = [
+    media_files = json.dumps([
         {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
         for m in media
-    ]
+    ])
     
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
