@@ -21,9 +21,9 @@
         }
         .prayer-panel {
             position: relative;
-            background: #0b2e1a url("{% static 'background.png' %}") center/cover no-repeat;
+            background: #0b2e1a url("{% static 'background.png' %}") top center/cover no-repeat;
             color: #fff;
-            padding: 30px 10% 16px;
+            padding: 70px 15% 16px;
             display: flex;
             flex-direction: column;
             border-right: 2px solid rgba(255,255,255,0.1);
@@ -55,13 +55,18 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 0 14px;
-            font-size: 22px;
+            font-size: 18px;
             color: rgba(255,255,255,0.95);
             border-bottom: 1px solid rgba(255,255,255,0.1);
             flex-shrink: 0;
+            gap: 10px;
         }
         .info-bar .left, .info-bar .right {
             flex: 1;
+            min-width: 0;
+            overflow-wrap: break-word;
+            word-break: keep-all;
+            line-height: 1.2;
         }
         .info-bar .right {
             text-align: right;
