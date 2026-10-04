@@ -19,57 +19,131 @@
             grid-template-columns: 50% 50%;
         }
         .prayer-panel {
-            background: linear-gradient(180deg, #14532d, #1b5e20);
+            background: linear-gradient(180deg, #0f3d22, #14532d);
             color: #fff;
-            padding: 32px 24px;
+            padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             border-right: 2px solid rgba(255,255,255,0.1);
             overflow: hidden;
         }
-        .prayer-header {
-            margin-bottom: 32px;
-            text-align: center;
-        }
-        .prayer-header h1 {
-            font-size: 32px;
-            margin: 0 0 12px;
-            line-height: 1.2;
-        }
-        .prayer-header .next-salah {
-            font-size: 22px;
-            font-weight: 700;
-            color: #ffd54f;
-            margin-bottom: 8px;
-        }
-        .prayer-header .clock {
-            font-size: 28px;
-            color: rgba(255,255,255,0.85);
-            font-weight: 600;
-        }
-        .timings {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+        .arch-header {
+            position: relative;
+            height: 180px;
+            background: #0b2e1a;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+            display: flex;
             align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .timing {
+        .arch-header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 90%;
+            height: 120px;
+            transform: translateX(-50%);
+            border: 3px solid #d4af37;
+            border-bottom: none;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+        }
+        .arch-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 80%;
+            height: 100px;
+            transform: translateX(-50%);
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-bottom: none;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            pointer-events: none;
+        }
+        .mosque-name {
+            position: relative;
+            z-index: 1;
+            font-size: 34px;
+            font-weight: 800;
             text-align: center;
-            padding: 16px 12px;
-            background: rgba(255,255,255,0.08);
-            border-radius: 12px;
+            color: #fff;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+            padding: 0 24px;
+            margin-top: 20px;
         }
-        .timing .name {
-            color: rgba(255,255,255,0.7);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
         }
-        .timing .value {
+        .info-bar .left, .info-bar .right {
+            flex: 1;
+        }
+        .info-bar .right {
+            text-align: right;
+            direction: rtl;
+        }
+        .info-bar .center {
+            flex: 1;
+            text-align: center;
             font-size: 24px;
             font-weight: 700;
+            color: #ffd54f;
+        }
+        .next-prayer {
+            padding: 20px 24px 12px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .next-prayer .label {
+            font-size: 16px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .next-prayer .time {
+            font-size: 42px;
+            font-weight: 800;
+            color: #ffd54f;
+            line-height: 1.1;
+        }
+        .prayer-list {
+            flex: 1;
+            padding: 12px 24px 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .prayer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        .prayer-row .name {
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.75);
+        }
+        .prayer-row .value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
         }
         .stage {
             position: relative;
@@ -115,41 +189,46 @@
                 grid-template-columns: 1fr;
                 grid-template-rows: auto 1fr;
             }
-            .prayer-panel {
-                border-right: none;
-                border-bottom: 2px solid rgba(255,255,255,0.1);
-                padding: 20px;
-            }
-            .prayer-header h1 { font-size: 24px; }
-            .timings { grid-template-columns: repeat(3, 1fr); gap: 12px; }
-            .timing .name { font-size: 12px; }
-            .timing .value { font-size: 18px; }
+            .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); }
+            .mosque-name { font-size: 24px; }
+            .arch-header { height: 140px; }
+            .info-bar { font-size: 14px; padding: 12px; }
+            .info-bar .center { font-size: 18px; }
+            .next-prayer .time { font-size: 32px; }
+            .prayer-row .value { font-size: 18px; }
         }
     </style>
 </head>
 <body>
     <div class="tv-layout">
         <div class="prayer-panel">
-            <div class="prayer-header">
-                <h1>{{ mosque.name }}</h1>
-                {% if next_salah and next_salah.name %}
-                    <div class="next-salah">Next: {{ next_salah.name }} - {{ next_salah.time }}</div>
-                {% else %}
-                    <div class="next-salah">Today's Prayer Timings</div>
-                {% endif %}
-                <div class="clock" id="clock">--:--</div>
+            <div class="arch-header">
+                <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
-            <div class="timings">
-                <div class="timing"><div class="name">Fajr</div><div class="value">{{ timings.fajr }}</div></div>
-                <div class="timing"><div class="name">Sunrise</div><div class="value">{{ timings.sunrise }}</div></div>
-                <div class="timing"><div class="name">Dhuhr</div><div class="value">{{ timings.dhuhr }}</div></div>
-                <div class="timing"><div class="name">Asr</div><div class="value">{{ timings.asr }}</div></div>
-                <div class="timing"><div class="name">Sunset</div><div class="value">{{ timings.sunset }}</div></div>
-                <div class="timing"><div class="name">Maghrib</div><div class="value">{{ timings.maghrib }}</div></div>
-                <div class="timing"><div class="name">Isha</div><div class="value">{{ timings.isha }}</div></div>
-                <div class="timing"><div class="name">Jummah 1</div><div class="value">{{ timings.jummah }}</div></div>
-                {% if timings.jummah2 %}<div class="timing"><div class="name">Jummah 2</div><div class="value">{{ timings.jummah2 }}</div></div>{% endif %}
-                {% if timings.jummah3 %}<div class="timing"><div class="name">Jummah 3</div><div class="value">{{ timings.jummah3 }}</div></div>{% endif %}
+            <div class="info-bar">
+                <div class="left" id="english-date">{{ today|date:"j F Y" }}</div>
+                <div class="center" id="clock">--:--</div>
+                <div class="right" id="islamic-date">--</div>
+            </div>
+            <div class="next-prayer">
+                <div class="label">Next Prayer</div>
+                {% if next_salah and next_salah.name %}
+                    <div class="time">{{ next_salah.name }} - {{ next_salah.time }}</div>
+                {% else %}
+                    <div class="time">Today's Prayer Timings</div>
+                {% endif %}
+            </div>
+            <div class="prayer-list">
+                <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span></div>
+                <div class="prayer-row"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span></div>
+                <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span></div>
+                <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span></div>
+                <div class="prayer-row"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span></div>
+                <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span></div>
+                <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span></div>
+                <div class="prayer-row"><span class="name">Jummah 1</span><span class="value">{{ timings.jummah }}</span></div>
+                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="value">{{ timings.jummah2 }}</span></div>{% endif %}
+                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="value">{{ timings.jummah3 }}</span></div>{% endif %}
             </div>
         </div>
         <div class="stage" id="stage">
@@ -167,20 +246,30 @@
         const slidesEl = document.getElementById('slides');
         const emptyEl = document.getElementById('empty');
         const clockEl = document.getElementById('clock');
+        const islamicDateEl = document.getElementById('islamic-date');
+
+        function toUrduNumber(str) {
+            const digits = {'0':'۰','1':'۱','2':'۲','3':'۳','4':'۴','5':'۵','6':'۶','7':'۷','8':'۸','9':'۹'};
+            return String(str).replace(/[0-9]/g, d => digits[d]);
+        }
 
         function updateClock() {
             const now = new Date();
             clockEl.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            try {
+                const hijri = new Intl.DateTimeFormat('ur-u-ca-islamic-umalqura', {dateStyle:'long'}).format(now);
+                islamicDateEl.textContent = hijri;
+            } catch (e) {
+                islamicDateEl.textContent = '';
+            }
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Reload shortly after midnight so the new day's prayer times load
-        // and the nightly website sync fires on this request.
         (function scheduleMidnightReload() {
             const now = new Date();
             const next = new Date(now);
-            next.setHours(24, 5, 0, 0); // 12:05 AM
+            next.setHours(24, 5, 0, 0);
             setTimeout(() => location.reload(), next - now);
         })();
 
