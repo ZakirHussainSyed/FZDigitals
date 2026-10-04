@@ -1835,7 +1835,7 @@ def prayer_times(request):
                             datetime.combine(today, sunset_t) + timedelta(minutes=1)
                         ).time()
                     continue
-                setattr(prayer_time, field, _parse(field))
+                setattr(prayer_time, field, _parse(field, optional=field.startswith('jummah')))
             prayer_time.maghrib_after_sunset = after_sunset
             prayer_time.source = 'manual'
             prayer_time.save()
