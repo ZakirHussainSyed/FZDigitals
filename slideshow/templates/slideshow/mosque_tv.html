@@ -12,11 +12,9 @@
     <style>
         :root {
             --spacing-scale: 1;
-            --panel-top: clamp(40px, 8vh, 90px);
+            --panel-top: clamp(30px, 6vh, 70px);
             --panel-side: clamp(16px, 5vw, 60px);
             --panel-bottom: clamp(10px, 2vh, 16px);
-            --header-top: clamp(120px, 18vh, 200px);
-            --header-bottom: clamp(6px, 1vh, 12px);
             --info-pad: clamp(4px, 0.8vh, 8px);
             --next-pad: clamp(4px, 0.8vh, 8px);
             --list-pad: clamp(2px, 0.8vh, 6px);
@@ -36,7 +34,7 @@
         }
         .prayer-panel {
             position: relative;
-            background: #0b2e1a url("{% static 'background.jpg' %}") top center/cover no-repeat;
+            background: #0b2e1a;
             color: #fff;
             padding: var(--panel-top) var(--panel-side) var(--panel-bottom);
             display: flex;
@@ -47,13 +45,19 @@
 
         .arch-header {
             position: relative;
-            height: auto;
-            padding: var(--header-top) 0 var(--header-bottom);
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             flex-shrink: 0;
             z-index: 1;
+        }
+        .arch-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            object-position: top center;
         }
         .mosque-name {
             position: relative;
@@ -63,7 +67,7 @@
             text-align: center;
             color: #fff;
             text-shadow: 0 2px 12px rgba(0,0,0,0.5);
-            margin: 0;
+            margin: clamp(8px, 1.5vh, 16px) 0 0;
             line-height: 1.1;
         }
         .info-bar {
@@ -194,11 +198,8 @@
         .empty.show { display: flex; }
         @media (max-width: 768px) {
             .tv-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-            .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); padding: 0 16px 12px; }
-            .arch-header { height: 120px; padding: 60px 0 12px; }
-            .arch-header { height: 100px; }
-            .prayer-panel { padding: 20px 12% 12px; }
-            .mosque-name { font-size: 28px; }
+            .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); padding: 1rem 8% 1rem; }
+            .mosque-name { font-size: 1.6rem; }
             .info-bar { font-size: 15px; }
             .info-bar .center { font-size: 20px; }
             .next-prayer .time { font-size: 28px; }
@@ -211,6 +212,7 @@
         <div class="prayer-panel">
 
             <div class="arch-header">
+                <img class="arch-image" src="{% static 'arch.png' %}" alt="" />
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
             <div class="info-bar">
