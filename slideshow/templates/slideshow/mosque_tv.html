@@ -199,7 +199,8 @@
                 if (f.type === 'image') {
                     const img = document.createElement('img');
                     img.src = f.url;
-                    img.alt = f.title;
+                    img.alt = f.title || '';
+                    img.onerror = () => setTimeout(() => show(current + 1), 500);
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
@@ -242,14 +243,31 @@
                 autoplayTimer = null;
             }
             const nodes = slidesEl.querySelectorAll('.slide');
-            const video = nodes[current]?.querySelector('video');
-            if (video) {
+            const node = nodes[current];
+            const img = node?.querySelector('img');
+            const video = node?.querySelector('video');
+
+            if (img) {
+                if (img.complete && img.naturalHeight > 0) {
+                    autoplayTimer = setTimeout(() => show(current + 1), 10000);
+                } else if (img.complete && img.naturalHeight === 0) {
+                    setTimeout(() => show(current + 1), 500);
+                } else {
+                    img.onload = () => { autoplayTimer = setTimeout(() => show(current + 1), 10000); };
+                    img.onerror = () => { setTimeout(() => show(current + 1), 500); };
+                }
+            } else if (video) {
                 video.onended = () => show(current + 1);
                 video.onerror = () => setTimeout(() => show(current + 1), 500);
-                video.currentTime = 0;
-                video.play().catch(() => setTimeout(() => show(current + 1), 1000));
-            } else {
-                autoplayTimer = setTimeout(() => show(current + 1), 10000);
+                const tryPlay = () => {
+                    video.currentTime = 0;
+                    video.play().catch(() => setTimeout(() => show(current + 1), 1000));
+                };
+                if (video.readyState >= 3) {
+                    tryPlay();
+                } else {
+                    video.oncanplay = () => { video.oncanplay = null; tryPlay(); };
+                }
             }
         }
 
