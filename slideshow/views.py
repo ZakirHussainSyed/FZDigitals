@@ -1199,7 +1199,10 @@ def api_device_slideshow(request, device_id):
         token = request.GET.get('token') or request.headers.get('X-Device-Token', '')
         if not constant_time_compare(token, device.token):
             return JsonResponse({'success': False, 'error': 'Invalid device token'}, status=403)
-        
+
+        if not device.is_active:
+            return JsonResponse({'success': False, 'error': 'Device deactivated'}, status=404)
+
         if not device.user:
             return JsonResponse({
                 'success': False,
@@ -1207,7 +1210,7 @@ def api_device_slideshow(request, device_id):
                 'device_id': device.device_id,
                 'device_name': device.name
             }, status=404)
-        
+
         files = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
         return JsonResponse({
             'success': True,
@@ -1223,7 +1226,11 @@ def api_device_slideshow(request, device_id):
                     'title': f.title,
                     'type': f.content_type,
                     'screen': f.screen,
-                    'url': request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'),
+                    'url': (
+                        (request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'))
+                        + ('&' if '?' in (f.file.url if hasattr(f.file, 'url') else '') else '?')
+                        + f'v={f.file_size}-{int(f.created_at.timestamp())}'
+                    ),
                     'size': f.file_size,
                     # Version marker for tablet change detection: a new upload
                     # creates a new row (new id + created_at), so this changes
@@ -1964,7 +1971,10 @@ def mosque_tv_device(request):
         device = Device.objects.get(device_id=device_id, token=token)
     except Device.DoesNotExist:
         return HttpResponse('Invalid device credentials', status=403)
-    
+
+    if not device.is_active:
+        return redirect('/mosque-tv/setup/')
+
     # Get assigned mosque
     mosque = device.mosque
     if not mosque:
@@ -2008,7 +2018,17 @@ def mosque_tv_device(request):
     # Get media from the mosque's user (device owner)
     media = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
     media_files = json.dumps([
-        {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
+        {
+            'id': m.id,
+            'url': (
+                (m.file.url if hasattr(m.file, 'url') else f'/media/{m.file}')
+                + ('&' if '?' in (m.file.url if hasattr(m.file, 'url') else '') else '?')
+                + f'v={m.file_size}-{int(m.created_at.timestamp())}'
+            ),
+            'type': m.content_type,
+            'title': m.title,
+            'version': f'{m.file_size}-{int(m.created_at.timestamp())}',
+        }
         for m in media
     ])
     

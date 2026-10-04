@@ -425,12 +425,17 @@
                     { signal: ctl.signal, cache: 'no-store' }
                 );
                 clearTimeout(fetchTimer);
+                if (res.status === 404) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    window.location.href = '/mosque-tv/setup/';
+                    return;
+                }
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
                 const newFiles = data.files || [];
-                const newIds = JSON.stringify(newFiles.map(f => f.id));
-                const curIds = JSON.stringify(media.map(f => f.id));
+                const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));
+                const curIds = JSON.stringify(media.map(f => f.id + '|' + (f.version || '')));
                 if (newIds === curIds && newFiles.length === media.length) return;
 
                 const currentId = media.length && media[current] ? media[current].id : null;

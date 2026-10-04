@@ -263,12 +263,30 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
         return new File(tileDir, md5(key) + ext);
     }
 
+    private static class FetchResult {
+        final int status;
+        final byte[] body;
+        FetchResult(int status, byte[] body) {
+            this.status = status;
+            this.body = body;
+        }
+    }
+
     /**
      * GET the resource. extraHeaders are mirrored onto the connection (the
      * WebView's own request headers for app-shell fetches); may be null.
-     * Returns the body on success, null on any failure.
+     * Returns the body on a 2xx response, null for any failure.
      */
     private byte[] fetchBytes(Uri url, Map<String, String> extraHeaders, int max) {
+        FetchResult r = fetchWithStatus(url, extraHeaders, max);
+        return (r != null && r.status >= 200 && r.status < 300) ? r.body : null;
+    }
+
+    /**
+     * GET the resource and return both the HTTP status and body. On 4xx/5xx the
+     * error body is captured so callers can surface the real response.
+     */
+    private FetchResult fetchWithStatus(Uri url, Map<String, String> extraHeaders, int max) {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(url.toString()).openConnection();
@@ -289,35 +307,57 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
                 }
             }
             int code = conn.getResponseCode();
+            InputStream in;
             if (code >= 200 && code < 300) {
-                return readFully(conn.getInputStream(), max);
+                in = conn.getInputStream();
+            } else if (code >= 400) {
+                in = conn.getErrorStream();
+                if (in == null) in = conn.getInputStream();
+            } else {
+                in = conn.getInputStream();
             }
-            Log.w(TAG, "fetch HTTP " + code + " for " + url);
+            return new FetchResult(code, readFully(in, max));
         } catch (Exception e) {
             Log.i(TAG, "fetch failed for " + url + ": " + e.getMessage());
+            return null;
         } finally {
             if (conn != null) conn.disconnect();
         }
-        return null;
     }
 
     /**
      * Network-first for shell/API/CDN: on success return the fresh body and
-     * snapshot it; on any failure serve the last stored copy.
+     * snapshot it. On 4xx/5xx, return the real response so the WebView sees the
+     * actual status (e.g., 404 for a deleted device) and does not reuse a stale
+     * snapshot. Only on true network failures do we fall back to the snapshot.
      */
     private WebResourceResponse fetchThroughCache(WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
-        byte[] body = fetchBytes(url, request.getRequestHeaders(), 8 * 1024 * 1024);
-        if (body != null && body.length > 0) {
-            writeAtomic(cacheFile, body);
-            String mime = guessMime(url);
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Content-Type", mime);
-            headers.put("Cache-Control", "no-cache");
-            headers.put("Content-Length", String.valueOf(body.length));
-            return new WebResourceResponse(mime, encodingFor(mime), 200, "OK",
-                    headers, new ByteArrayInputStream(body));
+        FetchResult result = fetchWithStatus(url, request.getRequestHeaders(), 8 * 1024 * 1024);
+        if (result != null) {
+            if (result.status >= 200 && result.status < 300) {
+                writeAtomic(cacheFile, result.body);
+                String mime = guessMime(url);
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", mime);
+                headers.put("Cache-Control", "no-cache");
+                headers.put("Content-Length", String.valueOf(result.body.length));
+                return new WebResourceResponse(mime, encodingFor(mime), 200, "OK",
+                        headers, new ByteArrayInputStream(result.body));
+            }
+            if (result.status >= 400) {
+                Log.i(TAG, "fetch HTTP " + result.status + " for " + url + ", not using snapshot");
+                String mime = guessMime(url);
+                byte[] body = result.body != null ? result.body : new byte[0];
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", mime);
+                headers.put("Cache-Control", "no-cache");
+                headers.put("Content-Length", String.valueOf(body.length));
+                return new WebResourceResponse(mime, encodingFor(mime), result.status, "Error",
+                        headers, new ByteArrayInputStream(body));
+            }
         }
+        // Network failure: fall back to the last stored snapshot.
         if (cacheFile.exists() && cacheFile.length() > 0) {
             try {
                 Log.i(TAG, "serving snapshot " + cacheFile.getName() + " for " + url);
