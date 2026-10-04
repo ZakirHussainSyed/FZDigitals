@@ -252,6 +252,7 @@
         }
 
         let media = loadInitialMedia();
+        let showColon = true;
 
         function saveMediaCache() {
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(media)); } catch (e) { /* ignore */ }
@@ -259,7 +260,12 @@
 
         function updateClock() {
             const now = new Date();
-            clockEl.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const parts = timeStr.split(':');
+            const hour = parts[0] || '';
+            const rest = parts[1] || '';
+            clockEl.innerHTML = hour + '<span style="visibility:' + (showColon ? 'visible' : 'hidden') + '">:</span>' + rest;
+            showColon = !showColon;
             try {
                 const hijri = new Intl.DateTimeFormat('ur-u-ca-islamic-umalqura', {dateStyle:'long'}).format(now);
                 islamicDateEl.textContent = hijri;
