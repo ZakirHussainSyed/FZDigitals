@@ -229,8 +229,8 @@
 
     <script type="application/json" id="media-data">{{ media_files|safe }}</script>
     <script>
-        window.DEVICE_ID = {{ device_id|default:''|escapejs }};
-        window.DEVICE_TOKEN = {{ token|default:''|escapejs }};
+        window.DEVICE_ID = "{{ device_id|default:''|escapejs }}";
+        window.DEVICE_TOKEN = "{{ token|default:''|escapejs }}";
         const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
 
         let current = 0;
