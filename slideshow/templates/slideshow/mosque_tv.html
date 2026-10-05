@@ -252,6 +252,64 @@
         const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
 
+        const rawLog = console.log;
+        const rawWarn = console.warn;
+        const rawError = console.error;
+
+        // Remote diagnostics: buffer every dlog/dwarn/derror and POST it to
+        // the server ('devlog <device-id>' in server logs). OFF unless the
+        // slideshow API returns debug:true (DEVICE_DEBUG_LOGS env var).
+        const logBuf = [];
+        let devlogOn = false;
+        function bufLog(level, args) {
+            try {
+                const msg = args.map(a =>
+                    typeof a === 'string' ? a : JSON.stringify(a)
+                ).join(' ').slice(0, 500);
+                logBuf.push(`${new Date().toISOString()} ${level} ${msg}`);
+                if (logBuf.length > 300) logBuf.shift();
+                if (devlogOn && level === 'E') flushLogs();
+            } catch (e) { /* never break logging */ }
+        }
+        let flushFails = 0;
+        function flushLogs() {
+            if (!devlogOn || !logBuf.length || !window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+            const lines = logBuf.splice(0, logBuf.length);
+            fetch(`/api/device/${encodeURIComponent(window.DEVICE_ID)}/log/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Token': window.DEVICE_TOKEN,
+                },
+                body: JSON.stringify({logs: lines}),
+            }).then(() => {
+                if (flushFails) {
+                    bufLog('W', [`devlog: ${flushFails} failed flushes — network gap ~${flushFails * 15}s`]);
+                    flushFails = 0;
+                }
+            }).catch(() => {
+                flushFails++;
+                logBuf.unshift(...lines);
+                if (logBuf.length > 300) logBuf.length = 300;
+            });
+        }
+        setInterval(flushLogs, 15000);
+        window.addEventListener('beforeunload', flushLogs);
+        document.addEventListener('visibilitychange', () =>
+            dlog('visibility:', document.visibilityState));
+        window.addEventListener('offline', () => dwarn('network: offline'));
+        window.addEventListener('online', () => dlog('network: online'));
+        window.addEventListener('error', e =>
+            derror('window.onerror:', e.message, e.filename, e.lineno));
+        window.addEventListener('unhandledrejection', e =>
+            derror('unhandledrejection:', e.reason && (e.reason.message || e.reason)));
+
+        function dlog(...args) { rawLog.apply(console, args); bufLog('I', args); }
+        function dwarn(...args) { rawWarn.apply(console, args); bufLog('W', args); }
+        function derror(...args) { rawError.apply(console, args); bufLog('E', args); }
+
+        dlog('boot:', window.DEVICE_ID, 'Capacitor:', typeof Capacitor, 'MediaDownloader:', !!MediaDownloader);
+
         let current = 0;
         let autoplayTimer = null;
         let showColon = true;
@@ -291,7 +349,9 @@
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) return files;
             try {
+                dlog('sync: start', files.length, 'files');
                 const res = await MediaDownloader.sync({ files: files });
+                dlog('sync: done', res && res.files ? res.files.map(i => `${i.id}:${i.status}`).join(' ') : 'no result');
                 if (res && res.files) {
                     const map = {};
                     res.files.forEach(item => { if (item.id) map[item.id] = item; });
@@ -303,7 +363,7 @@
                         return f;
                     });
                 }
-            } catch (err) { /* keep remote urls */ }
+            } catch (err) { dwarn('sync error:', err && (err.message || err)); }
             return files;
         }
 
@@ -378,7 +438,7 @@
                     const img = document.createElement('img');
                     img.src = getMediaSrc(f);
                     img.alt = f.title || '';
-                    img.onerror = () => setTimeout(() => show(current + 1), 500);
+                    img.onerror = () => { dwarn('img error:', f.title, getMediaSrc(f)); setTimeout(() => show(current + 1), 500); };
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
@@ -436,7 +496,7 @@
                 }
             } else if (video) {
                 video.onended = () => show(current + 1);
-                video.onerror = () => setTimeout(() => show(current + 1), 500);
+                video.onerror = () => { dwarn('video error:', media[current] && media[current].title, video.error && video.error.code); setTimeout(() => show(current + 1), 500); };
                 const tryPlay = () => {
                     video.currentTime = 0;
                     video.play().catch(() => setTimeout(() => show(current + 1), 1000));
@@ -467,6 +527,7 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
+                devlogOn = !!data.debug;  // server-opt-in remote diagnostics
                 const newFiles = data.files || [];
                 const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));
                 const curIds = JSON.stringify(media.map(f => f.id + '|' + (f.version || '')));
@@ -479,6 +540,7 @@
                     return;
                 }
 
+                dlog('refresh: playlist changed', newFiles.length, 'files');
                 const currentId = media.length && media[current] ? media[current].id : null;
                 media = await syncMediaToLocal(newFiles);
                 saveMediaCache();
