@@ -15,13 +15,14 @@ from django.db import transaction
 import json
 import logging
 import secrets
+from types import SimpleNamespace
 
 import requests
 from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, MosqueSlide
+from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide
 from .prayer_sync import (
     maybe_sync_mosque,
     sunrise_time,
@@ -354,10 +355,9 @@ def user_management(request):
                     jummah_section=mosque_jummah_section,
                 )
                 if manual_times:
-                    PrayerTime.objects.create(
+                    PrayerTimeOverride.objects.create(
                         mosque=mosque,
                         date=timezone.now().date(),
-                        source='manual',
                         **manual_times,
                     )
                 if mosque.sync_enabled:
@@ -931,20 +931,17 @@ def api_mosques(request):
         today = timezone.now().date()
         data = []
         for m in mosques:
-            try:
-                pt = m.prayer_times.get(date=today)
-                prayer_times = {
-                    'fajr': pt.fajr.strftime('%H:%M') if pt.fajr else None,
-                    'dhuhr': pt.dhuhr.strftime('%H:%M') if pt.dhuhr else None,
-                    'asr': pt.asr.strftime('%H:%M') if pt.asr else None,
-                    'maghrib': pt.maghrib.strftime('%H:%M') if pt.maghrib else None,
-                    'isha': pt.isha.strftime('%H:%M') if pt.isha else None,
-                    'jummah': pt.jummah.strftime('%H:%M') if pt.jummah else None,
-                    'jummah2': pt.jummah2.strftime('%H:%M') if pt.jummah2 else None,
-                    'jummah3': pt.jummah3.strftime('%H:%M') if pt.jummah3 else None,
-                }
-            except PrayerTime.DoesNotExist:
-                prayer_times = {}
+            pt = resolve_prayer_time(m, today)
+            prayer_times = {
+                'fajr': pt.fajr.strftime('%H:%M') if pt.fajr else None,
+                'dhuhr': pt.dhuhr.strftime('%H:%M') if pt.dhuhr else None,
+                'asr': pt.asr.strftime('%H:%M') if pt.asr else None,
+                'maghrib': pt.maghrib.strftime('%H:%M') if pt.maghrib else None,
+                'isha': pt.isha.strftime('%H:%M') if pt.isha else None,
+                'jummah': pt.jummah.strftime('%H:%M') if pt.jummah else None,
+                'jummah2': pt.jummah2.strftime('%H:%M') if pt.jummah2 else None,
+                'jummah3': pt.jummah3.strftime('%H:%M') if pt.jummah3 else None,
+            } if pt else {}
             data.append({
                 'id': m.id,
                 'name': m.name,
@@ -1601,6 +1598,39 @@ def _latest_prayer_time(mosque, on_date):
     return mosque.prayer_times.filter(date__lte=on_date).order_by('-date').first()
 
 
+_PRAYER_FIELDS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha',
+                  'sunset', 'jummah', 'jummah2', 'jummah3')
+
+
+def resolve_prayer_time(mosque, on_date):
+    """Effective prayer times = synced base row overlaid with overrides.
+
+    PrayerTime rows are system-owned (sync writes them freely);
+    PrayerTimeOverride rows are user-owned and win per-field. Both fall
+    back to the most recent prior row so a missed day keeps showing the
+    last known times. Returns None only when the mosque has no times at
+    all — callers seed defaults in that case.
+    """
+    base = _latest_prayer_time(mosque, on_date)
+    override = mosque.overrides.filter(date__lte=on_date).order_by('-date').first()
+    if not base and not override:
+        return None
+    resolved = SimpleNamespace(base=base, override=override,
+                               is_overridden=override is not None)
+    for field in _PRAYER_FIELDS:
+        val = getattr(override, field) if override else None
+        if val is None and base:
+            val = getattr(base, field)
+        setattr(resolved, field, val)
+    if override and override.maghrib_after_sunset is not None:
+        resolved.maghrib_after_sunset = override.maghrib_after_sunset
+    elif base:
+        resolved.maghrib_after_sunset = base.maghrib_after_sunset
+    else:
+        resolved.maghrib_after_sunset = False
+    return resolved
+
+
 def _format_prayer_time(t):
     if not t:
         return ''
@@ -1678,7 +1708,7 @@ def api_public_mosques(request):
             m_today = timezone.now().astimezone(m_tz).date()
             m_now = datetime.now(m_tz)
             maybe_sync_mosque(m)
-            prayer_time = _latest_prayer_time(m, m_today)
+            prayer_time = resolve_prayer_time(m, m_today)
             timings = {}
             if prayer_time:
                 timings = {
@@ -1815,15 +1845,17 @@ def prayer_times(request):
             if err:
                 messages.error(request, f'Sync failed: {err}')
                 return redirect('prayer-times')
-            # Website times own the row now; persist any Jummah values the
-            # user typed (update_fields avoids clobbering the freshly synced
-            # values on this stale object).
+            # Website times own the base row now; persist any Jummah values
+            # the user typed as overrides so a later sync can't clobber them.
             try:
+                jummah_vals = {}
                 for jf in ('jummah', 'jummah2', 'jummah3'):
                     val = _parse(jf)
                     if val:
-                        setattr(prayer_time, jf, val)
-                prayer_time.save(update_fields=['jummah', 'jummah2', 'jummah3'])
+                        jummah_vals[jf] = val
+                if jummah_vals:
+                    PrayerTimeOverride.objects.update_or_create(
+                        mosque=mosque, date=today, defaults=jummah_vals)
             except Exception:
                 pass
             messages.success(request, f'Synced {synced} days of prayer times from the website.')
@@ -1831,6 +1863,10 @@ def prayer_times(request):
 
         try:
             after_sunset = request.POST.get('maghrib_after_sunset') == 'on'
+            # Write to the override table, not the synced row: values equal to
+            # the base stay NULL so they keep tracking the website; only real
+            # differences are pinned as manual overrides.
+            override_vals = {}
             for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3']:
                 if field == 'maghrib' and after_sunset:
                     # 'After Sunset' checked — Maghrib = sunset + 1 min for
@@ -1838,32 +1874,36 @@ def prayer_times(request):
                     sunset_t = prayer_time.sunset or sunset_time(
                         mosque.latitude, mosque.longitude, today, tz)
                     if sunset_t:
-                        prayer_time.maghrib = (
+                        computed = (
                             datetime.combine(today, sunset_t) + timedelta(minutes=1)
                         ).time()
+                        override_vals['maghrib'] = (
+                            None if computed == prayer_time.maghrib else computed)
                     continue
-                setattr(prayer_time, field, _parse(field, optional=field.startswith('jummah')))
-            prayer_time.maghrib_after_sunset = after_sunset
-            prayer_time.source = 'manual'
-            prayer_time.save()
+                val = _parse(field, optional=field.startswith('jummah'))
+                override_vals[field] = None if val == getattr(prayer_time, field) else val
+            override_vals['maghrib_after_sunset'] = after_sunset
+            PrayerTimeOverride.objects.update_or_create(
+                mosque=mosque, date=today, defaults=override_vals)
             messages.success(request, 'Prayer times updated.')
             return redirect('prayer-times')
         except Exception as e:
             messages.error(request, f'Invalid prayer time: {e}')
             return redirect('prayer-times')
 
+    resolved = resolve_prayer_time(mosque, today) or prayer_time
     prayer_fields = []
     for field, label, readonly, t in [
-        ('fajr', 'Fajr (Iqama)', False, prayer_time.fajr),
+        ('fajr', 'Fajr (Iqama)', False, resolved.fajr),
         ('sunrise', 'Sunrise', True, sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
-        ('dhuhr', 'Dhuhr (Iqama)', False, prayer_time.dhuhr),
-        ('asr', 'Asr (Iqama)', False, prayer_time.asr),
-        ('sunset', 'Sunset', True, prayer_time.sunset),
-        ('maghrib', 'Maghrib (Iqama)', False, prayer_time.maghrib),
-        ('isha', 'Isha (Iqama)', False, prayer_time.isha),
-        ('jummah', 'Jummah 1', False, prayer_time.jummah),
-        ('jummah2', 'Jummah 2', False, prayer_time.jummah2),
-        ('jummah3', 'Jummah 3', False, prayer_time.jummah3),
+        ('dhuhr', 'Dhuhr (Iqama)', False, resolved.dhuhr),
+        ('asr', 'Asr (Iqama)', False, resolved.asr),
+        ('sunset', 'Sunset', True, resolved.sunset),
+        ('maghrib', 'Maghrib (Iqama)', False, resolved.maghrib),
+        ('isha', 'Isha (Iqama)', False, resolved.isha),
+        ('jummah', 'Jummah 1', False, resolved.jummah),
+        ('jummah2', 'Jummah 2', False, resolved.jummah2),
+        ('jummah3', 'Jummah 3', False, resolved.jummah3),
     ]:
         entry = {'name': field, 'label': label, 'readonly': readonly}
         if readonly:
@@ -1880,7 +1920,7 @@ def prayer_times(request):
 
     return render(request, 'slideshow/prayer_times.html', {
         'mosque': mosque,
-        'prayer_time': prayer_time,
+        'prayer_time': resolved,
         'prayer_fields': prayer_fields,
         'today': today,
     })
@@ -1905,12 +1945,13 @@ def mosque_tv(request):
 
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
-    # Prefer the latest real row (today's, else the most recent prior) so a
-    # missed sync keeps showing times; only seed placeholder defaults when
-    # the mosque has never had any times at all.
-    prayer_time = _latest_prayer_time(mosque, today)
-    if not prayer_time:
-        prayer_time, _ = PrayerTime.objects.get_or_create(
+    # Resolved = synced base + manual overrides; only seed placeholder
+    # defaults when the mosque has never had any times at all.
+    prayer_time = resolve_prayer_time(mosque, today)
+    if prayer_time is None or prayer_time.base is None:
+        # Seed placeholder defaults only when the mosque has no base row;
+        # overrides (if any) are overlaid again on the seeded row.
+        PrayerTime.objects.get_or_create(
             mosque=mosque,
             date=today,
             defaults={
@@ -1923,6 +1964,7 @@ def mosque_tv(request):
                 'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
             }
         )
+        prayer_time = resolve_prayer_time(mosque, today)
 
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),
@@ -1991,9 +2033,11 @@ def mosque_tv_device(request):
     
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
-    prayer_time = _latest_prayer_time(mosque, today)
-    if not prayer_time:
-        prayer_time, _ = PrayerTime.objects.get_or_create(
+    prayer_time = resolve_prayer_time(mosque, today)
+    if prayer_time is None or prayer_time.base is None:
+        # Seed placeholder defaults only when the mosque has no base row;
+        # overrides (if any) are overlaid again on the seeded row.
+        PrayerTime.objects.get_or_create(
             mosque=mosque,
             date=today,
             defaults={
@@ -2006,6 +2050,7 @@ def mosque_tv_device(request):
                 'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
             }
         )
+        prayer_time = resolve_prayer_time(mosque, today)
     
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),

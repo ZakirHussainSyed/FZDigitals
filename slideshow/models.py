@@ -212,6 +212,39 @@ class PrayerTime(models.Model):
         return f"{self.mosque.name} - {self.date}"
 
 
+class PrayerTimeOverride(models.Model):
+    """User-owned manual overrides layered over synced PrayerTime rows.
+
+    PrayerTime rows are system-owned (sync may rewrite any non-manual row).
+    Override fields left NULL inherit the synced value; a non-NULL field
+    wins for that prayer. Deleting a row fully reverts to website times.
+    """
+    mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='overrides')
+    date = models.DateField()
+    fajr = models.TimeField(blank=True, null=True)
+    dhuhr = models.TimeField(blank=True, null=True)
+    asr = models.TimeField(blank=True, null=True)
+    maghrib = models.TimeField(blank=True, null=True)
+    isha = models.TimeField(blank=True, null=True)
+    sunset = models.TimeField(blank=True, null=True)
+    jummah = models.TimeField(blank=True, null=True)
+    jummah2 = models.TimeField(blank=True, null=True)
+    jummah3 = models.TimeField(blank=True, null=True)
+    maghrib_after_sunset = models.BooleanField(
+        blank=True, null=True,
+        help_text='NULL = inherit from synced row; set = override.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['mosque', 'date']
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.mosque.name} - {self.date} (override)"
+
+
 class MosqueSlide(models.Model):
     mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='slides')
     title = models.CharField(max_length=255)

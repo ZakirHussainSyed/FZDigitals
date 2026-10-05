@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, Mosque, PrayerTime, MosqueSlide
+from .models import UserProfile, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide
 
 
 class UserProfileInline(admin.StackedInline):
@@ -34,16 +34,28 @@ class PrayerTimeInline(admin.TabularInline):
     extra = 1
 
 
+class PrayerTimeOverrideInline(admin.TabularInline):
+    model = PrayerTimeOverride
+    extra = 1
+
+
 @admin.register(Mosque)
 class MosqueAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'address')
-    inlines = [PrayerTimeInline]
+    inlines = [PrayerTimeInline, PrayerTimeOverrideInline]
 
 
 @admin.register(PrayerTime)
 class PrayerTimeAdmin(admin.ModelAdmin):
+    list_display = ('mosque', 'date', 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3')
+    list_filter = ('mosque', 'date')
+    date_hierarchy = 'date'
+
+
+@admin.register(PrayerTimeOverride)
+class PrayerTimeOverrideAdmin(admin.ModelAdmin):
     list_display = ('mosque', 'date', 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3')
     list_filter = ('mosque', 'date')
     date_hierarchy = 'date'
