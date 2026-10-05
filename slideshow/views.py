@@ -1941,7 +1941,14 @@ def mosque_tv(request):
 
     media = MediaFile.objects.filter(user=request.user, screen=1).order_by('position', '-id')
     media_files = json.dumps([
-        {'id': m.id, 'url': m.file.url, 'type': m.content_type, 'title': m.title}
+        {
+            'id': m.id,
+            'url': request.build_absolute_uri(m.file.url),
+            'type': m.content_type,
+            'title': m.title,
+            'size': m.file_size,
+            'version': f'{m.file_size}-{int(m.created_at.timestamp())}',
+        }
         for m in media
     ])
 
@@ -2021,12 +2028,13 @@ def mosque_tv_device(request):
         {
             'id': m.id,
             'url': (
-                (m.file.url if hasattr(m.file, 'url') else f'/media/{m.file}')
+                request.build_absolute_uri(m.file.url if hasattr(m.file, 'url') else f'/media/{m.file}')
                 + ('&' if '?' in (m.file.url if hasattr(m.file, 'url') else '') else '?')
                 + f'v={m.file_size}-{int(m.created_at.timestamp())}'
             ),
             'type': m.content_type,
             'title': m.title,
+            'size': m.file_size,
             'version': f'{m.file_size}-{int(m.created_at.timestamp())}',
         }
         for m in media

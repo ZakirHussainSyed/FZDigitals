@@ -250,6 +250,7 @@
         window.DEVICE_ID = "{{ device_id|default:''|escapejs }}";
         window.DEVICE_TOKEN = "{{ token|default:''|escapejs }}";
         const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
+        const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
 
         let current = 0;
         let autoplayTimer = null;
@@ -273,7 +274,37 @@
         let media = loadInitialMedia();
 
         function saveMediaCache() {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(media)); } catch (e) { /* ignore */ }
+            try {
+                // Strip per-session localUrl — the local media server binds a
+                // random port each launch; it is re-resolved via MediaDownloader.
+                const persisted = media.map(({localUrl, ...rest}) => rest);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+            } catch (e) { /* ignore */ }
+        }
+
+        function getMediaSrc(f) {
+            return f.localUrl || f.url;
+        }
+
+        // Download files into the app's on-disk cache and attach a 127.0.0.1
+        // localUrl per file. No-op outside the native app — slides keep remote.
+        async function syncMediaToLocal(files) {
+            if (!MediaDownloader) return files;
+            try {
+                const res = await MediaDownloader.sync({ files: files });
+                if (res && res.files) {
+                    const map = {};
+                    res.files.forEach(item => { if (item.id) map[item.id] = item; });
+                    files = files.map(f => {
+                        const local = map[f.id];
+                        if (local && local.localUrl) {
+                            return { ...f, localUrl: local.localUrl };
+                        }
+                        return f;
+                    });
+                }
+            } catch (err) { /* keep remote urls */ }
+            return files;
         }
 
         function toHijri(date) {
@@ -345,13 +376,13 @@
 
                 if (f.type === 'image') {
                     const img = document.createElement('img');
-                    img.src = f.url;
+                    img.src = getMediaSrc(f);
                     img.alt = f.title || '';
                     img.onerror = () => setTimeout(() => show(current + 1), 500);
                     wrap.appendChild(img);
                 } else {
                     const vid = document.createElement('video');
-                    vid.src = f.url;
+                    vid.src = getMediaSrc(f);
                     vid.controls = false;
                     vid.muted = true;
                     vid.playsInline = true;
@@ -439,10 +470,17 @@
                 const newFiles = data.files || [];
                 const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));
                 const curIds = JSON.stringify(media.map(f => f.id + '|' + (f.version || '')));
-                if (newIds === curIds && newFiles.length === media.length) return;
+                if (newIds === curIds && newFiles.length === media.length) {
+                    // Playlist unchanged, but a restored list can be missing
+                    // localUrls — re-resolve so the next render plays local.
+                    if (media.some(f => !f.localUrl)) {
+                        syncMediaToLocal(media).then(synced => { media = synced; });
+                    }
+                    return;
+                }
 
                 const currentId = media.length && media[current] ? media[current].id : null;
-                media = newFiles;
+                media = await syncMediaToLocal(newFiles);
                 saveMediaCache();
                 const kept = currentId == null ? -1 : media.findIndex(f => f.id === currentId);
                 current = kept >= 0 ? kept : 0;
@@ -457,6 +495,19 @@
 
         renderSlides();
         playCurrent();
+
+        // Fill the disk cache in the background; swap slide sources to the
+        // local server as files land (first launch plays remote meanwhile).
+        if (MediaDownloader) {
+            syncMediaToLocal(media).then(synced => {
+                media = synced;
+                slidesEl.querySelectorAll('.slide').forEach((node, idx) => {
+                    const f = media[idx];
+                    const el = f && f.localUrl ? node.querySelector('img, video') : null;
+                    if (el && el.src !== f.localUrl) el.src = f.localUrl;
+                });
+            });
+        }
 
         if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake) {
             Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});
