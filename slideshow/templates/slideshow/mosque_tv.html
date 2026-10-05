@@ -192,6 +192,20 @@
             padding: 24px;
         }
         .empty.show { display: flex; }
+        .brand-footer {
+            flex-shrink: 0;
+            text-align: center;
+            font-size: clamp(10px, 1vw, 14px);
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.35);
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+            padding-top: 8px;
+        }
+        .brand-footer a {
+            color: rgba(255, 255, 255, 0.75);
+            font-weight: 700;
+            text-decoration: none;
+        }
         @media (max-width: 768px) {
             .tv-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
             .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); padding: 0 16px 12px; }
@@ -238,6 +252,7 @@
                 {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="value">{{ timings.jummah2 }}</span></div>{% endif %}
                 {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="value">{{ timings.jummah3 }}</span></div>{% endif %}
             </div>
+            <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
         </div>
         <div class="stage" id="stage">
             <div class="empty" id="empty">No media uploaded yet.</div>
