@@ -1628,6 +1628,12 @@ def resolve_prayer_time(mosque, on_date):
         resolved.maghrib_after_sunset = base.maghrib_after_sunset
     else:
         resolved.maghrib_after_sunset = False
+    if resolved.sunset is None and mosque.latitude and mosque.longitude:
+        # Sunset is derived from coordinates, not user data — a manual-only
+        # mosque (override row, no synced base) otherwise shows nothing.
+        resolved.sunset = sunset_time(
+            mosque.latitude, mosque.longitude, on_date,
+            ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC')))
     return resolved
 
 
