@@ -49,13 +49,13 @@ RETRY_INTERVAL = timedelta(hours=1)
 UA = {'User-Agent': 'FZDigitals/1.0'}
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
 ANCHOR_RE = re.compile(r'href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
-PRAYER_WORDS_RE = re.compile(r'prayer|sala[ah]?[ht]|namaz|iqamah?|timing|schedule', re.I)
+PRAYER_WORDS_RE = re.compile(r'prayer|sala[ah]?[ht]|namaz|iqamah?|timing|schedule|timetable', re.I)
 MASJIDNOW_RE = re.compile(r'masjidnow\.com/(?:mosques|widgets)/(\d+)', re.I)
 MAWAQIT_RE = re.compile(r'mawaqit\.net/(?:[a-z]{2}/)?m/([a-z0-9][a-z0-9\-]*)', re.I)
 TIME_NEAR_RE = r'(\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?'
 PRAYER_NAMES = {
     'fajr': r'fajr|fajar',
-    'dhuhr': r'dhuhr|dhur|duhar|zuhr|zohar|dohr',
+    'dhuhr': r'dhuhr|duhr|dhur|duhar|zuhr|zohar|dohr',
     'asr': r'asr|asar',
     'maghrib': r'maghrib|magrib',
     'isha': r'isha|ishaa|esha',
@@ -65,7 +65,7 @@ PRAYER_NAMES = {
 }
 NAME_TO_KEY = {
     'fajr': 'fajr', 'fajar': 'fajr',
-    'dhuhr': 'dhuhr', 'dhur': 'dhuhr', 'duhar': 'dhuhr',
+    'dhuhr': 'dhuhr', 'duhr': 'dhuhr', 'dhur': 'dhuhr', 'duhar': 'dhuhr',
     'zuhr': 'dhuhr', 'zohar': 'dhuhr', 'dohr': 'dhuhr',
     'asr': 'asr', 'asar': 'asr',
     'maghrib': 'maghrib', 'magrib': 'maghrib',
@@ -76,10 +76,19 @@ NAME_TO_KEY = {
 }
 # JS/JSON configs: fajr: "05:30", "dhuhr_iqama": '1:40 PM', etc.
 JS_TIME_RE = re.compile(
-    r'\b(fajr|fajar|dhuhr|dhur|zuhr|zohar|dohr|asr|asar|maghrib|magrib|isha|ishaa|esha|jummah|jumuah|juma)[_\s]?([23])?\b'
+    r'\b(fajr|fajar|dhuhr|duhr|dhur|zuhr|zohar|dohr|asr|asar|maghrib|magrib|isha|ishaa|esha|jummah|jumuah|juma)[_\s]?([23])?\b'
     r'([_\s]?(?:iqamah?|athan|adhan))?["\']?\s*[:=]\s*["\'](\d{1,2}:\d{2})\s*(am|pm|a\.m\.|p\.m\.)?',
     re.I)
 REQUIRED_PRAYERS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
+# Words that must NOT be crossed when pairing a prayer name with its
+# time(s) — crossing means we grabbed a neighbour's value (the "Fajr
+# 5:57 ... Sunrise 7:08" bug on mcabayarea.org).
+_BOUNDARY_WORDS = (
+    'fajr|fajar|dhuhr|duhr|dhur|duhar|zuhr|zohar|dohr|asr|asar|maghrib|magrib'
+    '|isha|ishaa|esha|jummah|jumu|juma|friday|sunrise|sunset|sunup|shuruq|shuruk'
+    '|shurooq|salah|salat|namaz|athan|adhan|azaan|iqamah|iqama|begins|khutba|khutbah'
+)
+_SUN_WORDS_RE = re.compile(r'sunrise|sunset|sunup|shuruq|shuruk|shurooq', re.I)
 MONTHS = {m: i for i, m in enumerate(
     ['January', 'February', 'March', 'April', 'May', 'June', 'July',
      'August', 'September', 'October', 'November', 'December'], 1)}
@@ -157,18 +166,31 @@ def find_schedule_image_url(html, base_url):
     return None
 
 
-def _ocr_prayer_times(image_url):
+def _get(url, timeout=15, **kw):
+    """requests.get with an unverified retry — some mosque sites have
+    broken cert chains (missing intermediates, e.g. slic.us). Pages are
+    read-only public content, so verify=False is an acceptable fallback."""
+    try:
+        return requests.get(url, timeout=timeout, headers=UA, **kw)
+    except requests.exceptions.SSLError:
+        import urllib3
+        urllib3.disable_warnings()
+        return requests.get(url, timeout=timeout, headers=UA,
+                            verify=False, **kw)
+
+
+def _ocr_prayer_times(image_url, mosque_coords=None):
     """Download an image and OCR it to extract prayer times."""
     if not OCR_AVAILABLE:
         return None
     try:
-        resp = requests.get(image_url, timeout=20, headers=UA)
+        resp = _get(image_url, timeout=20)
         resp.raise_for_status()
         img = Image.open(io.BytesIO(resp.content))
         # Convert to grayscale and increase contrast for better OCR
         img = img.convert('L')
         text = pytesseract.image_to_string(img, config='--psm 6')
-        return _html_prayer_times(text)
+        return _html_prayer_times(text, mosque_coords=mosque_coords)
     except Exception as e:
         logger.warning(f'OCR failed for {image_url}: {e}')
         return None
@@ -700,8 +722,8 @@ def _scrape_times(text, jummah_section=None, mosque_coords=None):
     Jumu'ah blocks repeat per location — this keyword selects the section
     whose heading contains it; blank uses the first Jumu'ah on the page.
 
-    mosque_coords: (latitude, longitude) tuple for computing sunset/sunrise
-    when times are listed as "Sunset" or "Sunrise".
+    mosque_coords: (latitude, longitude, tz) tuple for computing
+    sunset/sunrise when a time is listed literally as "Sunset" / "Sunrise".
     """
     jummah_text = text
     if jummah_section:
@@ -715,61 +737,95 @@ def _scrape_times(text, jummah_section=None, mosque_coords=None):
                 best_start, best_dist = sec.start(), jm.start()
         if best_start is not None:
             jummah_text = text[best_start:best_start + 800]
+
+    boundary_tokens = _BOUNDARY_WORDS.split('|')
+
+    def _ampm_to_time(t, ap, key):
+        if t.lstrip('0') == ':00':  # '0:00'/'00:00' = no prayer scheduled
+            return None
+        ap = (ap or '').replace('.', '').lower()
+        pm = (ap == 'pm') if ap else key != 'fajr'
+        return _to_24h(t, pm)
+
     result = {}
     for key, names in PRAYER_NAMES.items():
         haystack = jummah_text if key.startswith('jummah') else text
-        m = re.search(
-            rf'\b(?:{names})\b[^0-9]{{0,60}}?{TIME_NEAR_RE}(?:[^0-9]{{0,30}}?{TIME_NEAR_RE})?',
-            haystack, re.I)
-        if not m:
-            continue
-        pairs = [(m.group(i), m.group(i + 1)) for i in (1, 3) if m.group(i)]
-        if not pairs:
-            continue
-        t, ap = pairs[0] if key.startswith('jummah') else pairs[-1]
-        if t.lstrip('0') == ':00':  # '0:00'/'00:00' = no prayer scheduled
-            continue
-        ap = (ap or '').replace('.', '').lower()
-        pm = (ap == 'pm') if ap else key != 'fajr'
-        result[key] = _to_24h(t, pm)
+        own = {w for w in re.split(r"[|?'()\\]", names) if w}
+        others = '|'.join(t for t in boundary_tokens if t not in own)
+        # 'iqamah' is the anchor word in pass A, so it must be allowed there.
+        others_noiq = '|'.join(
+            t for t in boundary_tokens
+            if t not in own and t not in ('iqamah', 'iqama'))
 
-    # Fallback for layouts where prayer names and times are in separate lists
-    # (e.g., masjidulhaqq.com: all names first, then all times in order)
-    if not result or len(result) < 3:
-        # Find all prayer names in order
+        def gap(n, iq_allowed=False):
+            blocked = others_noiq if iq_allowed else others
+            return rf'(?:(?!(?:{blocked})\b)[^0-9]){{0,{n}}}?'
+
+        t = None
+        if not key.startswith('jummah'):
+            # Pass A — an iqamah-labelled time is authoritative:
+            # 'Fajr (Iqamah) 6:20AM', 'Fajr Iqamah 06:17'.
+            m = re.search(
+                rf'\b(?:{names})\b{gap(40, iq_allowed=True)}iqamah?'
+                rf'{gap(15, iq_allowed=True)}{TIME_NEAR_RE}',
+                haystack, re.I)
+            if m:
+                t = _ampm_to_time(m.group(1), m.group(2), key)
+        if t is None:
+            # Pass B — athan then iqama: 'Fajr 5:53 6:20' (last wins).
+            # Jumu'ah shows the first time (khutbah start).
+            m = re.search(
+                rf'\b(?:{names})\b{gap(60)}{TIME_NEAR_RE}'
+                rf'(?:{gap(30)}{TIME_NEAR_RE})?',
+                haystack, re.I)
+            if m:
+                pairs = [(m.group(i), m.group(i + 1))
+                         for i in (1, 3) if m.group(i)]
+                if pairs:
+                    tt, ap = (pairs[0] if key.startswith('jummah')
+                              else pairs[-1])
+                    t = _ampm_to_time(tt, ap, key)
+        if t is not None:
+            result[key] = t
+
+    # Fallback for layouts where prayer names and values form two aligned
+    # lists (e.g. masjidulhaqq.com: 'Fajr Duhr Asr Maghrib Ishaa Jumu'ah
+    # 6:20 AM 1:15 PM 5:45 PM Sunset 8:00 PM 1:15 PM'). Words like 'Sunset'
+    # are real value slots, not noise — they resolve via mosque coords.
+    if len(result) < len(REQUIRED_PRAYERS):
         name_order = []
         for key, names in PRAYER_NAMES.items():
-            if key.startswith('jummah'):
+            if key in ('jummah2', 'jummah3'):
                 continue
             m = re.search(rf'\b(?:{names})\b', text, re.I)
             if m:
                 name_order.append((key, m.start()))
         name_order.sort(key=lambda x: x[1])
-        # Find all times in order (filter out "Sunrise" and "Sunset" text)
-        times = []
-        time_positions = []
-        for t_match in TIME_RE.finditer(text):
-            t = t_match.group()
-            # Skip if this is part of "Sunrise" or "Sunset" (we'll handle those separately)
-            if re.search(r'sun(?:rise|set)', text[max(0, t_match.start()-10):t_match.start()+10], re.I):
-                continue
-            times.append(t)
-            time_positions.append(t_match.start())
-        if len(name_order) == len(times):
-            for i, (key, _) in enumerate(name_order):
-                t = times[i]
-                pm = key != 'fajr'  # Assume PM except Fajr
-                result[key] = _to_24h(t, pm)
-        # Handle "Sunset" for Maghrib if coordinates available
-        if 'maghrib' not in result and mosque_coords and re.search(r'maghrib.*sunrise|sunrise.*maghrib|sunset', text, re.I):
-            lat, lon = mosque_coords
-            try:
-                sun = Sun(lat, lon)
-                today = date.today()
-                sunset_time = sun.get_sunset_time(today)
-                result['maghrib'] = sunset_time.time()
-            except Exception as e:
-                logger.warning(f'Failed to compute sunset from coords: {e}')
+        # The names must cluster — a spread-out list is prose, not a header.
+        if (len(name_order) >= len(REQUIRED_PRAYERS)
+                and name_order[-1][1] - name_order[0][1] < 500):
+            slots = []
+            for m in re.finditer(
+                    rf'{TIME_NEAR_RE}|\b(sunrise|sunset|sunup|shuruq|shuruk|shurooq)\b',
+                    text[name_order[-1][1]:], re.I):
+                if m.group(1):
+                    slots.append(('time', m.group(1), m.group(2)))
+                else:
+                    slots.append(('sun', m.group(3).lower(), None))
+                if len(slots) >= len(name_order):
+                    break
+            if len(slots) >= len(name_order):
+                lat, lon, tz = mosque_coords or (None, None, None)
+                for (key, _), (kind, v1, v2) in zip(name_order, slots):
+                    if kind == 'time':
+                        t = _ampm_to_time(v1, v2, key)
+                        if t is not None:
+                            result[key] = t
+                    elif lat is not None:
+                        fn = sunset_time if 'set' in v1 else sunrise_time
+                        t = fn(lat, lon, date.today(), tz or ZoneInfo('UTC'))
+                        if t:
+                            result[key] = t
 
     # Numbered-Jumu'ah widgets the generic patterns miss: "Jumuah 1: 1:30 PM"
     # (label first — separator required so "Jumuah 1 2:30 PM" in time-first
@@ -834,6 +890,63 @@ def _js_prayer_times(html):
     return _validated(result)
 
 
+RSC_PRAYER_RE = re.compile(
+    r'\\?"key\\?"\s*:\s*\\?"(fajr|dhuhr|duhr|zuhr|asr|maghrib|isha)\\?"'
+    r'[^}{]{0,300}?\\?"iqamah\\?"\s*:\s*\\?"([^"\\]{1,12})\\?"'
+    r'[^}{]{0,80}?\\?"iqamahMeridiem\\?"\s*:\s*\\?"([APa-p]?[Mm]?)\\?"',
+    re.I)
+RSC_ADHAN_RE = re.compile(
+    r'\\?"key\\?"\s*:\s*\\?"(fajr|dhuhr|duhr|zuhr|asr|maghrib|isha)\\?"'
+    r'[^}{]{0,300}?\\?"adhanMinutes\\?"\s*:\s*(\d{1,4})', re.I)
+RSC_JUMUAH_RE = re.compile(
+    r'\\?"jumuahTimes\\?"\s*:\s*\{[^}]*?\\?"adhan\\?"\s*:\s*\\?"(\d{1,2}:\d{2})\\?"'
+    r'[^}]*?\\?"adhanMeridiem\\?"\s*:\s*\\?"([APa-p][Mm])\\?"', re.I | re.S)
+
+
+def _rsc_prayer_times(html, mosque_coords=None):
+    """Prayer data embedded in Next.js RSC payloads (self.__next_f.push).
+
+    masjidmuhajireen.org ships
+    {"key":"fajr","iqamah":"6:30","iqamahMeridiem":"AM",...} — with quotes
+    escaped as \\" inside the flight string, so JS_TIME_RE never sees it.
+    Maghrib's iqamah can be the literal 'Sunset' — resolved via coords.
+    """
+    if 'prayerSchedule' not in html:
+        return None
+    result = {}
+    adhans = {}
+    for m in RSC_ADHAN_RE.finditer(html):
+        key = NAME_TO_KEY.get(m.group(1).lower())
+        if key:
+            mins = int(m.group(2))
+            adhans.setdefault(key, (mins // 60, mins % 60))
+    for m in RSC_PRAYER_RE.finditer(html):
+        key = NAME_TO_KEY.get(m.group(1).lower())
+        if not key or key in result:
+            continue
+        val, ap = m.group(2), (m.group(3) or '').upper()
+        if _SUN_WORDS_RE.fullmatch(val.strip()):
+            # Literal 'Sunset'/'Sunrise' iqamah — compute from coords.
+            lat, lon, tz = mosque_coords or (None, None, None)
+            if lat is None:
+                continue
+            fn = sunset_time if 'set' in val.lower() else sunrise_time
+            t = fn(lat, lon, date.today(), tz or ZoneInfo('UTC'))
+            if t:
+                result[key] = t
+            continue
+        if TIME_RE.match(val):
+            result[key] = _to_24h(val, ap == 'PM')
+    # Fall back to adhan minutes for prayers missing iqamah.
+    for key, (h, mi) in adhans.items():
+        if key not in result:
+            result[key] = datetime.strptime(f'{h:02d}:{mi:02d}', '%H:%M').time()
+    jm = RSC_JUMUAH_RE.search(html)
+    if jm:
+        result['jummah'] = _to_24h(jm.group(1), jm.group(2).upper() == 'PM')
+    return {None: result} if _validated(result) else None
+
+
 def _validated(result):
     """Accept only complete, non-degenerate results — five identical times
     means the scraper latched onto one unrelated clock on the page."""
@@ -864,15 +977,18 @@ def _find_prayer_pages(html, base_url):
     return pages
 
 
-def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
+def fetch_prayer_times(website_url, jummah_section=None, for_date=None,
+                       mosque_coords=None):
     """Try every known strategy to get prayer times from a mosque site.
 
     Returns {date: {fajr: time, ...}} for schedule PDFs, or {None: {...}}
     for single-day sources (widgets, page text) — the caller maps None to
     today in the mosque's timezone.
-    """
+
+    mosque_coords: (lat, lon, tz) — lets 'Sunset'/'Sunrise' literal values
+    resolve to real times (masjidulhaqq, Next.js widgets)."""
     try:
-        resp = requests.get(website_url, timeout=15, headers=UA)
+        resp = _get(website_url)
         resp.raise_for_status()
         html = resp.text
         # Resolve relative links against the FINAL url — the entered domain
@@ -919,12 +1035,12 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     pdf_url = find_schedule_pdf_url(html, base_url)
     if pdf_url:
         try:
-            presp = requests.get(pdf_url, timeout=30, headers=UA)
+            presp = _get(pdf_url, timeout=30)
             presp.raise_for_status()
             times = parse_prayer_pdf(presp.content)
             if times:
                 # Schedule PDFs rarely carry Jumu'ah — merge it from the page
-                jummah = _jummah_times(html, jummah_section)
+                jummah = _jummah_times(html, jummah_section, mosque_coords)
                 for entry in times.values():
                     for k, v in jummah.items():
                         entry.setdefault(k, v)
@@ -935,17 +1051,18 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     # Try OCR on prayer schedule images (scanned JPG/PNG schedules)
     image_url = find_schedule_image_url(html, base_url)
     if image_url:
-        times = _ocr_prayer_times(image_url)
+        times = _ocr_prayer_times(image_url, mosque_coords)
         if times:
             return {None: times}
 
-    times = _js_prayer_times(html) or _html_prayer_times(html, jummah_section)
+    times = (_rsc_prayer_times(html, mosque_coords) or _js_prayer_times(html)
+             or _html_prayer_times(html, jummah_section, mosque_coords))
     if times:
         return {None: times}
 
     for link in _find_prayer_pages(html, base_url)[:3]:
         try:
-            r2 = requests.get(link, timeout=15, headers=UA)
+            r2 = _get(link)
             r2.raise_for_status()
             # Widgets can live on the prayer page rather than the homepage
             # (e.g. MOHID iframe inside a Zyro embed block).
@@ -959,10 +1076,12 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
             # Try OCR on prayer schedule images on linked pages
             image_url = find_schedule_image_url(r2.text, link)
             if image_url:
-                times = _ocr_prayer_times(image_url)
+                times = _ocr_prayer_times(image_url, mosque_coords)
                 if times:
                     return {None: times}
-            times = _js_prayer_times(r2.text) or _html_prayer_times(r2.text, jummah_section)
+            times = (_rsc_prayer_times(r2.text, mosque_coords)
+                     or _js_prayer_times(r2.text)
+                     or _html_prayer_times(r2.text, jummah_section, mosque_coords))
             if times:
                 return {None: times}
         except Exception as e:
@@ -970,37 +1089,108 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None):
     return None
 
 
-def parse_prayer_pdf(pdf_bytes):
-    """Parse the ICOE-style monthly timetable -> {date: {fajr: time, ...}}.
+PDF_NAME_RE = re.compile(
+    r'\b(fajr|fajar|dhuhr|duhr|dhur|zuhr|zohar|asr|asar|maghrib|magrib|'
+    r'isha|ishaa|esha|sunrise|sunset|shuruk|shurooq)\b', re.I)
+_MONTH_ABBR = {'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MAY': 5, 'JUN': 6,
+               'JUL': 7, 'AUG': 8, 'SEP': 9, 'SEPT': 9, 'OCT': 10,
+               'NOV': 11, 'DEC': 12}
 
-    Iqama cells are printed only when they change, so values are
-    forward-filled down each column.
+
+def _pdf_column_map(table):
+    """Map prayer -> iqama column by reading the header row.
+
+    A prayer label starts a column group; the group runs until the next
+    label, and its last column is the iqama (ICOE 'Fajr Azan/Iqama' spans
+    two cols; masjidal-huda 'Fajr' spans Start+Iqamah). 'Asr Hanafi' also
+    matches 'asr' — the LAST labelled group wins, which keeps the Hanafi
+    iqama exactly like the old hard-coded IQAMA_COLS. Sunrise columns are
+    skipped (computed from coordinates instead).
+    """
+    for ri, row in enumerate(table[:6]):
+        hits = [(i, PDF_NAME_RE.search(str(c or '')))
+            for i, c in enumerate(row or [])]
+        hits = [(i, m.group(1).lower()) for i, m in hits if m]
+        if len(hits) < 3:
+            continue
+        named = [i for i, _ in hits]
+        cols = {}
+        for k, (i, word) in enumerate(hits):
+            if word.startswith('sun') or word.startswith('shur'):
+                continue
+            key = NAME_TO_KEY.get(word)
+            if not key or key.startswith('jummah'):
+                continue
+            end = named[k + 1] if k + 1 < len(named) else len(row)
+            cols[key] = end - 1  # last column of the group = iqama
+        if len(cols) >= len(REQUIRED_PRAYERS):
+            return cols, ri + 1
+    return {}, 0
+
+
+def _pdf_month_year(table, page_text):
+    """Find the timetable month+year from title cell, '(Month 2026)',
+    page text ('October 2026/…'), or an abbreviated cell ('OCT') + year."""
+    title = ' '.join((c or '') for row in table[:3] for c in (row or []))
+    hay = f'{title} {page_text[:1500]}'
+    m = (re.search(r'\((\w+)\s+(\d{4})\)', title)
+         or re.search(rf'\b({"|".join(MONTHS)})\b\s*[,\-/]?\s*(\d{{4}})',
+                      hay, re.I))
+    if m and m.group(1).capitalize() in MONTHS:
+        return MONTHS[m.group(1).capitalize()], int(m.group(2))
+    for row in table[:3]:
+        for c in row or []:
+            v = (c or '').strip().upper()
+            if v in _MONTH_ABBR:
+                ym = re.search(r'\b(20\d{2})\b', hay)
+                if ym:
+                    return _MONTH_ABBR[v], int(ym.group(1))
+    return None, None
+
+
+def parse_prayer_pdf(pdf_bytes):
+    """Parse a monthly prayer timetable -> {date: {fajr: time, ...}}.
+
+    Handles ICOE and masjidal-huda style tables: iqama columns are derived
+    from the header layout, AM/PM is read from a meridiem row when present,
+    and iqama cells printed only on change are forward-filled per column.
     """
     import pdfplumber  # heavy import; only needed during sync
 
     result = {}
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
+            page_text = page.extract_text() or ''
             for table in page.extract_tables():
-                if not table or not table[0]:
+                if not table:
                     continue
-                m = re.search(r'\((\w+)\s+(\d{4})\)', table[0][0] or '')
-                if not m or m.group(1) not in MONTHS:
+                cols, data_start = _pdf_column_map(table)
+                if not cols:
                     continue
-                month, year = MONTHS[m.group(1)], int(m.group(2))
+                month, year = _pdf_month_year(table, page_text)
+                if not month:
+                    continue
+                # Per-column meridiem when the table prints an AM/PM row.
+                ampm = {}
+                for row in table[:data_start]:
+                    for i, c in enumerate(row or []):
+                        v = (c or '').strip().upper()
+                        if v in ('AM', 'PM'):
+                            ampm[i] = v == 'PM'
                 last = {}
-                for row in table[3:]:  # skip title + 2 header rows
+                for row in table[data_start:]:
                     if not row or not row[0] or not row[0].strip().isdigit():
                         continue
                     day = int(row[0])
                     entry = {}
-                    for name, col in IQAMA_COLS.items():
+                    for name, col in cols.items():
                         v = (row[col] or '').strip() if col < len(row) else ''
                         if TIME_RE.match(v):
                             last[name] = v
                         if name in last:
-                            entry[name] = _to_24h(last[name], pm=(name != 'fajr'))
-                    if len(entry) == len(IQAMA_COLS):
+                            pm = ampm.get(col, name != 'fajr')
+                            entry[name] = _to_24h(last[name], pm=pm)
+                    if len(entry) == len(REQUIRED_PRAYERS):
                         try:
                             result[date(year, month, day)] = entry
                         except ValueError:
@@ -1031,8 +1221,16 @@ def _sync(mosque, force):
         return 0, 'No website URL set'
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     today = timezone.now().astimezone(tz).date()
+    # A pinned ?month= on a monthly-schedule URL goes stale — fetch the
+    # mosque's current month (mcabayarea.org/prayerschedule-*/?month=N).
+    url = re.sub(r'([?&]month=)\d{1,2}\b', rf'\g<1>{today.month}',
+                 mosque.website_url)
+    lat, lon = mosque.latitude, mosque.longitude
+    coords = ((float(lat), float(lon), tz)
+              if lat is not None and lon is not None else None)
     try:
-        times = fetch_prayer_times(mosque.website_url, mosque.jummah_section or None, today)
+        times = fetch_prayer_times(url, mosque.jummah_section or None,
+                                   today, coords)
         if not times:
             return 0, 'Could not find prayer times on the website'
     except Exception as e:
