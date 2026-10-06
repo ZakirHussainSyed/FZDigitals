@@ -136,20 +136,35 @@
             flex-shrink: 0;
         }
         .prayer-row .name {
+            flex: 1;
             font-size: clamp(11px, 1.8vw, 26px);
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: rgba(255,255,255,0.95);
         }
+        .prayer-row .urdu {
+            flex: 1;
+            text-align: center;
+            direction: rtl;
+            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
+                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
+            font-size: clamp(11px, 1.7vw, 25px);
+            font-weight: 700;
+            color: rgba(255,255,255,0.85);
+        }
         .prayer-row .value {
+            flex: 1;
+            text-align: right;
             font-size: clamp(11px, 1.8vw, 26px);
             font-weight: 700;
             color: #fff;
         }
         .prayer-row.sunrise .name,
+        .prayer-row.sunrise .urdu,
         .prayer-row.sunrise .value,
         .prayer-row.sunset .name,
+        .prayer-row.sunset .urdu,
         .prayer-row.sunset .value {
             color: #000;
         }
@@ -216,7 +231,7 @@
             .info-bar { font-size: 15px; }
             .info-bar .center { font-size: 20px; }
             .next-prayer .time { font-size: 28px; }
-            .prayer-row .name, .prayer-row .value { font-size: 18px; }
+            .prayer-row .name, .prayer-row .value, .prayer-row .urdu { font-size: 18px; }
         }
     </style>
 </head>
@@ -241,16 +256,16 @@
                 {% endif %}
             </div>
             <div class="prayer-list">
-                <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span></div>
-                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span></div>
-                <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span></div>
-                <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span></div>
-                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span></div>
-                <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span></div>
-                <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span></div>
-                <div class="prayer-row"><span class="name">Jummah 1</span><span class="value">{{ timings.jummah }}</span></div>
-                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="value">{{ timings.jummah2 }}</span></div>{% endif %}
-                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="value">{{ timings.jummah3 }}</span></div>{% endif %}
+                <div class="prayer-row"><span class="name">Fajr</span><span class="urdu">فجر</span><span class="value">{{ timings.fajr }}</span></div>
+                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="urdu">طلوع آفتاب</span><span class="value">{{ timings.sunrise }}</span></div>
+                <div class="prayer-row"><span class="name">Dhuhr</span><span class="urdu">ظہر</span><span class="value">{{ timings.dhuhr }}</span></div>
+                <div class="prayer-row"><span class="name">Asr</span><span class="urdu">عصر</span><span class="value">{{ timings.asr }}</span></div>
+                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="urdu">غروب آفتاب</span><span class="value">{{ timings.sunset }}</span></div>
+                <div class="prayer-row"><span class="name">Maghrib</span><span class="urdu">مغرب</span><span class="value">{{ timings.maghrib }}</span></div>
+                <div class="prayer-row"><span class="name">Isha</span><span class="urdu">عشاء</span><span class="value">{{ timings.isha }}</span></div>
+                <div class="prayer-row"><span class="name">Jummah 1</span><span class="urdu">جمعہ ۱</span><span class="value">{{ timings.jummah }}</span></div>
+                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="urdu">جمعہ ۲</span><span class="value">{{ timings.jummah2 }}</span></div>{% endif %}
+                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="urdu">جمعہ ۳</span><span class="value">{{ timings.jummah3 }}</span></div>{% endif %}
             </div>
             <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
         </div>
@@ -416,7 +431,7 @@
 
         function updateClock() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
             const parts = timeStr.split(':');
             const hour = parts[0] || '';
             const rest = parts[1] || '';
