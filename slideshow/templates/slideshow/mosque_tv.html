@@ -163,7 +163,7 @@
         }
         .prayer-row .urdu {
             flex: 1;
-            text-align: center;
+            text-align: right;
             direction: rtl;
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
                 'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
@@ -173,7 +173,7 @@
         }
         .prayer-row .value {
             flex: 1;
-            text-align: right;
+            text-align: center;
             font-size: clamp(11px, 1.8vw, 26px);
             font-weight: 700;
             color: #fff;
@@ -282,16 +282,16 @@
                 {% endif %}
             </div>
             <div class="prayer-list">
-                <div class="prayer-row"><span class="name">Fajr</span><span class="urdu">فجر</span><span class="value">{{ timings.fajr }}</span></div>
-                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="urdu">طلوع آفتاب</span><span class="value">{{ timings.sunrise }}</span></div>
-                <div class="prayer-row"><span class="name">Dhuhr</span><span class="urdu">ظہر</span><span class="value">{{ timings.dhuhr }}</span></div>
-                <div class="prayer-row"><span class="name">Asr</span><span class="urdu">عصر</span><span class="value">{{ timings.asr }}</span></div>
-                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="urdu">غروب آفتاب</span><span class="value">{{ timings.sunset }}</span></div>
-                <div class="prayer-row"><span class="name">Maghrib</span><span class="urdu">مغرب</span><span class="value">{{ timings.maghrib }}</span></div>
-                <div class="prayer-row"><span class="name">Isha</span><span class="urdu">عشاء</span><span class="value">{{ timings.isha }}</span></div>
-                <div class="prayer-row"><span class="name">Jummah 1</span><span class="urdu">جمعہ ۱</span><span class="value">{{ timings.jummah }}</span></div>
-                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="urdu">جمعہ ۲</span><span class="value">{{ timings.jummah2 }}</span></div>{% endif %}
-                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="urdu">جمعہ ۳</span><span class="value">{{ timings.jummah3 }}</span></div>{% endif %}
+                <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span><span class="urdu">فجر</span></div>
+                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span><span class="urdu">طلوع آفتاب</span></div>
+                <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span><span class="urdu">ظہر</span></div>
+                <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span><span class="urdu">عصر</span></div>
+                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span><span class="urdu">غروب آفتاب</span></div>
+                <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span><span class="urdu">مغرب</span></div>
+                <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span><span class="urdu">عشاء</span></div>
+                <div class="prayer-row"><span class="name">Jummah</span><span class="value">{{ timings.jummah }}</span><span class="urdu">جمعہ</span></div>
+                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="value">{{ timings.jummah2 }}</span><span class="urdu">جمعہ ۲</span></div>{% endif %}
+                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="value">{{ timings.jummah3 }}</span><span class="urdu">جمعہ ۳</span></div>{% endif %}
             </div>
             <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
         </div>
