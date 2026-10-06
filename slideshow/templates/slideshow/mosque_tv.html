@@ -32,7 +32,7 @@
             position: fixed;
             inset: 0;
             display: grid;
-            grid-template-columns: 50% 50%;
+            grid-template-columns: 40% 60%;
         }
         .prayer-panel {
             position: relative;
@@ -490,6 +490,18 @@
             playCurrent();
         }
 
+        /* object-fit per media: cover fills the stage but amputates
+           portrait shots; anything much narrower than the stage
+           letterboxes (contain) against the black stage instead. */
+        function fitMedia(el) {
+            const stage = document.getElementById('stage');
+            const mw = el.naturalWidth || el.videoWidth;
+            const mh = el.naturalHeight || el.videoHeight;
+            if (!stage || !mw || !mh) return;
+            const stageAR = stage.clientWidth / stage.clientHeight;
+            el.style.objectFit = (mw / mh < stageAR * 0.65) ? 'contain' : 'cover';
+        }
+
         function playCurrent() {
             if (autoplayTimer) {
                 clearTimeout(autoplayTimer);
@@ -502,17 +514,19 @@
 
             if (img) {
                 if (img.complete && img.naturalHeight > 0) {
+                    fitMedia(img);
                     autoplayTimer = setTimeout(() => show(current + 1), 10000);
                 } else if (img.complete && img.naturalHeight === 0) {
                     setTimeout(() => show(current + 1), 500);
                 } else {
-                    img.onload = () => { autoplayTimer = setTimeout(() => show(current + 1), 10000); };
+                    img.onload = () => { fitMedia(img); autoplayTimer = setTimeout(() => show(current + 1), 10000); };
                     img.onerror = () => { setTimeout(() => show(current + 1), 500); };
                 }
             } else if (video) {
                 video.onended = () => show(current + 1);
                 video.onerror = () => { dwarn('video error:', media[current] && media[current].title, video.error && video.error.code); setTimeout(() => show(current + 1), 500); };
                 const tryPlay = () => {
+                    fitMedia(video);
                     video.currentTime = 0;
                     video.play().catch(() => setTimeout(() => show(current + 1), 1000));
                 };
