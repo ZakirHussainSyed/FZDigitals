@@ -104,6 +104,7 @@
         .info-bar .right {
             text-align: right;
             direction: rtl;
+            white-space: pre-line;
         }
         .info-bar .center {
             flex: 0 0 auto;
@@ -452,7 +453,7 @@
                 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان',
                 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'
             ];
-            return day + ' ' + months[mh] + '، ' + year + ' هـ';
+            return day + ' ' + months[mh] + '،\n' + year + '\u00A0هـ';
         }
 
         function updateClock() {
