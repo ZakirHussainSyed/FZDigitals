@@ -258,6 +258,8 @@
         </div>
         {% if request.user.is_authenticated %}
         <a href="{% url 'user-dashboard' request.user.id %}" class="login-btn">Dashboard</a>
+        {% else %}
+        <a href="{% url 'django_login' %}" class="login-btn">Log In</a>
         {% endif %}
     </div>
     <div id="status-msg" class="status-msg"></div>
