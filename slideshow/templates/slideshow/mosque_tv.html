@@ -48,6 +48,20 @@
             overflow: hidden;
         }
 
+        .corner {
+            position: absolute;
+            width: clamp(70px, 9vw, 130px);
+            height: clamp(70px, 9vw, 130px);
+            background: url("{% static 'corner.png' %}") center/contain no-repeat;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.95;
+        }
+        .corner.tl { top: 7px; left: 7px; transform: scaleY(-1); }
+        .corner.tr { top: 7px; right: 7px; transform: scale(-1, -1); }
+        .corner.bl { bottom: 7px; left: 7px; }
+        .corner.br { bottom: 7px; right: 7px; transform: scaleX(-1); }
+
         .arch-header {
             position: relative;
             height: auto;
@@ -246,6 +260,10 @@
 <body>
     <div class="tv-layout">
         <div class="prayer-panel">
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
 
             <div class="arch-header">
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
