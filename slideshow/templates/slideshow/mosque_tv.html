@@ -31,10 +31,12 @@
         .tv-layout {
             position: fixed;
             inset: 0;
-            display: grid;
-            grid-template-columns: 40% 60%;
+            display: flex;
         }
         .prayer-panel {
+            flex: 0 0 40%;
+            min-width: 0;
+            min-height: 0;
             position: relative;
             background: #0b2e1a url("{% static 'background.jpg' %}") top center/cover no-repeat;
             color: #fff;
@@ -89,7 +91,8 @@
             direction: rtl;
         }
         .info-bar .center {
-            flex: 2;
+            flex: 0 0 auto;
+            max-width: 60%;
             text-align: center;
             font-size: clamp(32px, 6vw, 84px);
             font-weight: 700;
@@ -169,6 +172,9 @@
             color: #000;
         }
         .stage {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
             position: relative;
             background: #000;
             overflow: hidden;
@@ -221,10 +227,16 @@
             font-weight: 700;
             text-decoration: none;
         }
+        /* Portrait-mounted TVs (and phones): stack prayer panel on top
+           and the slideshow underneath, keeping the same 40/60 split. */
+        @media (orientation: portrait) {
+            .tv-layout { flex-direction: column; }
+            .prayer-panel {
+                border-right: none;
+                border-bottom: 2px solid rgba(255,255,255,0.1);
+            }
+        }
         @media (max-width: 768px) {
-            .tv-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-            .prayer-panel { border-right: none; border-bottom: 2px solid rgba(255,255,255,0.1); padding: 0 16px 12px; }
-            .arch-header { height: 120px; padding: 60px 0 12px; }
             .arch-header { height: 100px; }
             .prayer-panel { padding: 20px 12% 12px; }
             .mosque-name { font-size: 28px; }
