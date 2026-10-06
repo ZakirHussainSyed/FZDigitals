@@ -12,7 +12,7 @@
     <style>
         :root {
             --spacing-scale: 1;
-            --panel-top: clamp(70px, 11vh, 120px);
+            --panel-top: clamp(12px, 2.5vh, 30px);
             --panel-side: clamp(16px, 5vw, 60px);
             --panel-bottom: clamp(10px, 2vh, 16px);
             --header-top: clamp(18px, 3vh, 26px);
@@ -38,12 +38,13 @@
             min-width: 0;
             min-height: 0;
             position: relative;
-            background: #0b2e1a url("{% static 'background.jpg' %}") top center/cover no-repeat;
+            background: linear-gradient(#0e3a21, #0b2e1a);
             color: #fff;
             padding: var(--panel-top) var(--panel-side) var(--panel-bottom);
             display: flex;
             flex-direction: column;
-            border-right: 2px solid rgba(255,255,255,0.1);
+            border: 3px solid #d4af37;
+            box-shadow: inset 0 0 0 4px #0b2e1a, inset 0 0 0 6px rgba(212,175,55,0.55);
             overflow: hidden;
         }
 
@@ -231,13 +232,8 @@
            and the slideshow underneath, keeping the same 40/60 split. */
         @media (orientation: portrait) {
             .tv-layout { flex-direction: column; }
-            .prayer-panel {
-                border-right: none;
-                border-bottom: 2px solid rgba(255,255,255,0.1);
-            }
         }
         @media (max-width: 768px) {
-            .arch-header { height: 100px; }
             .prayer-panel { padding: 20px 12% 12px; }
             .mosque-name { font-size: 28px; }
             .info-bar { font-size: 15px; }
