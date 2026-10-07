@@ -282,7 +282,7 @@
             <div class="next-prayer">
                 <div class="label">Next Prayer</div>
                 {% if next_salah and next_salah.name %}
-                    <div class="time">{% if next_salah.urdu %}<span class="urdu">{{ next_salah.urdu }}</span> {% endif %}{{ next_salah.name }} - {{ next_salah.time }}</div>
+                    <div class="time">{{ next_salah.name }} - {{ next_salah.time }}{% if next_salah.urdu %} <span class="urdu">{{ next_salah.urdu }}</span>{% endif %}</div>
                 {% else %}
                     <div class="time">Today's Prayer Timings</div>
                 {% endif %}
