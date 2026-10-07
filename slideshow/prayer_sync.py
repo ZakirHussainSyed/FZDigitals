@@ -1303,4 +1303,14 @@ def maybe_sync_mosque(mosque):
         stale = now - last >= interval
         if not (in_midnight_window or stale):
             return
-    sync_mosque_prayer_times(mosque)
+    try:
+        sync_mosque_prayer_times(mosque)
+    except Exception as e:
+        # A crash past _sync's inner guard (row build/bulk insert) would
+        # otherwise propagate into every page/API load that lazily syncs —
+        # and never reach sync_error, so the mosque looks synced forever.
+        logger.exception(f'Prayer sync crashed for mosque {mosque.id}')
+        err = str(e)[:255]
+        if mosque.sync_error != err:
+            mosque.sync_error = err
+            mosque.save(update_fields=['sync_error'])

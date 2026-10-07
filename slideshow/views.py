@@ -1703,43 +1703,50 @@ def api_public_mosques(request):
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
         data = []
         for m in mosques:
-            if not m.timezone:
-                detected = timezone_for_coords(m.latitude, m.longitude)
-                if detected:
-                    m.timezone = detected
-                    m.save(update_fields=['timezone'])
-            # Sunrise/sunset/next-salah are computed in the MOSQUE's timezone
-            # and for its local date — not the server default.
-            m_tz = ZoneInfo(m.timezone or default_tz)
-            m_today = timezone.now().astimezone(m_tz).date()
-            m_now = datetime.now(m_tz)
-            maybe_sync_mosque(m)
-            prayer_time = resolve_prayer_time(m, m_today)
-            timings = {}
-            if prayer_time:
-                timings = {
-                    'fajr': _format_prayer_time(prayer_time.fajr),
-                    'dhuhr': _format_prayer_time(prayer_time.dhuhr),
-                    'asr': _format_prayer_time(prayer_time.asr),
-                    'maghrib': _format_prayer_time(prayer_time.maghrib),
-                    'isha': _format_prayer_time(prayer_time.isha),
-                    'sunset': _format_prayer_time(prayer_time.sunset),
-                    'jummah': _format_prayer_time(prayer_time.jummah),
-                    'jummah2': _format_prayer_time(prayer_time.jummah2),
-                    'jummah3': _format_prayer_time(prayer_time.jummah3),
-                }
-            timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, m_today, m_tz))
-            next_salah = _next_salah(prayer_time, m_now, m_tz)
-            data.append({
-                'id': m.id,
-                'name': m.name,
-                'address': m.address,
-                'latitude': float(m.latitude),
-                'longitude': float(m.longitude),
-                'next_salah': next_salah,
-                'timings': timings,
-                'website': m.website_url,
-            })
+            try:
+                if not m.timezone:
+                    detected = timezone_for_coords(m.latitude, m.longitude)
+                    if detected:
+                        m.timezone = detected
+                        m.save(update_fields=['timezone'])
+                # Sunrise/sunset/next-salah are computed in the MOSQUE's timezone
+                # and for its local date — not the server default.
+                m_tz = ZoneInfo(m.timezone or default_tz)
+                m_today = timezone.now().astimezone(m_tz).date()
+                m_now = datetime.now(m_tz)
+                maybe_sync_mosque(m)
+                prayer_time = resolve_prayer_time(m, m_today)
+                timings = {}
+                if prayer_time:
+                    timings = {
+                        'fajr': _format_prayer_time(prayer_time.fajr),
+                        'dhuhr': _format_prayer_time(prayer_time.dhuhr),
+                        'asr': _format_prayer_time(prayer_time.asr),
+                        'maghrib': _format_prayer_time(prayer_time.maghrib),
+                        'isha': _format_prayer_time(prayer_time.isha),
+                        'sunset': _format_prayer_time(prayer_time.sunset),
+                        'jummah': _format_prayer_time(prayer_time.jummah),
+                        'jummah2': _format_prayer_time(prayer_time.jummah2),
+                        'jummah3': _format_prayer_time(prayer_time.jummah3),
+                    }
+                timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, m_today, m_tz))
+                next_salah = _next_salah(prayer_time, m_now, m_tz)
+                data.append({
+                    'id': m.id,
+                    'name': m.name,
+                    'address': m.address,
+                    'latitude': float(m.latitude),
+                    'longitude': float(m.longitude),
+                    'next_salah': next_salah,
+                    'timings': timings,
+                    'website': m.website_url,
+                })
+            except Exception:
+                # One bad mosque (crashed sync, invalid timezone string,
+                # malformed row) must not take down the whole map feed.
+                logger.exception(
+                    f'api_public_mosques: mosque {m.id} ({m.name}) failed')
+                continue
         return JsonResponse({'success': True, 'mosques': data})
     except Exception as e:
         logger.error(f"Error in api_public_mosques: {str(e)}", exc_info=True)
