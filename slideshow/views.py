@@ -1645,9 +1645,19 @@ def _format_prayer_time(t):
     return s.replace(' AM', ' am').replace(' PM', ' pm')
 
 
+_URDU_NAMES = {
+    'Fajr': 'فجر',
+    'Dhuhr': 'ظہر',
+    'Asr': 'عصر',
+    'Maghrib': 'مغرب',
+    'Isha': 'عشاء',
+    'Jummah': 'جمعہ',
+}
+
+
 def _next_salah(prayer_time, now, tz):
     if not prayer_time:
-        return {'name': None, 'time': ''}
+        return {'name': None, 'time': '', 'urdu': ''}
     today_prayers = [
         ('Fajr', prayer_time.fajr),
         ('Dhuhr', prayer_time.dhuhr),
@@ -1663,10 +1673,12 @@ def _next_salah(prayer_time, now, tz):
         # would make every time "past" and incorrectly wrap to Fajr.
         dt = datetime.combine(now.date(), t).replace(tzinfo=tz)
         if dt > now:
-            return {'name': name, 'time': _format_prayer_time(t)}
+            return {'name': name, 'time': _format_prayer_time(t),
+                    'urdu': _URDU_NAMES.get(name, '')}
     if prayer_time.fajr:
-        return {'name': 'Fajr', 'time': _format_prayer_time(prayer_time.fajr)}
-    return {'name': None, 'time': ''}
+        return {'name': 'Fajr', 'time': _format_prayer_time(prayer_time.fajr),
+                'urdu': _URDU_NAMES['Fajr']}
+    return {'name': None, 'time': '', 'urdu': ''}
 
 
 @require_http_methods(["GET"])

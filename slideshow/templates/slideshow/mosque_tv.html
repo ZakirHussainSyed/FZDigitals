@@ -134,6 +134,12 @@
             color: #ffd54f;
             line-height: 1.1;
         }
+        .next-prayer .urdu {
+            direction: rtl;
+            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
+                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
+            font-weight: 700;
+        }
         .prayer-list {
             flex: 1;
             padding: calc(var(--list-pad) * var(--spacing-scale)) 0;
@@ -276,7 +282,7 @@
             <div class="next-prayer">
                 <div class="label">Next Prayer</div>
                 {% if next_salah and next_salah.name %}
-                    <div class="time">{{ next_salah.name }} - {{ next_salah.time }}</div>
+                    <div class="time">{% if next_salah.urdu %}<span class="urdu">{{ next_salah.urdu }}</span> {% endif %}{{ next_salah.name }} - {{ next_salah.time }}</div>
                 {% else %}
                     <div class="time">Today's Prayer Timings</div>
                 {% endif %}
