@@ -977,6 +977,39 @@ def _find_prayer_pages(html, base_url):
     return pages
 
 
+def _nextjs_prayer_times(html, base_url):
+    """Next.js prayer widgets that hydrate client-side from /api/prayer-times.
+
+    The widget renders pt-prayer-item placeholders ('--:--') and fills them
+    with JSON from {site}/api/prayer-times, so the HTML itself has no times.
+    Shape: {data: {prayers: {fajr|zuhr|asr|maghrib|isha|jummah:
+    {adhan, iqama}}}} — iqama preferred, adhan as fallback. E.g. dsmasjid.com.
+    """
+    if 'pt-prayer-name' not in html and 'pt-iqama-time' not in html:
+        return None
+    try:
+        resp = _get(urljoin(base_url, '/api/prayer-times'))
+        resp.raise_for_status()
+        prayers = (resp.json().get('data') or {}).get('prayers')
+    except Exception as e:
+        logger.warning(f'Prayer-times API fetch failed for {base_url}: {e}')
+        return None
+    if not isinstance(prayers, dict):
+        return None
+    result = {}
+    for src, dst in (('fajr', 'fajr'), ('zuhr', 'dhuhr'), ('dhuhr', 'dhuhr'),
+                     ('asr', 'asr'), ('maghrib', 'maghrib'), ('isha', 'isha'),
+                     ('jummah', 'jummah'), ('jummah2', 'jummah2'),
+                     ('jummah3', 'jummah3')):
+        entry = prayers.get(src)
+        if not isinstance(entry, dict):
+            continue
+        t = _parse_ampm(str(entry.get('iqama') or entry.get('adhan') or ''))
+        if t:
+            result[dst] = t
+    return {None: result} if _validated(result) else None
+
+
 def fetch_prayer_times(website_url, jummah_section=None, for_date=None,
                        mosque_coords=None):
     """Try every known strategy to get prayer times from a mosque site.
@@ -1029,6 +1062,10 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None,
         return times
 
     times = _timetable_json_times(html, base_url)
+    if times:
+        return times
+
+    times = _nextjs_prayer_times(html, base_url)
     if times:
         return times
 
