@@ -107,6 +107,10 @@
             outline: none;
             border-color: #7c5cff;
         }
+        .time-row input:disabled, .time-row select:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
         .colon { color: #e8eaf0; font-size: 16px; }
         .submit-btn {
             width: 100%;
@@ -170,6 +174,9 @@
                 <input type="url" name="website_url" id="id_website_url" class="url-input"
                        placeholder="Enter website URL" value="{{ mosque.website_url }}">
             </div>
+            <div class="auto-note" id="synced-note" {% if not mosque.sync_enabled %}style="display:none"{% endif %}>
+                Prayer times below come from your website — uncheck "Sync timings from website" to edit them manually.
+            </div>
             <div class="form-group">
                 <label for="id_timezone">Timezone (sunrise/sunset &amp; sync schedule)</label>
                 <input type="text" name="timezone" id="id_timezone" class="url-input"
@@ -188,20 +195,22 @@
                 <div class="time-display">{{ f.display|default:"—" }}</div>
                 <div class="auto-note">Auto-computed from location</div>
                 {% else %}
-                <div class="time-row">
-                    <input type="number" name="{{ f.name }}_hour" id="id_{{ f.name }}_hour" min="1" max="12" placeholder="HH" value="{{ f.hour }}">
+                <div class="time-row syncable">
+                    <input type="number" name="{{ f.name }}_hour" id="id_{{ f.name }}_hour" min="1" max="12" placeholder="HH" value="{{ f.hour }}" {% if mosque.sync_enabled %}disabled{% endif %}>
                     <span class="colon">:</span>
-                    <input type="number" name="{{ f.name }}_minute" id="id_{{ f.name }}_minute" min="0" max="59" placeholder="MM" value="{{ f.minute }}">
-                    <select name="{{ f.name }}_ampm" id="id_{{ f.name }}_ampm">
+                    <input type="number" name="{{ f.name }}_minute" id="id_{{ f.name }}_minute" min="0" max="59" placeholder="MM" value="{{ f.minute }}" {% if mosque.sync_enabled %}disabled{% endif %}>
+                    <select name="{{ f.name }}_ampm" id="id_{{ f.name }}_ampm" {% if mosque.sync_enabled %}disabled{% endif %}>
                         <option value="AM" {% if f.ampm == 'AM' %}selected{% endif %}>AM</option>
                         <option value="PM" {% if f.ampm == 'PM' %}selected{% endif %}>PM</option>
                     </select>
                 </div>
-                {% if f.name == 'maghrib' and not mosque.sync_enabled %}
+                {% if f.name == 'maghrib' %}
+                <div id="maghrib-sunset-wrap" {% if mosque.sync_enabled %}style="display:none"{% endif %}>
                 <label class="sync-toggle" for="id_maghrib_after_sunset">
                     <input type="checkbox" name="maghrib_after_sunset" id="id_maghrib_after_sunset" {% if prayer_time.maghrib_after_sunset %}checked{% endif %}>
                     <span>After Sunset — sets Maghrib to 1 min after the day's sunset</span>
                 </label>
+                </div>
                 {% endif %}
                 {% endif %}
             </div>
@@ -213,21 +222,28 @@
         <a href="/{{ request.user.id }}/" class="back-link">Back to Dashboard</a>
     </div>
     <script>
-        document.getElementById('id_sync_enabled').addEventListener('change', function () {
-            document.getElementById('website-url-group').style.display = this.checked ? 'block' : 'none';
-        });
+        const syncBox = document.getElementById('id_sync_enabled');
         const msBox = document.getElementById('id_maghrib_after_sunset');
-        if (msBox) {
-            const msFields = ['id_maghrib_hour', 'id_maghrib_minute', 'id_maghrib_ampm'];
-            const toggleMs = function () {
-                msFields.forEach(function (id) {
-                    const el = document.getElementById(id);
-                    if (el) el.disabled = msBox.checked;
-                });
-            };
-            msBox.addEventListener('change', toggleMs);
-            toggleMs();
+        const msFields = ['id_maghrib_hour', 'id_maghrib_minute', 'id_maghrib_ampm'];
+        function toggleMs() {
+            msFields.forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.disabled = syncBox.checked || msBox.checked;
+            });
         }
+        function applySyncState() {
+            const on = syncBox.checked;
+            document.getElementById('website-url-group').style.display = on ? 'block' : 'none';
+            document.getElementById('synced-note').style.display = on ? 'block' : 'none';
+            document.getElementById('maghrib-sunset-wrap').style.display = on ? 'none' : 'block';
+            document.querySelectorAll('.syncable input, .syncable select').forEach(function (el) {
+                el.disabled = on;
+            });
+            if (!on) toggleMs();
+        }
+        syncBox.addEventListener('change', applySyncState);
+        msBox.addEventListener('change', toggleMs);
+        if (!syncBox.checked) toggleMs();
     </script>
 </body>
 </html>
