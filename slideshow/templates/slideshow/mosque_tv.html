@@ -133,6 +133,10 @@
             font-weight: 800;
             color: #ffd54f;
             line-height: 1.1;
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: clamp(10px, 1.5vw, 24px);
         }
         .next-prayer .urdu {
             direction: rtl;
@@ -282,7 +286,7 @@
             <div class="next-prayer">
                 <div class="label">Next Prayer</div>
                 {% if next_salah and next_salah.name %}
-                    <div class="time">{{ next_salah.name }} - {{ next_salah.time }}{% if next_salah.urdu %} <span class="urdu">{{ next_salah.urdu }}</span>{% endif %}</div>
+                    <div class="time"><span>{{ next_salah.name }}</span><span>{{ next_salah.time }}</span>{% if next_salah.urdu %}<span class="urdu">{{ next_salah.urdu }}</span>{% endif %}</div>
                 {% else %}
                     <div class="time">Today's Prayer Timings</div>
                 {% endif %}
