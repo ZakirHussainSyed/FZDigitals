@@ -312,6 +312,7 @@
             }
 
             function closeModal() {
+                openMosque = null;
                 modal.classList.remove('open');
                 modal.setAttribute('aria-hidden', 'true');
             }
@@ -343,6 +344,7 @@
             }
 
             function openModal(mosque) {
+                openMosque = mosque;
                 document.getElementById('modal-title').textContent = mosque.name;
                 const addrEl = document.getElementById('modal-address');
                 const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mosque.latitude + ',' + mosque.longitude)}`;
@@ -424,6 +426,8 @@
             }
 
             let allMosques = [];
+            let openMosque = null;
+            const MAP_CACHE_KEY = 'fz_mosque_map_v1';
             let markers = L.layerGroup();
             let userLat = null;
             let userLon = null;
@@ -446,6 +450,7 @@
                 mosques.forEach(function(m) {
                     bounds.push([m.latitude, m.longitude]);
                     const marker = L.marker([m.latitude, m.longitude], {icon: createIcon(m)});
+                    marker.mosqueRef = m;
                     marker.on('click', function() { openModal(m); });
                     markers.addLayer(marker);
                 });
@@ -591,10 +596,116 @@
                 }, GEO_OPTS);
             }
 
+            function parseClockMin(str) {
+                const m = /(\d{1,2}):(\d{2})\s*(am|pm)/i.exec(str || '');
+                if (!m) return null;
+                let h = parseInt(m[1], 10) % 12;
+                if (m[3].toLowerCase() === 'pm') h += 12;
+                return h * 60 + parseInt(m[2], 10);
+            }
+
+            function nowMinutesFor(tz) {
+                if (tz) {
+                    try {
+                        const parts = new Intl.DateTimeFormat('en-US', {
+                            timeZone: tz, hour12: false,
+                            hour: '2-digit', minute: '2-digit'
+                        }).formatToParts(new Date());
+                        let hh = 0, mm = 0;
+                        parts.forEach(function (p) {
+                            if (p.type === 'hour') hh = parseInt(p.value, 10) % 24;
+                            if (p.type === 'minute') mm = parseInt(p.value, 10);
+                        });
+                        return hh * 60 + mm;
+                    } catch (e) { /* unknown tz — fall back to device clock */ }
+                }
+                const n = new Date();
+                return n.getHours() * 60 + n.getMinutes();
+            }
+
+            // The server computes next_salah once per fetch; we recompute
+            // locally every minute so pins and the modal highlight keep
+            // advancing even on cached data, in each mosque's own timezone.
+            const SALAH_ORDER = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
+                                 ['maghrib', 'Maghrib'], ['isha', 'Isha']];
+            function computeNextSalah(m) {
+                const t = m && m.timings;
+                if (!t) return {name: null, time: ''};
+                const now = nowMinutesFor(m.timezone);
+                for (let i = 0; i < SALAH_ORDER.length; i++) {
+                    const key = SALAH_ORDER[i][0];
+                    const mins = parseClockMin(t[key]);
+                    if (mins !== null && mins > now) {
+                        return {name: SALAH_ORDER[i][1], time: t[key]};
+                    }
+                }
+                return t.fajr ? {name: 'Fajr', time: t.fajr} : {name: null, time: ''};
+            }
+
+            async function fetchMosques() {
+                try {
+                    const res = await fetch('/api/public/mosques/');
+                    const data = await res.json();
+                    if (!data.success || !data.mosques || !data.mosques.length) return false;
+                    allMosques = data.mosques;
+                    try {
+                        localStorage.setItem(MAP_CACHE_KEY,
+                            JSON.stringify({saved: Date.now(), mosques: allMosques}));
+                    } catch (e) { /* storage full or blocked */ }
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            function loadCachedMosques() {
+                try {
+                    const c = JSON.parse(localStorage.getItem(MAP_CACHE_KEY));
+                    if (c && Array.isArray(c.mosques) && c.mosques.length) {
+                        allMosques = c.mosques;
+                        return true;
+                    }
+                } catch (e) { /* no usable cache */ }
+                return false;
+            }
+
+            // Recompute next-salah everywhere: pin labels + open modal row.
+            function refreshSalahLabels() {
+                allMosques.forEach(function (m) { m.next_salah = computeNextSalah(m); });
+                markers.eachLayer(function (l) {
+                    if (l.mosqueRef) l.setIcon(createIcon(l.mosqueRef));
+                });
+                if (openMosque) {
+                    modal.querySelectorAll('.timing-row').forEach(function (r) {
+                        r.classList.remove('next');
+                    });
+                    if (openMosque.next_salah && openMosque.next_salah.name) {
+                        const el = document.getElementById('t-' + openMosque.next_salah.name.toLowerCase());
+                        if (el) el.closest('.timing-row').classList.add('next');
+                    }
+                }
+            }
+            setInterval(refreshSalahLabels, 60000);
+
+            // Daily resync at ~1:30 AM — pull fresh timings so website-side
+            // changes reach clients; a failed fetch keeps the cached list.
+            (function scheduleResync() {
+                const now = new Date();
+                const nxt = new Date(now);
+                nxt.setHours(1, 30, 0, 0);
+                if (nxt <= now) nxt.setDate(nxt.getDate() + 1);
+                setTimeout(async function tick() {
+                    if (await fetchMosques()) {
+                        refreshSalahLabels();
+                        renderMosques(allMosques, false);
+                    }
+                    setTimeout(tick, 24 * 3600 * 1000);
+                }, nxt - now);
+            })();
+
             let map;
             try {
-                const res = await fetch('/api/public/mosques/');
-                const data = await res.json();
+                if (!await fetchMosques()) loadCachedMosques();
                 loader.style.display = 'none';
 
                 map = L.map('map').setView([20, 0], 2);
@@ -665,12 +776,12 @@
                     renderMosques(inView);
                 });
 
-                if (!data.success || !data.mosques || !data.mosques.length) {
+                if (!allMosques.length) {
                     showStatus('No mosques found.', 4);
                     return;
                 }
 
-                allMosques = data.mosques;
+                refreshSalahLabels();
                 renderMosques(allMosques);
 
                 const autoNearMe = AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;

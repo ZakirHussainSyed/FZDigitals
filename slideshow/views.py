@@ -1628,6 +1628,12 @@ def resolve_prayer_time(mosque, on_date):
         resolved.maghrib_after_sunset = base.maghrib_after_sunset
     else:
         resolved.maghrib_after_sunset = False
+    if override and override.maghrib_sunset_minutes is not None:
+        resolved.maghrib_sunset_minutes = override.maghrib_sunset_minutes
+    elif base:
+        resolved.maghrib_sunset_minutes = base.maghrib_sunset_minutes
+    else:
+        resolved.maghrib_sunset_minutes = 1
     if resolved.sunset is None and mosque.latitude and mosque.longitude:
         # Sunset is derived from coordinates, not user data — a manual-only
         # mosque (override row, no synced base) otherwise shows nothing.
@@ -1751,6 +1757,7 @@ def api_public_mosques(request):
                     'longitude': float(m.longitude),
                     'next_salah': next_salah,
                     'timings': timings,
+                    'timezone': str(m_tz),
                     'website': m.website_url,
                 })
             except Exception:
@@ -1887,20 +1894,30 @@ def prayer_times(request):
             return redirect('prayer-times')
 
         try:
-            after_sunset = request.POST.get('maghrib_after_sunset') == 'on'
+            # 'maghrib_sunset_minutes' select: ''/'0' = Off, 1-60 = N minutes
+            # after sunset. Legacy checkbox ('on') still maps to 1 min.
+            raw_offset = request.POST.get('maghrib_sunset_minutes')
+            if raw_offset is None or raw_offset == '':
+                offset = 1 if request.POST.get('maghrib_after_sunset') == 'on' else 0
+            else:
+                try:
+                    offset = int(raw_offset)
+                except ValueError:
+                    offset = 0
+            after_sunset = 1 <= offset <= 60
             # Write to the override table, not the synced row: values equal to
             # the base stay NULL so they keep tracking the website; only real
             # differences are pinned as manual overrides.
             override_vals = {}
             for field in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah', 'jummah2', 'jummah3']:
                 if field == 'maghrib' and after_sunset:
-                    # 'After Sunset' checked — Maghrib = sunset + 1 min for
+                    # 'After Sunset' on — Maghrib = sunset + N minutes for
                     # this date; skips parsing so disabled inputs can't fail.
                     sunset_t = prayer_time.sunset or sunset_time(
                         mosque.latitude, mosque.longitude, today, tz)
                     if sunset_t:
                         computed = (
-                            datetime.combine(today, sunset_t) + timedelta(minutes=1)
+                            datetime.combine(today, sunset_t) + timedelta(minutes=offset)
                         ).time()
                         override_vals['maghrib'] = (
                             None if computed == prayer_time.maghrib else computed)
@@ -1908,6 +1925,7 @@ def prayer_times(request):
                 val = _parse(field, optional=field.startswith('jummah'))
                 override_vals[field] = None if val == getattr(prayer_time, field) else val
             override_vals['maghrib_after_sunset'] = after_sunset
+            override_vals['maghrib_sunset_minutes'] = offset
             PrayerTimeOverride.objects.update_or_create(
                 mosque=mosque, date=today, defaults=override_vals)
             messages.success(request, 'Prayer times updated.')
@@ -2022,6 +2040,7 @@ def mosque_tv(request):
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
         'timings': timings,
+        'timings_json': json.dumps({'tz': str(tz), 'timings': timings}),
         'next_salah': next_salah,
         'media_files': media_files,
         'today': today,
@@ -2113,6 +2132,7 @@ def mosque_tv_device(request):
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
         'timings': timings,
+        'timings_json': json.dumps({'tz': str(tz), 'timings': timings}),
         'next_salah': next_salah,
         'media_files': media_files,
         'today': today,

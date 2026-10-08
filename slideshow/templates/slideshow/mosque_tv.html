@@ -202,7 +202,14 @@
             min-height: 0;
             position: relative;
             background: #000;
+            border: 3px solid #d4af37;
+            box-shadow: inset 0 0 0 4px #000, inset 0 0 0 6px rgba(212,175,55,0.55);
             overflow: hidden;
+        }
+        /* Media sits behind the golden frame — corners and border overlay it */
+        .prayer-row.next {
+            border-color: #d4af37;
+            background: rgba(212, 175, 55, 0.22);
         }
         .slide {
             position: absolute;
@@ -306,12 +313,17 @@
             <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
         </div>
         <div class="stage" id="stage">
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
             <div class="empty" id="empty">No media uploaded yet.</div>
             <div id="slides"></div>
         </div>
     </div>
 
     <script type="application/json" id="media-data">{{ media_files|safe }}</script>
+    <script type="application/json" id="timings-data">{{ timings_json|default:'{}'|safe }}</script>
     <script>
         window.DEVICE_ID = "{{ device_id|default:''|escapejs }}";
         window.DEVICE_TOKEN = "{{ token|default:''|escapejs }}";
@@ -476,10 +488,98 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        /* Next prayer is recomputed locally every 30s in the mosque's
+           timezone — the banner and row highlight keep advancing even when
+           the TV goes offline (the app serves this page from a disk
+           snapshot). Fresh timings are cached to localStorage on every
+           successful render and reused if a snapshot has none. */
+        const TIMES_KEY = 'fz_mosque_tv_times_{{ mosque.id }}';
+        const URDU_NEXT = {Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء'};
+        const NEXT_PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
+                              ['maghrib', 'Maghrib'], ['isha', 'Isha']];
+        let tvTz = null;
+        let tvTimings = null;
+        try {
+            const payload = JSON.parse(document.getElementById('timings-data').textContent) || {};
+            if (payload.timings && payload.timings.fajr) {
+                tvTz = payload.tz || null;
+                tvTimings = payload.timings;
+                localStorage.setItem(TIMES_KEY, JSON.stringify({tz: tvTz, timings: tvTimings}));
+            }
+        } catch (e) { /* malformed timings payload */ }
+        if (!tvTimings) {
+            try {
+                const cached = JSON.parse(localStorage.getItem(TIMES_KEY));
+                if (cached && cached.timings) {
+                    tvTz = cached.tz || null;
+                    tvTimings = cached.timings;
+                }
+            } catch (e) { /* no usable cache */ }
+        }
+        // Repaint row values from the active timings — covers the offline
+        // case where a disk snapshot carries stale/empty server times.
+        if (tvTimings) {
+            document.querySelectorAll('.prayer-row .name').forEach(function (el) {
+                const key = el.textContent.trim().toLowerCase().replace(/\s+/g, '');
+                const val = el.parentElement && el.parentElement.querySelector('.value');
+                if (val && tvTimings[key]) val.textContent = tvTimings[key];
+            });
+        }
+        function parseClock(str) {
+            const m = /(\d{1,2}):(\d{2})\s*(am|pm)/i.exec(str || '');
+            if (!m) return null;
+            let h = parseInt(m[1], 10) % 12;
+            if (m[3].toLowerCase() === 'pm') h += 12;
+            return h * 60 + parseInt(m[2], 10);
+        }
+        function nowMinutes() {
+            if (tvTz) {
+                try {
+                    const parts = new Intl.DateTimeFormat('en-US', {
+                        timeZone: tvTz, hour12: false,
+                        hour: '2-digit', minute: '2-digit'
+                    }).formatToParts(new Date());
+                    let hh = 0, mm = 0;
+                    parts.forEach(function (p) {
+                        if (p.type === 'hour') hh = parseInt(p.value, 10) % 24;
+                        if (p.type === 'minute') mm = parseInt(p.value, 10);
+                    });
+                    return hh * 60 + mm;
+                } catch (e) { /* unknown tz — fall back to device clock */ }
+            }
+            const n = new Date();
+            return n.getHours() * 60 + n.getMinutes();
+        }
+        function updateNextPrayer() {
+            if (!tvTimings) return;
+            const now = nowMinutes();
+            let nx = null;
+            for (let i = 0; i < NEXT_PRAYERS.length; i++) {
+                const key = NEXT_PRAYERS[i][0];
+                const mins = parseClock(tvTimings[key]);
+                if (mins !== null && mins > now) {
+                    nx = {name: NEXT_PRAYERS[i][1], time: tvTimings[key]};
+                    break;
+                }
+            }
+            if (!nx) nx = {name: 'Fajr', time: tvTimings.fajr || ''};
+            const banner = document.querySelector('.next-prayer .time');
+            if (banner) {
+                banner.innerHTML = '<span>' + nx.name + '</span><span>' + nx.time + '</span>' +
+                    '<span class="urdu">' + (URDU_NEXT[nx.name] || '') + '</span>';
+            }
+            document.querySelectorAll('.prayer-row').forEach(function (row) {
+                const nm = row.querySelector('.name');
+                row.classList.toggle('next', !!(nm && nm.textContent.trim() === nx.name));
+            });
+        }
+        setInterval(updateNextPrayer, 30000);
+        updateNextPrayer();
+
         (function scheduleDailyReload() {
             const now = new Date();
             const next = new Date(now);
-            next.setHours(2, 0, 0, 0);
+            next.setHours(1, 30, 0, 0);
             if (next <= now) {
                 next.setDate(next.getDate() + 1);
             }

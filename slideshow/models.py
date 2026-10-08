@@ -198,6 +198,11 @@ class PrayerTime(models.Model):
     jummah2 = models.TimeField(blank=True, null=True)
     jummah3 = models.TimeField(blank=True, null=True)
     maghrib_after_sunset = models.BooleanField(default=False)
+    maghrib_sunset_minutes = models.PositiveSmallIntegerField(
+        default=1,
+        help_text='Minutes after sunset to set Maghrib (1-60) when '
+                  'maghrib_after_sunset is on.',
+    )
     source = models.CharField(
         max_length=10,
         default='default',
@@ -231,6 +236,10 @@ class PrayerTimeOverride(models.Model):
     jummah2 = models.TimeField(blank=True, null=True)
     jummah3 = models.TimeField(blank=True, null=True)
     maghrib_after_sunset = models.BooleanField(
+        blank=True, null=True,
+        help_text='NULL = inherit from synced row; set = override.',
+    )
+    maghrib_sunset_minutes = models.PositiveSmallIntegerField(
         blank=True, null=True,
         help_text='NULL = inherit from synced row; set = override.',
     )

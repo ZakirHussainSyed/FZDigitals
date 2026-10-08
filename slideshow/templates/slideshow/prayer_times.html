@@ -206,9 +206,12 @@
                 </div>
                 {% if f.name == 'maghrib' %}
                 <div id="maghrib-sunset-wrap" {% if mosque.sync_enabled %}style="display:none"{% endif %}>
-                <label class="sync-toggle" for="id_maghrib_after_sunset">
-                    <input type="checkbox" name="maghrib_after_sunset" id="id_maghrib_after_sunset" {% if prayer_time.maghrib_after_sunset %}checked{% endif %}>
-                    <span>After Sunset — sets Maghrib to 1 min after the day's sunset</span>
+                <label class="sync-toggle sunset-offset" for="id_maghrib_sunset_minutes">
+                    <span>After Sunset — Maghrib</span>
+                    <select name="maghrib_sunset_minutes" id="id_maghrib_sunset_minutes"
+                            data-on="{% if prayer_time.maghrib_after_sunset %}1{% else %}0{% endif %}"
+                            data-value="{{ prayer_time.maghrib_sunset_minutes|default:1 }}"></select>
+                    <span>Minutes</span>
                 </label>
                 </div>
                 {% endif %}
@@ -223,12 +226,18 @@
     </div>
     <script>
         const syncBox = document.getElementById('id_sync_enabled');
-        const msBox = document.getElementById('id_maghrib_after_sunset');
+        const msSel = document.getElementById('id_maghrib_sunset_minutes');
         const msFields = ['id_maghrib_hour', 'id_maghrib_minute', 'id_maghrib_ampm'];
+        (function buildMsOptions() {
+            msSel.appendChild(new Option('Off', '0'));
+            for (let i = 1; i <= 60; i++) msSel.appendChild(new Option(String(i), String(i)));
+            msSel.value = msSel.dataset.on === '1' ? (msSel.dataset.value || '1') : '0';
+        })();
         function toggleMs() {
+            const off = msSel.value === '0';
             msFields.forEach(function (id) {
                 const el = document.getElementById(id);
-                if (el) el.disabled = syncBox.checked || msBox.checked;
+                if (el) el.disabled = syncBox.checked || !off;
             });
         }
         function applySyncState() {
@@ -242,7 +251,7 @@
             if (!on) toggleMs();
         }
         syncBox.addEventListener('change', applySyncState);
-        msBox.addEventListener('change', toggleMs);
+        msSel.addEventListener('change', toggleMs);
         if (!syncBox.checked) toggleMs();
     </script>
 </body>
