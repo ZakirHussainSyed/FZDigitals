@@ -106,6 +106,12 @@
             direction: rtl;
             white-space: pre-line;
         }
+        .english-day {
+            font-size: 0.75em;
+            color: #d4af37;
+            opacity: 0.9;
+            margin-top: 3px;
+        }
         .info-bar .center {
             flex: 0 0 auto;
             max-width: 60%;
@@ -295,7 +301,10 @@
                 <h1 class="mosque-name">{{ mosque.name }}</h1>
             </div>
             <div class="info-bar">
-                <div class="left" id="english-date">{{ today|date:"j F Y" }}</div>
+                <div class="left">
+                    <div id="english-date">{{ today|date:"j F Y" }}</div>
+                    <div class="english-day" id="english-day"></div>
+                </div>
                 <div class="center" id="clock">--:--</div>
                 <div class="right" id="islamic-date">--</div>
             </div>
@@ -405,6 +414,8 @@
         const emptyEl = document.getElementById('empty');
         const clockEl = document.getElementById('clock');
         const islamicDateEl = document.getElementById('islamic-date');
+        const englishDateEl = document.getElementById('english-date');
+        const englishDayEl = document.getElementById('english-day');
 
         function loadInitialMedia() {
             const serverMedia = JSON.parse(document.getElementById('media-data').textContent);
@@ -493,6 +504,9 @@
             clockEl.innerHTML = hour + '<span style="visibility:' + (showColon ? 'visible' : 'hidden') + '">:</span>' + rest;
             showColon = !showColon;
             islamicDateEl.textContent = toHijri(now);
+            englishDateEl.textContent = now.toLocaleDateString('en-GB',
+                {day: 'numeric', month: 'long', year: 'numeric'});
+            englishDayEl.textContent = now.toLocaleDateString('en-US', {weekday: 'long'});
         }
         setInterval(updateClock, 1000);
         updateClock();
