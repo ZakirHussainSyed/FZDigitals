@@ -1289,9 +1289,22 @@ def _sync(mosque, force):
             'source': 'pdf',
         }
 
+    # A non-empty times dict can still carry no usable prayer fields (site
+    # layout drift, widget matched but empty). Treat as failure — otherwise
+    # NULL rows get upserted, sync_error stays clean, and the mosque keeps
+    # showing manual/override times with no visible problem.
+    prayer_fields = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha',
+                     'jummah', 'jummah2', 'jummah3')
+    if not rows or not any(
+            any(r.get(f) for f in prayer_fields) for r in rows.values()):
+        return 0, 'Could not find prayer times on the website'
+
     manual_dates = set()
-    if not force:
-        # never clobber a manual edit on lazy syncs
+    if not force and not mosque.sync_enabled:
+        # never clobber a manual edit on lazy syncs — but only while sync
+        # is OFF. With sync on, the website owns PrayerTime rows (manual
+        # values live in PrayerTimeOverride), so legacy source='manual'
+        # rows must not permanently block updates.
         manual_dates = set(
             PrayerTime.objects
             .filter(mosque=mosque, date__in=rows, source='manual')
