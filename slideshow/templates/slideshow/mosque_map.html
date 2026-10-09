@@ -384,7 +384,8 @@
 
                 modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
                 if (mosque.next_salah && mosque.next_salah.name) {
-                    const nextEl = document.getElementById('t-' + mosque.next_salah.name.toLowerCase());
+                    // 'Jummah 2' -> id 't-jummah2' — spaces stripped
+                    const nextEl = document.getElementById('t-' + mosque.next_salah.name.toLowerCase().replace(/\s+/g, ''));
                     if (nextEl) nextEl.closest('.timing-row').classList.add('next');
                 }
 
@@ -604,23 +605,26 @@
                 return h * 60 + parseInt(m[2], 10);
             }
 
-            function nowMinutesFor(tz) {
+            function mosqueNowFor(tz) {
                 if (tz) {
                     try {
                         const parts = new Intl.DateTimeFormat('en-US', {
                             timeZone: tz, hour12: false,
-                            hour: '2-digit', minute: '2-digit'
+                            hour: '2-digit', minute: '2-digit', weekday: 'short'
                         }).formatToParts(new Date());
-                        let hh = 0, mm = 0;
+                        let hh = 0, mm = 0, dow = -1;
                         parts.forEach(function (p) {
                             if (p.type === 'hour') hh = parseInt(p.value, 10) % 24;
                             if (p.type === 'minute') mm = parseInt(p.value, 10);
+                            if (p.type === 'weekday') {
+                                dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.value);
+                            }
                         });
-                        return hh * 60 + mm;
+                        return {mins: hh * 60 + mm, dow: dow};
                     } catch (e) { /* unknown tz — fall back to device clock */ }
                 }
                 const n = new Date();
-                return n.getHours() * 60 + n.getMinutes();
+                return {mins: n.getHours() * 60 + n.getMinutes(), dow: n.getDay()};
             }
 
             // The server computes next_salah once per fetch; we recompute
@@ -628,15 +632,30 @@
             // advancing even on cached data, in each mosque's own timezone.
             const SALAH_ORDER = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
                                  ['maghrib', 'Maghrib'], ['isha', 'Isha']];
+            const JUMMAH_KEYS = [['jummah', 'Jummah'], ['jummah2', 'Jummah 2'],
+                                 ['jummah3', 'Jummah 3']];
             function computeNextSalah(m) {
                 const t = m && m.timings;
                 if (!t) return {name: null, time: ''};
-                const now = nowMinutesFor(m.timezone);
-                for (let i = 0; i < SALAH_ORDER.length; i++) {
-                    const key = SALAH_ORDER[i][0];
+                const mn = mosqueNowFor(m.timezone);
+                let order = SALAH_ORDER;
+                if (mn.dow === 5) {
+                    // Friday — Jummah slots replace Dhuhr when Jummah times exist.
+                    const jummahs = [];
+                    for (let j = 0; j < JUMMAH_KEYS.length; j++) {
+                        if (parseClockMin(t[JUMMAH_KEYS[j][0]]) !== null) {
+                            jummahs.push(JUMMAH_KEYS[j]);
+                        }
+                    }
+                    if (jummahs.length) {
+                        order = [SALAH_ORDER[0]].concat(jummahs).concat(SALAH_ORDER.slice(2));
+                    }
+                }
+                for (let i = 0; i < order.length; i++) {
+                    const key = order[i][0];
                     const mins = parseClockMin(t[key]);
-                    if (mins !== null && mins > now) {
-                        return {name: SALAH_ORDER[i][1], time: t[key]};
+                    if (mins !== null && mins > mn.mins) {
+                        return {name: order[i][1], time: t[key]};
                     }
                 }
                 return t.fajr ? {name: 'Fajr', time: t.fajr} : {name: null, time: ''};
@@ -680,7 +699,7 @@
                         r.classList.remove('next');
                     });
                     if (openMosque.next_salah && openMosque.next_salah.name) {
-                        const el = document.getElementById('t-' + openMosque.next_salah.name.toLowerCase());
+                        const el = document.getElementById('t-' + openMosque.next_salah.name.toLowerCase().replace(/\s+/g, ''));
                         if (el) el.closest('.timing-row').classList.add('next');
                     }
                 }

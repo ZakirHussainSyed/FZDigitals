@@ -1663,6 +1663,8 @@ _URDU_NAMES = {
     'Maghrib': 'مغرب',
     'Isha': 'عشاء',
     'Jummah': 'جمعہ',
+    'Jummah 2': 'جمعہ ۲',
+    'Jummah 3': 'جمعہ ۳',
 }
 
 
@@ -1676,6 +1678,16 @@ def _next_salah(prayer_time, now, tz):
         ('Maghrib', prayer_time.maghrib),
         ('Isha', prayer_time.isha),
     ]
+    if now.weekday() == 4:  # Friday — Jummah slots replace Dhuhr when set
+        jummahs = [
+            (name, t) for name, t in (
+                ('Jummah', prayer_time.jummah),
+                ('Jummah 2', prayer_time.jummah2),
+                ('Jummah 3', prayer_time.jummah3),
+            ) if t
+        ]
+        if jummahs:
+            today_prayers = today_prayers[:1] + jummahs + today_prayers[2:]
     for name, t in today_prayers:
         if not t:
             continue

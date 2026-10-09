@@ -517,7 +517,8 @@
            snapshot). Fresh timings are cached to localStorage on every
            successful render and reused if a snapshot has none. */
         const TIMES_KEY = 'fz_mosque_tv_times_{{ mosque.id }}';
-        const URDU_NEXT = {Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء'};
+        const URDU_NEXT = {Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء',
+                           Jummah: 'جمعہ', 'Jummah 2': 'جمعہ ۲', 'Jummah 3': 'جمعہ ۳'};
         const NEXT_PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
                               ['maghrib', 'Maghrib'], ['isha', 'Isha']];
         let tvTz = null;
@@ -555,33 +556,50 @@
             if (m[3].toLowerCase() === 'pm') h += 12;
             return h * 60 + parseInt(m[2], 10);
         }
-        function nowMinutes() {
+        function mosqueNow() {
             if (tvTz) {
                 try {
                     const parts = new Intl.DateTimeFormat('en-US', {
                         timeZone: tvTz, hour12: false,
-                        hour: '2-digit', minute: '2-digit'
+                        hour: '2-digit', minute: '2-digit', weekday: 'short'
                     }).formatToParts(new Date());
-                    let hh = 0, mm = 0;
+                    let hh = 0, mm = 0, dow = -1;
                     parts.forEach(function (p) {
                         if (p.type === 'hour') hh = parseInt(p.value, 10) % 24;
                         if (p.type === 'minute') mm = parseInt(p.value, 10);
+                        if (p.type === 'weekday') {
+                            dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.value);
+                        }
                     });
-                    return hh * 60 + mm;
+                    return {mins: hh * 60 + mm, dow: dow};
                 } catch (e) { /* unknown tz — fall back to device clock */ }
             }
             const n = new Date();
-            return n.getHours() * 60 + n.getMinutes();
+            return {mins: n.getHours() * 60 + n.getMinutes(), dow: n.getDay()};
         }
         function updateNextPrayer() {
             if (!tvTimings) return;
-            const now = nowMinutes();
+            const mn = mosqueNow();
+            let order = NEXT_PRAYERS;
+            if (mn.dow === 5) {
+                // Friday — Jummah slots replace Dhuhr when Jummah times exist.
+                const jummahs = [];
+                const J_KEYS = ['jummah', 'jummah2', 'jummah3'];
+                for (let j = 0; j < J_KEYS.length; j++) {
+                    if (parseClock(tvTimings[J_KEYS[j]]) !== null) {
+                        jummahs.push([J_KEYS[j], j === 0 ? 'Jummah' : 'Jummah ' + (j + 1)]);
+                    }
+                }
+                if (jummahs.length) {
+                    order = [NEXT_PRAYERS[0]].concat(jummahs).concat(NEXT_PRAYERS.slice(2));
+                }
+            }
             let nx = null;
-            for (let i = 0; i < NEXT_PRAYERS.length; i++) {
-                const key = NEXT_PRAYERS[i][0];
+            for (let i = 0; i < order.length; i++) {
+                const key = order[i][0];
                 const mins = parseClock(tvTimings[key]);
-                if (mins !== null && mins > now) {
-                    nx = {name: NEXT_PRAYERS[i][1], time: tvTimings[key]};
+                if (mins !== null && mins > mn.mins) {
+                    nx = {name: order[i][1], time: tvTimings[key]};
                     break;
                 }
             }
