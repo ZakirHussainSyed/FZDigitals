@@ -203,10 +203,19 @@
             position: relative;
             background: #000;
             border: 3px solid #d4af37;
-            box-shadow: inset 0 0 0 4px #000, inset 0 0 0 6px rgba(212,175,55,0.55);
             overflow: hidden;
         }
-        /* Media sits behind the golden frame — corners and border overlay it */
+        /* Slides (position:absolute, inset:0) would paint over the stage's own
+           inset box-shadow — the inner rings are drawn on an overlay above the
+           media instead, matching the prayer panel's frame. */
+        .stage::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 0 4px #000, inset 0 0 0 6px rgba(212,175,55,0.55);
+            pointer-events: none;
+            z-index: 1;
+        }
         .prayer-row.next {
             border-color: #d4af37;
             background: rgba(212, 175, 55, 0.22);
