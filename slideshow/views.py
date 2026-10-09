@@ -2041,6 +2041,9 @@ def mosque_tv(request):
     }
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
+    if next_salah.get('time'):
+        # TV banner shows a bare clock — drop the ' am'/' pm' suffix
+        next_salah['time'] = next_salah['time'].replace(' am', '').replace(' pm', '')
 
     media = MediaFile.objects.filter(user=request.user, screen=1).order_by('position', '-id')
     media_files = json.dumps([
@@ -2128,6 +2131,9 @@ def mosque_tv_device(request):
     }
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
+    if next_salah.get('time'):
+        # TV banner shows a bare clock — drop the ' am'/' pm' suffix
+        next_salah['time'] = next_salah['time'].replace(' am', '').replace(' pm', '')
     
     # Get media from the mosque's user (device owner)
     media = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')

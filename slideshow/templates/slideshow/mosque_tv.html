@@ -605,6 +605,7 @@
                 }
             }
             if (!nx) nx = {name: 'Fajr', time: tvTimings.fajr || ''};
+            nx.time = (nx.time || '').replace(/\s*[ap]m$/i, '');
             const banner = document.querySelector('.next-prayer .time');
             if (banner) {
                 banner.innerHTML = '<span>' + nx.name + '</span><span>' + nx.time + '</span>' +
