@@ -609,6 +609,7 @@
             if (banner) {
                 banner.innerHTML = '<span>' + nx.name + '</span><span>' + nx.time + '</span>' +
                     '<span class="urdu">' + (URDU_NEXT[nx.name] || '') + '</span>';
+                fitBanner();
             }
             document.querySelectorAll('.prayer-row').forEach(function (row) {
                 const nm = row.querySelector('.name');
@@ -795,6 +796,19 @@
             Capacitor.Plugins.KeepAwake.keepAwake().catch(() => {});
         }
 
+        /* Banner fit: long banners (e.g. Jumu'ah 3 + time + urdu) shrink
+           their font instead of clipping now that spans don't wrap. */
+        function fitBanner() {
+            const el = document.querySelector('.next-prayer .time');
+            if (!el) return;
+            el.style.fontSize = '';
+            let fs = parseFloat(getComputedStyle(el).fontSize);
+            for (let i = 0; i < 25 && el.scrollWidth > el.clientWidth + 1 && fs > 18; i++) {
+                fs = Math.max(18, fs * 0.92);
+                el.style.fontSize = fs + 'px';
+            }
+        }
+
         /* Smart fit: keep fonts at the intended sizes, but scale padding and
            gaps down only when the prayer panel overflows the viewport. */
         function fitLayout() {
@@ -810,6 +824,7 @@
                 html.style.setProperty('--spacing-scale', scale);
                 panel.offsetHeight; /* force reflow */
             }
+            fitBanner();
         }
 
         window.addEventListener('resize', fitLayout);
