@@ -803,7 +803,12 @@
                 refreshSalahLabels();
                 renderMosques(allMosques);
 
-                const autoNearMe = AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
+                // Native apps always open on the user's location; the web
+                // page only auto-zooms on whitelisted hosts so general
+                // visitors don't get an unprompted permission request.
+                const isNativeApp = !!window.Capacitor;
+                const autoNearMe = isNativeApp ||
+                    AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
                 if (!navigator.geolocation && autoNearMe) {
                     focusByIP();
                 } else if (navigator.geolocation) {

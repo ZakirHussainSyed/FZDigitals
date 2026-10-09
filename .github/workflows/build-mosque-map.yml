@@ -64,6 +64,13 @@ jobs:
             cp android/app/src/main/res/mipmap-$dir/ic_launcher.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
           done
 
+      - name: Add location permissions for map "Near Me"
+        working-directory: mobile-phone
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n</manifest>|' $MANIFEST
+          grep -n "LOCATION" $MANIFEST
+
       - name: Sync Capacitor
         working-directory: mobile-phone
         run: npx cap sync android
