@@ -174,6 +174,11 @@ class Mosque(models.Model):
         max_length=255, blank=True, default='',
         help_text='Last website-sync failure message; empty when the last sync succeeded.',
     )
+    sync_failures = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Consecutive sync failures since the last success; hourly '
+                  'retries stop after 3 until the next daily sync window.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

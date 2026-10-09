@@ -1617,16 +1617,17 @@ def resolve_prayer_time(mosque, on_date):
         return None
     resolved = SimpleNamespace(base=base, override=override,
                                is_overridden=override is not None)
-    # With website sync on, the synced row owns the daily prayers — manual
-    # overrides only fill gaps in it or supply Jummah times (websites rarely
-    # publish iqama Jummah, so the form saves those as overrides on purpose).
-    # Without sync, user-owned override values win per-field.
+    # With website sync on, daily prayers show the last synced row only —
+    # manual overrides never fill in (user rule: no manual fallback while
+    # 'Sync timings from website' is checked). Jummah stays override-first:
+    # websites rarely publish iqama Jummah, so the form saves those as
+    # overrides on purpose. Without sync, overrides win per-field.
     sync_owned = mosque.sync_enabled
     for field in _PRAYER_FIELDS:
         base_val = getattr(base, field) if base else None
         over_val = getattr(override, field) if override else None
         if sync_owned and not field.startswith('jummah'):
-            val = base_val if base_val is not None else over_val
+            val = base_val  # last synced only — never manual while sync is on
         else:
             val = over_val if over_val is not None else base_val
         setattr(resolved, field, val)
@@ -1635,7 +1636,7 @@ def resolve_prayer_time(mosque, on_date):
         base_val = getattr(base, attr) if base else None
         over_val = getattr(override, attr) if override else None
         if sync_owned:
-            val = base_val if base_val is not None else over_val
+            val = base_val
         else:
             val = over_val if over_val is not None else base_val
         setattr(resolved, attr, val if val is not None else default)

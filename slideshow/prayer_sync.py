@@ -46,6 +46,9 @@ SYNC_INTERVAL = timedelta(hours=24)
 # Failed syncs retry much sooner than the daily interval so a transient
 # error recovers within the hour instead of leaving times blank for a day.
 RETRY_INTERVAL = timedelta(hours=1)
+# After this many consecutive failed syncs the hourly retry stops until
+# the next daily window — keeps showing the last synced times.
+MAX_SYNC_RETRIES = 3
 UA = {'User-Agent': 'FZDigitals/1.0'}
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}$')
 ANCHOR_RE = re.compile(r'href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
@@ -1247,9 +1250,18 @@ def sync_mosque_prayer_times(mosque, force=False):
 
     synced, err = _sync(mosque, force)
     err = err or ''
+    fields = []
     if err != mosque.sync_error:
         mosque.sync_error = err
-        mosque.save(update_fields=['sync_error'])
+        fields.append('sync_error')
+    # Consecutive-failure count caps the hourly retry at 3 attempts; a
+    # success (or manual action elsewhere) resets it.
+    failures = 0 if not err else mosque.sync_failures + 1
+    if failures != mosque.sync_failures:
+        mosque.sync_failures = failures
+        fields.append('sync_failures')
+    if fields:
+        mosque.save(update_fields=fields)
     return synced, err or None
 
 
@@ -1347,8 +1359,12 @@ def maybe_sync_mosque(mosque):
             now_local.hour == 0
             and last.astimezone(tz).date() < now_local.date()
         )
-        # A failed last attempt (sync_error set) retries hourly; a good one
-        # waits for the daily window so we don't hammer the site.
+        # A failed last attempt (sync_error set) retries hourly, up to
+        # MAX_SYNC_RETRIES in a row — then it waits for the daily window
+        # (or a manual "Sync from Website", which bypasses this function).
+        if (mosque.sync_error and mosque.sync_failures >= MAX_SYNC_RETRIES
+                and not in_midnight_window):
+            return
         interval = RETRY_INTERVAL if mosque.sync_error else SYNC_INTERVAL
         stale = now - last >= interval
         if not (in_midnight_window or stale):
@@ -1361,6 +1377,9 @@ def maybe_sync_mosque(mosque):
         # and never reach sync_error, so the mosque looks synced forever.
         logger.exception(f'Prayer sync crashed for mosque {mosque.id}')
         err = str(e)[:255]
+        mosque.sync_failures += 1
+        fields = ['sync_failures']
         if mosque.sync_error != err:
             mosque.sync_error = err
-            mosque.save(update_fields=['sync_error'])
+            fields.append('sync_error')
+        mosque.save(update_fields=fields)
