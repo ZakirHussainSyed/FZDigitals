@@ -80,6 +80,30 @@ jobs:
           mkdir -p android/app/src/main/java/com/fzdigitals/mosquetv
           cp android-plugin-src/com/fzdigitals/mosquetv/*.java android/app/src/main/java/com/fzdigitals/mosquetv/
 
+      - name: Keep screen on (block TV screensaver)
+        working-directory: mobile-tv
+        run: |
+          cat > android/app/src/main/java/com/fzdigitals/mosquetv/MainActivity.java << 'EOF'
+          package com.fzdigitals.mosquetv;
+
+          import android.os.Bundle;
+          import android.view.WindowManager;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  // Keep the screen on while the app is foregrounded —
+                  // Android/Google TV ambient screensaver never engages.
+                  // Auto-released when the app leaves the foreground, so
+                  // no WAKE_LOCK permission is needed.
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+              }
+          }
+          EOF
+
       - name: Allow cleartext HTTP to local media server
         working-directory: mobile-tv
         run: |
