@@ -321,9 +321,9 @@
                 <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span><span class="urdu">غروب آفتاب</span></div>
                 <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span><span class="urdu">مغرب</span></div>
                 <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span><span class="urdu">عشاء</span></div>
-                <div class="prayer-row"><span class="name">Jummah</span><span class="value">{{ timings.jummah }}</span><span class="urdu">جمعہ</span></div>
-                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jummah 2</span><span class="value">{{ timings.jummah2 }}</span><span class="urdu">جمعہ ۲</span></div>{% endif %}
-                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jummah 3</span><span class="value">{{ timings.jummah3 }}</span><span class="urdu">جمعہ ۳</span></div>{% endif %}
+                <div class="prayer-row"><span class="name">Jumu'ah</span><span class="value">{{ timings.jummah }}</span><span class="urdu">جمعہ</span></div>
+                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jumu'ah 2</span><span class="value">{{ timings.jummah2 }}</span><span class="urdu">جمعہ ۲</span></div>{% endif %}
+                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jumu'ah 3</span><span class="value">{{ timings.jummah3 }}</span><span class="urdu">جمعہ ۳</span></div>{% endif %}
             </div>
             <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
         </div>
@@ -515,7 +515,7 @@
            successful render and reused if a snapshot has none. */
         const TIMES_KEY = 'fz_mosque_tv_times_{{ mosque.id }}';
         const URDU_NEXT = {Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء',
-                           Jummah: 'جمعہ', 'Jummah 2': 'جمعہ ۲', 'Jummah 3': 'جمعہ ۳'};
+                           "Jumu'ah": 'جمعہ', "Jumu'ah 2": 'جمعہ ۲', "Jumu'ah 3": 'جمعہ ۳'};
         const NEXT_PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
                               ['maghrib', 'Maghrib'], ['isha', 'Isha']];
         let tvTz = null;
@@ -579,12 +579,12 @@
             const mn = mosqueNow();
             let order = NEXT_PRAYERS;
             if (mn.dow === 5) {
-                // Friday — Jummah slots replace Dhuhr when Jummah times exist.
+                // Friday — Jumu'ah slots replace Dhuhr when Jumu'ah times exist.
                 const jummahs = [];
                 const J_KEYS = ['jummah', 'jummah2', 'jummah3'];
                 for (let j = 0; j < J_KEYS.length; j++) {
                     if (parseClock(tvTimings[J_KEYS[j]]) !== null) {
-                        jummahs.push([J_KEYS[j], j === 0 ? 'Jummah' : 'Jummah ' + (j + 1)]);
+                        jummahs.push([J_KEYS[j], j === 0 ? "Jumu'ah" : "Jumu'ah " + (j + 1)]);
                     }
                 }
                 if (jummahs.length) {

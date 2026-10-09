@@ -1663,9 +1663,9 @@ _URDU_NAMES = {
     'Asr': 'عصر',
     'Maghrib': 'مغرب',
     'Isha': 'عشاء',
-    'Jummah': 'جمعہ',
-    'Jummah 2': 'جمعہ ۲',
-    'Jummah 3': 'جمعہ ۳',
+    "Jumu'ah": 'جمعہ',
+    "Jumu'ah 2": 'جمعہ ۲',
+    "Jumu'ah 3": 'جمعہ ۳',
 }
 
 
@@ -1679,12 +1679,12 @@ def _next_salah(prayer_time, now, tz):
         ('Maghrib', prayer_time.maghrib),
         ('Isha', prayer_time.isha),
     ]
-    if now.weekday() == 4:  # Friday — Jummah slots replace Dhuhr when set
+    if now.weekday() == 4:  # Friday — Jumu'ah slots replace Dhuhr when set
         jummahs = [
             (name, t) for name, t in (
-                ('Jummah', prayer_time.jummah),
-                ('Jummah 2', prayer_time.jummah2),
-                ('Jummah 3', prayer_time.jummah3),
+                ("Jumu'ah", prayer_time.jummah),
+                ("Jumu'ah 2", prayer_time.jummah2),
+                ("Jumu'ah 3", prayer_time.jummah3),
             ) if t
         ]
         if jummahs:
@@ -1962,9 +1962,9 @@ def prayer_times(request):
         ('sunset', 'Sunset', True, resolved.sunset),
         ('maghrib', 'Maghrib (Iqama)', False, resolved.maghrib),
         ('isha', 'Isha (Iqama)', False, resolved.isha),
-        ('jummah', 'Jummah 1', False, resolved.jummah),
-        ('jummah2', 'Jummah 2', False, resolved.jummah2),
-        ('jummah3', 'Jummah 3', False, resolved.jummah3),
+        ('jummah', "Jumu'ah 1", False, resolved.jummah),
+        ('jummah2', "Jumu'ah 2", False, resolved.jummah2),
+        ('jummah3', "Jumu'ah 3", False, resolved.jummah3),
     ]:
         entry = {'name': field, 'label': label, 'readonly': readonly}
         if readonly:

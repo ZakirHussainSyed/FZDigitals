@@ -284,9 +284,9 @@
                 <div class="timing-row sunset"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
-                <div class="timing-row"><span class="timing-label">Jummah 1</span><span class="timing-value" id="t-jummah">--</span></div>
-                <div class="timing-row"><span class="timing-label">Jummah 2</span><span class="timing-value" id="t-jummah2">--</span></div>
-                <div class="timing-row"><span class="timing-label">Jummah 3</span><span class="timing-value" id="t-jummah3">--</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 1</span><span class="timing-value" id="t-jummah">--</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 2</span><span class="timing-value" id="t-jummah2">--</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 3</span><span class="timing-value" id="t-jummah3">--</span></div>
             </div>
         </div>
     </div>
@@ -384,8 +384,11 @@
 
                 modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
                 if (mosque.next_salah && mosque.next_salah.name) {
-                    // 'Jummah 2' -> id 't-jummah2' — spaces stripped
-                    const nextEl = document.getElementById('t-' + mosque.next_salah.name.toLowerCase().replace(/\s+/g, ''));
+                    // Display name -> timings key: 'Jumu'ah 2' -> 'jummah2' -> id 't-jummah2'
+                    const NEXT_KEY = {"Jumu'ah": 'jummah', "Jumu'ah 2": 'jummah2', "Jumu'ah 3": 'jummah3'};
+                    const nk = NEXT_KEY[mosque.next_salah.name]
+                        || mosque.next_salah.name.toLowerCase().replace(/\s+/g, '');
+                    const nextEl = document.getElementById('t-' + nk);
                     if (nextEl) nextEl.closest('.timing-row').classList.add('next');
                 }
 
@@ -632,15 +635,15 @@
             // advancing even on cached data, in each mosque's own timezone.
             const SALAH_ORDER = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
                                  ['maghrib', 'Maghrib'], ['isha', 'Isha']];
-            const JUMMAH_KEYS = [['jummah', 'Jummah'], ['jummah2', 'Jummah 2'],
-                                 ['jummah3', 'Jummah 3']];
+            const JUMMAH_KEYS = [['jummah', "Jumu'ah"], ['jummah2', "Jumu'ah 2"],
+                                 ['jummah3', "Jumu'ah 3"]];
             function computeNextSalah(m) {
                 const t = m && m.timings;
                 if (!t) return {name: null, time: ''};
                 const mn = mosqueNowFor(m.timezone);
                 let order = SALAH_ORDER;
                 if (mn.dow === 5) {
-                    // Friday — Jummah slots replace Dhuhr when Jummah times exist.
+                    // Friday — Jumu'ah slots replace Dhuhr when Jumu'ah times exist.
                     const jummahs = [];
                     for (let j = 0; j < JUMMAH_KEYS.length; j++) {
                         if (parseClockMin(t[JUMMAH_KEYS[j][0]]) !== null) {
