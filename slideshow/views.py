@@ -1617,23 +1617,28 @@ def resolve_prayer_time(mosque, on_date):
         return None
     resolved = SimpleNamespace(base=base, override=override,
                                is_overridden=override is not None)
+    # With website sync on, the synced row owns the daily prayers — manual
+    # overrides only fill gaps in it or supply Jummah times (websites rarely
+    # publish iqama Jummah, so the form saves those as overrides on purpose).
+    # Without sync, user-owned override values win per-field.
+    sync_owned = mosque.sync_enabled
     for field in _PRAYER_FIELDS:
-        val = getattr(override, field) if override else None
-        if val is None and base:
-            val = getattr(base, field)
+        base_val = getattr(base, field) if base else None
+        over_val = getattr(override, field) if override else None
+        if sync_owned and not field.startswith('jummah'):
+            val = base_val if base_val is not None else over_val
+        else:
+            val = over_val if over_val is not None else base_val
         setattr(resolved, field, val)
-    if override and override.maghrib_after_sunset is not None:
-        resolved.maghrib_after_sunset = override.maghrib_after_sunset
-    elif base:
-        resolved.maghrib_after_sunset = base.maghrib_after_sunset
-    else:
-        resolved.maghrib_after_sunset = False
-    if override and override.maghrib_sunset_minutes is not None:
-        resolved.maghrib_sunset_minutes = override.maghrib_sunset_minutes
-    elif base:
-        resolved.maghrib_sunset_minutes = base.maghrib_sunset_minutes
-    else:
-        resolved.maghrib_sunset_minutes = 1
+    for attr, default in (('maghrib_after_sunset', False),
+                          ('maghrib_sunset_minutes', 1)):
+        base_val = getattr(base, attr) if base else None
+        over_val = getattr(override, attr) if override else None
+        if sync_owned:
+            val = base_val if base_val is not None else over_val
+        else:
+            val = over_val if over_val is not None else base_val
+        setattr(resolved, attr, val if val is not None else default)
     if resolved.sunset is None and mosque.latitude and mosque.longitude:
         # Sunset is derived from coordinates, not user data — a manual-only
         # mosque (override row, no synced base) otherwise shows nothing.
