@@ -1,0 +1,64 @@
+default_platform(:ios)
+
+# Takbir-al-Ula mosque map — iOS release lane.
+# Uses the App Store Connect API key (no Xcode/login needed) for cert,
+# provisioning profile, archive, and TestFlight upload.
+#
+# Required env (set as GitHub secrets):
+#   APPLE_API_KEY_ID       — App Store Connect API key id
+#   APPLE_API_ISSUER_ID    — issuer id
+#   APPLE_API_KEY_P8       — base64-encoded .p8 private key
+platform :ios do
+  desc "Build signed IPA and upload to TestFlight"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPLE_API_KEY_ID"],
+      issuer_id: ENV["APPLE_API_ISSUER_ID"],
+      key_content: ENV["APPLE_API_KEY_P8"],
+      is_key_content_base64: true,
+    )
+
+    create_keychain(
+      name: "build",
+      password: "",
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+    )
+
+    # Distribution cert + App Store profile, both via the API key.
+    cert(api_key: api_key, keychain_path: "~/Library/Keychains/build-db")
+    sigh(
+      api_key: api_key,
+      app_identifier: "com.fzscreens.takbir",
+      force: true,
+    )
+
+    update_code_signing_settings(
+      path: "ios/App/App.xcodeproj",
+      profile_name: lane_context[SharedValues::SIGH_NAME],
+      bundle_identifier: "com.fzscreens.takbir",
+      code_sign_identity: "Apple Distribution",
+    )
+
+    gym(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "takbir",
+      export_options: {
+        provisioningProfiles: {
+          "com.fzscreens.takbir" => lane_context[SharedValues::SIGH_NAME],
+        },
+      },
+    )
+
+    pilot(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+    )
+  end
+end
