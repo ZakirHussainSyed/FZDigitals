@@ -341,7 +341,7 @@
         </div>
     </div>
 
-    {% if mosque.sync_error %}
+    {% if mosque.sync_failing_days >= 2 %}
     <div style="position:fixed; bottom:10px; left:10px; z-index:50; padding:4px 14px; border-radius:999px; background:rgba(180,60,60,0.88); color:#fff; font-size:12px; font-weight:600; letter-spacing:0.4px;">Prayer sync issue — showing last known times</div>
     {% endif %}
 
