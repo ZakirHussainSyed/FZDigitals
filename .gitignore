@@ -58,6 +58,10 @@ mobile-phone/package-lock.json
 mobile-tv/node_modules/
 mobile-tv/android/
 mobile-tv/package-lock.json
+mobile-takbir/node_modules/
+mobile-takbir/android/
+mobile-takbir/ios/
+mobile-takbir/package-lock.json
 *.keystore
 tizen/.manifest.tmp
 tizen/*.wgt

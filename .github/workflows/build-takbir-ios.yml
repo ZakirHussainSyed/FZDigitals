@@ -1,0 +1,117 @@
+name: Build Takbir ul Ula iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile-takbir/**'
+      - 'slideshow/**'
+      - '.github/workflows/build-takbir-ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Capacitor dependencies
+        working-directory: mobile-takbir
+        run: npm install
+
+      - name: Add iOS platform
+        working-directory: mobile-takbir
+        run: npx cap add ios
+
+      - name: Auto-bump app version
+        working-directory: mobile-takbir
+        run: |
+          PROJ=ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/g" $PROJ
+          sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = \"1.0.${{ github.run_number }}\";/g" $PROJ
+          grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION" $PROJ | head -4
+
+      - name: Location permission for map "Near Me"
+        working-directory: mobile-takbir
+        run: |
+          PLIST=ios/App/App/Info.plist
+          if ! grep -q NSLocationWhenInUseUsageDescription $PLIST; then
+            /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Used to show mosques near your current location.'" $PLIST
+          fi
+          grep -A1 NSLocation $PLIST
+
+      - name: Install ImageMagick
+        run: brew install imagemagick || brew upgrade imagemagick
+
+      - name: Apply Takbir app icon
+        working-directory: mobile-takbir
+        run: |
+          LOGO=../slideshow/static/slideshow/logo_takbir.png
+          ICONSET=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          rm -f $ICONSET/*
+          for spec in "20@2x:40" "20@3x:60" "29@1x:29" "29@2x:58" "29@3x:87" "40@1x:40" "40@2x:80" "40@3x:120" "60@2x:120" "60@3x:180" "76@1x:76" "76@2x:152" "83.5@2x:167" "1024@1x:1024"; do
+            name=${spec%%:*}; size=${spec##*:}
+            convert "$LOGO" -resize ${size}x${size} -background black -gravity center -extent ${size}x${size} "$ICONSET/icon_${name}.png"
+          done
+          cat > $ICONSET/Contents.json << 'EOF'
+          {
+            "images": [
+              {"size": "20x20", "idiom": "iphone", "filename": "icon_20@2x.png", "scale": "2x"},
+              {"size": "20x20", "idiom": "iphone", "filename": "icon_20@3x.png", "scale": "3x"},
+              {"size": "29x29", "idiom": "iphone", "filename": "icon_29@2x.png", "scale": "2x"},
+              {"size": "29x29", "idiom": "iphone", "filename": "icon_29@3x.png", "scale": "3x"},
+              {"size": "40x40", "idiom": "iphone", "filename": "icon_40@2x.png", "scale": "2x"},
+              {"size": "40x40", "idiom": "iphone", "filename": "icon_40@3x.png", "scale": "3x"},
+              {"size": "60x60", "idiom": "iphone", "filename": "icon_60@2x.png", "scale": "2x"},
+              {"size": "60x60", "idiom": "iphone", "filename": "icon_60@3x.png", "scale": "3x"},
+              {"size": "20x20", "idiom": "ipad", "filename": "icon_20@2x.png", "scale": "2x"},
+              {"size": "29x29", "idiom": "ipad", "filename": "icon_29@1x.png", "scale": "1x"},
+              {"size": "29x29", "idiom": "ipad", "filename": "icon_29@2x.png", "scale": "2x"},
+              {"size": "40x40", "idiom": "ipad", "filename": "icon_40@1x.png", "scale": "1x"},
+              {"size": "40x40", "idiom": "ipad", "filename": "icon_40@2x.png", "scale": "2x"},
+              {"size": "76x76", "idiom": "ipad", "filename": "icon_76@1x.png", "scale": "1x"},
+              {"size": "76x76", "idiom": "ipad", "filename": "icon_76@2x.png", "scale": "2x"},
+              {"size": "83.5x83.5", "idiom": "ipad", "filename": "icon_83.5@2x.png", "scale": "2x"},
+              {"size": "1024x1024", "idiom": "ios-marketing", "filename": "icon_1024@1x.png", "scale": "1x"}
+            ],
+            "info": {"version": 1, "author": "xcode"}
+          }
+          EOF
+
+      - name: Sync Capacitor + pod install
+        working-directory: mobile-takbir
+        run: npx cap sync ios
+
+      - name: Build unsigned archive
+        working-directory: mobile-takbir
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            archive CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned IPA
+        working-directory: mobile-takbir
+        run: |
+          mkdir -p build/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          cd build && zip -qr takbir-unsigned.ipa Payload
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: takbir-ios-unsigned-ipa
+          path: mobile-takbir/build/takbir-unsigned.ipa
+
+      - name: Upload xcarchive
+        uses: actions/upload-artifact@v4
+        with:
+          name: takbir-ios-xcarchive
+          path: mobile-takbir/build/App.xcarchive
