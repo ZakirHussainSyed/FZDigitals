@@ -21,7 +21,7 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 from html import unescape
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 import requests
@@ -377,9 +377,20 @@ def _wayback_html(url):
     unwrapped. Used only to discover widget/PDF links on WAF-challenged
     sites (e.g. Cloudflare) — archived prayer times would be stale."""
     try:
-        avail = requests.get(f'https://archive.org/wayback/available?url={url}',
-                             timeout=15, headers=UA).json()
-        snap = avail.get('archived_snapshots', {}).get('closest', {})
+        # The availability API is pickier than documented — a full
+        # scheme:// URL can return {} where the bare host matches.
+        candidates = [url]
+        host = urlparse(url).netloc
+        if host and host != url:
+            candidates.append(host)
+        snap = {}
+        for cand in candidates:
+            avail = requests.get(
+                f'https://archive.org/wayback/available?url={cand}',
+                timeout=15, headers=UA).json()
+            snap = avail.get('archived_snapshots', {}).get('closest', {})
+            if snap.get('available'):
+                break
         if not snap.get('available'):
             return None
         snap_url = re.sub(r'/web/(\d+)/', r'/web/\1id_/',
