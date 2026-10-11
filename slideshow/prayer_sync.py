@@ -404,6 +404,22 @@ def _wayback_html(url):
         return None
 
 
+def _reader_proxy_times(url, jummah_section=None):
+    """Last-resort render through the Jina reader proxy — a real browser that
+    passes managed challenges (Cloudflare etc.) and executes JS, returning the
+    rendered page as text. Free tier needs no key. Used only when the direct
+    fetch is blocked or nothing on the page parses."""
+    try:
+        resp = requests.get(f'https://r.jina.ai/{url}', timeout=45, headers=UA)
+        if resp.status_code != 200 or 'Markdown Content:' not in resp.text:
+            return None
+    except Exception as e:
+        logger.warning(f'Reader proxy fetch failed ({url}): {e}')
+        return None
+    times = _html_prayer_times(resp.text, jummah_section)
+    return {None: times} if times else None
+
+
 FIREBASE_DB_RE = re.compile(r'databaseURL["\']?\s*:\s*["\'](https://[^"\']+)["\']')
 FIREBASE_PRAYER_REF_RE = re.compile(
     r"ref\(\s*['\"]([^'\"]*prayer[^'\"]*?/)['\"]\s*\+\s*month", re.I)
@@ -1031,7 +1047,11 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None,
     Returns {date: {fajr: time, ...}} for schedule PDFs, or {None: {...}}
     for single-day sources (widgets, page text) — the caller maps None to
     today in the mosque's timezone.
-
+# No archived copy either — render through the reader proxy.
+            times = _reader_proxy_times(website_url, jummah_section)
+            if times:
+                return times
+            
     mosque_coords: (lat, lon, tz) — lets 'Sunset'/'Sunrise' literal values
     resolve to real times (masjidulhaqq, Next.js widgets)."""
     try:
@@ -1137,7 +1157,7 @@ def fetch_prayer_times(website_url, jummah_section=None, for_date=None,
                 return {None: times}
         except Exception as e:
             logger.warning(f'Prayer page fetch failed ({link}): {e}')
-    return None
+    return _reader_proxy_times(website_url, jummah_section)
 
 
 PDF_NAME_RE = re.compile(
