@@ -93,6 +93,26 @@
             cursor: pointer;
         }
         .submit-btn:hover { background: #6a4ce6; }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .ghost-btn {
+            flex: 1;
+            display: block;
+            padding: 11px;
+            border: 1px solid rgba(232,234,240,0.2);
+            border-radius: 8px;
+            color: rgba(232,234,240,0.85);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+        }
+        .ghost-btn:hover { border-color: rgba(232,234,240,0.45); }
+        .whatsapp-btn { border-color: rgba(37,211,102,0.5); color: #25d366; }
+        .whatsapp-btn:hover { border-color: #25d366; }
         .error-message {
             color: #ff4444;
             font-size: 12px;
@@ -142,8 +162,9 @@
             <button type="submit" class="submit-btn">Sign In</button>
         </form>
         
-        <div style="margin-top: 20px; text-align: center;">
-            <a href="/forget-password/" style="color: rgba(232,234,240,0.7); text-decoration: none; font-size: 14px;">Forgot password?</a>
+        <div class="btn-row">
+            <a href="/" class="ghost-btn">Back</a>
+            <a href="https://wa.me/917075985403?text=Hi%20I%20need%20help%20with%20sign%20in" target="_blank" class="ghost-btn whatsapp-btn">Sign in Help</a>
         </div>
     </div>
     
