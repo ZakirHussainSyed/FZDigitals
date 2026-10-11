@@ -421,6 +421,17 @@
                         <input type="checkbox" name="mosque_{{ mosque.id }}_sync" {% if mosque.sync_enabled %}checked{% endif %} style="width: auto;">
                         Sync prayer times from website
                     </label>
+                    {% if mosque.sync_enabled %}
+                    <div style="margin-top: 8px; font-size: 12px;">
+                        {% if mosque.sync_error %}
+                        {% if mosque.sync_failing_days >= 2 %}<span style="color: #ff6b6b;">{% else %}<span style="color: #f5c15a;">{% endif %}Sync failing{% if mosque.sync_failing_days %} for {{ mosque.sync_failing_days }} day{{ mosque.sync_failing_days|pluralize }}{% endif %}{% if mosque.prayer_synced_at %} — last try {{ mosque.prayer_synced_at|date:"M d g:i a" }}{% endif %} — {{ mosque.sync_error }}</span>
+                        {% elif mosque.prayer_synced_at %}
+                        <span style="color: #6fdd9f;">Synced {{ mosque.prayer_synced_at|date:"M d, Y g:i a" }}</span>
+                        {% else %}
+                        <span style="color: rgba(232,234,240,0.5);">Waiting for first sync</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </fieldset>
                 {% endfor %}
                 <div style="display: flex; gap: 12px;">

@@ -341,6 +341,10 @@
         </div>
     </div>
 
+    {% if mosque.sync_error %}
+    <div style="position:fixed; bottom:10px; left:10px; z-index:50; padding:4px 14px; border-radius:999px; background:rgba(180,60,60,0.88); color:#fff; font-size:12px; font-weight:600; letter-spacing:0.4px;">Prayer sync issue — showing last known times</div>
+    {% endif %}
+
     <script type="application/json" id="media-data">{{ media_files|safe }}</script>
     <script type="application/json" id="timings-data">{{ timings_json|default:'{}'|safe }}</script>
     <script>

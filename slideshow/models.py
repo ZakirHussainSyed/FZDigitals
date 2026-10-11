@@ -179,12 +179,25 @@ class Mosque(models.Model):
         help_text='Consecutive sync failures since the last success; hourly '
                   'retries stop after 3 until the next daily sync window.',
     )
+    sync_failing_since = models.DateTimeField(
+        blank=True, null=True,
+        help_text='When the current run of consecutive sync failures began; '
+                  'null when the last sync succeeded.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
+
+    @property
+    def sync_failing_days(self):
+        """Whole days the current failure streak has lasted (0 = not failing)."""
+        if not self.sync_failing_since:
+            return 0
+        from django.utils import timezone
+        return (timezone.now() - self.sync_failing_since).days
 
     def __str__(self):
         return self.name

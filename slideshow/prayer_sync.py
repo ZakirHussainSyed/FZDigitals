@@ -1255,11 +1255,18 @@ def sync_mosque_prayer_times(mosque, force=False):
         mosque.sync_error = err
         fields.append('sync_error')
     # Consecutive-failure count caps the hourly retry at 3 attempts; a
-    # success (or manual action elsewhere) resets it.
+    # success (or manual action elsewhere) resets it. sync_failing_since
+    # stamps the streak's start so dashboards can age it in days.
     failures = 0 if not err else mosque.sync_failures + 1
     if failures != mosque.sync_failures:
         mosque.sync_failures = failures
         fields.append('sync_failures')
+    if err and mosque.sync_failing_since is None:
+        mosque.sync_failing_since = timezone.now()
+        fields.append('sync_failing_since')
+    elif not err and mosque.sync_failing_since is not None:
+        mosque.sync_failing_since = None
+        fields.append('sync_failing_since')
     if fields:
         mosque.save(update_fields=fields)
     return synced, err or None
@@ -1382,4 +1389,7 @@ def maybe_sync_mosque(mosque):
         if mosque.sync_error != err:
             mosque.sync_error = err
             fields.append('sync_error')
+        if mosque.sync_failing_since is None:
+            mosque.sync_failing_since = timezone.now()
+            fields.append('sync_failing_since')
         mosque.save(update_fields=fields)

@@ -1649,6 +1649,17 @@ def resolve_prayer_time(mosque, on_date):
     return resolved
 
 
+def _blank_resolved(mosque, on_date, tz):
+    """Empty resolved-times namespace for a synced mosque with zero rows —
+    every field None/False so views render blanks instead of crashing."""
+    return SimpleNamespace(
+        base=None, override=None, is_overridden=False,
+        fajr=None, dhuhr=None, asr=None, maghrib=None, isha=None,
+        sunset=sunset_time(mosque.latitude, mosque.longitude, on_date, tz),
+        jummah=None, jummah2=None, jummah3=None,
+        maghrib_after_sunset=False, maghrib_sunset_minutes=1)
+
+
 def _format_prayer_time(t):
     if not t:
         return ''
@@ -2007,25 +2018,28 @@ def mosque_tv(request):
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     # Resolved = synced base + manual overrides; only seed placeholder
-    # defaults when the mosque has never had any times at all.
+    # defaults when the mosque has never had any times at all — and never
+    # for a synced mosque, where a failed sync must show blanks (the last
+    # synced row, when one exists, already survives via resolve()).
     prayer_time = resolve_prayer_time(mosque, today)
     if prayer_time is None or prayer_time.base is None:
-        # Seed placeholder defaults only when the mosque has no base row;
-        # overrides (if any) are overlaid again on the seeded row.
-        PrayerTime.objects.get_or_create(
-            mosque=mosque,
-            date=today,
-            defaults={
-                'fajr': datetime.strptime('05:00', '%H:%M').time(),
-                'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
-                'asr': datetime.strptime('16:00', '%H:%M').time(),
-                'maghrib': datetime.strptime('18:30', '%H:%M').time(),
-                'isha': datetime.strptime('20:00', '%H:%M').time(),
-                'jummah': datetime.strptime('13:30', '%H:%M').time(),
-                'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
-            }
-        )
-        prayer_time = resolve_prayer_time(mosque, today)
+        if mosque.sync_enabled:
+            prayer_time = prayer_time or _blank_resolved(mosque, today, tz)
+        else:
+            PrayerTime.objects.get_or_create(
+                mosque=mosque,
+                date=today,
+                defaults={
+                    'fajr': datetime.strptime('05:00', '%H:%M').time(),
+                    'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+                    'asr': datetime.strptime('16:00', '%H:%M').time(),
+                    'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+                    'isha': datetime.strptime('20:00', '%H:%M').time(),
+                    'jummah': datetime.strptime('13:30', '%H:%M').time(),
+                    'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
+                }
+            )
+            prayer_time = resolve_prayer_time(mosque, today)
 
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),
@@ -2100,22 +2114,28 @@ def mosque_tv_device(request):
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     prayer_time = resolve_prayer_time(mosque, today)
     if prayer_time is None or prayer_time.base is None:
-        # Seed placeholder defaults only when the mosque has no base row;
-        # overrides (if any) are overlaid again on the seeded row.
-        PrayerTime.objects.get_or_create(
-            mosque=mosque,
-            date=today,
-            defaults={
-                'fajr': datetime.strptime('05:00', '%H:%M').time(),
-                'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
-                'asr': datetime.strptime('16:00', '%H:%M').time(),
-                'maghrib': datetime.strptime('18:30', '%H:%M').time(),
-                'isha': datetime.strptime('20:00', '%H:%M').time(),
-                'jummah': datetime.strptime('13:30', '%H:%M').time(),
-                'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
-            }
-        )
-        prayer_time = resolve_prayer_time(mosque, today)
+        if mosque.sync_enabled:
+            # Synced mosque with no successful row yet — never seed
+            # placeholders; blanks + sync_error are honest, and the last
+            # synced row already survives via resolve() when one exists.
+            prayer_time = prayer_time or _blank_resolved(mosque, today, tz)
+        else:
+            # Seed placeholder defaults only when the mosque has no base
+            # row; overrides (if any) are overlaid again on the seeded row.
+            PrayerTime.objects.get_or_create(
+                mosque=mosque,
+                date=today,
+                defaults={
+                    'fajr': datetime.strptime('05:00', '%H:%M').time(),
+                    'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
+                    'asr': datetime.strptime('16:00', '%H:%M').time(),
+                    'maghrib': datetime.strptime('18:30', '%H:%M').time(),
+                    'isha': datetime.strptime('20:00', '%H:%M').time(),
+                    'jummah': datetime.strptime('13:30', '%H:%M').time(),
+                    'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
+                }
+            )
+            prayer_time = resolve_prayer_time(mosque, today)
     
     timings = {
         'fajr': _format_prayer_time(prayer_time.fajr),
