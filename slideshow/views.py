@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-from django.db.models import Sum, Max
+from django.db.models import F, Sum, Max
 from django.db import transaction
 import json
 import logging
@@ -247,7 +247,30 @@ def user_management(request):
     if not request.user.is_superuser:
         return redirect(f'/{request.user.id}/')
 
+    # All website-synced mosques for the admin health table — failing first,
+    # longest streak first. Lazy queryset: evaluated at render, so a resync
+    # POST sees the freshly-updated row.
+    sync_mosques = Mosque.objects.filter(sync_enabled=True).select_related('user') \
+        .order_by(F('sync_failing_since').asc(nulls_last=True), '-prayer_synced_at')
+
     if request.method == 'POST':
+        if request.POST.get('action') == 'resync_mosque':
+            context = {
+                'users': User.objects.all().order_by('-id'),
+                'verticals': UserProfile.VERTICAL_CHOICES,
+                'sync_mosques': sync_mosques,
+            }
+            mosque = Mosque.objects.filter(id=request.POST.get('mosque_id')).first()
+            if not mosque:
+                context['error'] = 'Mosque not found.'
+            else:
+                synced, err = sync_mosque_prayer_times(mosque, force=True)
+                if err:
+                    context['error'] = f'Sync failed for {mosque.name}: {err}'
+                else:
+                    context['success'] = f'{mosque.name} synced — {synced} day(s) of prayer times written.'
+            return render(request, 'slideshow/user_management.html', context)
+
         username = request.POST.get('username', '').strip()
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '')
@@ -273,6 +296,7 @@ def user_management(request):
         context = {
             'users': User.objects.all().order_by('-id'),
             'verticals': UserProfile.VERTICAL_CHOICES,
+            'sync_mosques': sync_mosques,
         }
 
         if not username or not password:
@@ -377,6 +401,7 @@ def user_management(request):
     return render(request, 'slideshow/user_management.html', {
         'users': users,
         'verticals': UserProfile.VERTICAL_CHOICES,
+        'sync_mosques': sync_mosques,
     })
 
 
