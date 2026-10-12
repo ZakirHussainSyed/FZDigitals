@@ -325,10 +325,6 @@
                             <input type="text" name="mosque_jummah_section" id="create_mosque_jummah_section" placeholder="e.g. North or 21 St — blank = first section">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="create_mosque_contact">Contact phone (shown on Mosque TV)</label>
-                        <input type="text" name="mosque_contact_phone" id="create_mosque_contact" placeholder="e.g. +1 555 123 4567">
-                    </div>
                     <div id="manual-times" style="display:none;">
                         <label style="display:block; margin-bottom:8px; font-size:13px; color:rgba(232,234,240,0.8);">Manual prayer times (Iqama)</label>
                         <div class="form-grid">
@@ -463,10 +459,6 @@
                     <div style="margin-bottom: 12px;">
                         <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(232,234,240,0.8);">Jumu'ah section keyword</label>
                         <input type="text" name="mosque_{{ mosque.id }}_jummah_section" value="{{ mosque.jummah_section }}" placeholder="e.g. North or 21 St — blank = first section" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(232,234,240,0.8);">Contact phone (shown on Mosque TV)</label>
-                        <input type="text" name="mosque_{{ mosque.id }}_contact_phone" value="{{ mosque.contact_phone }}" placeholder="e.g. +1 555 123 4567" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e8eaf0; font-size: 14px;">
                     </div>
                     <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(232,234,240,0.8); cursor: pointer;">
                         <input type="checkbox" name="mosque_{{ mosque.id }}_sync" {% if mosque.sync_enabled %}checked{% endif %} style="width: auto;">
