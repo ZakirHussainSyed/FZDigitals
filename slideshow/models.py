@@ -164,6 +164,10 @@ class Mosque(models.Model):
         help_text='When on, prayer times come from the website PDF; when off, manual entries are used.',
     )
     timezone = models.CharField(max_length=64, blank=True, default='')
+    contact_phone = models.CharField(
+        max_length=32, blank=True, default='',
+        help_text='Shown beneath Powered by on Mosque TV — phone icon links tel:, WhatsApp icon links wa.me.',
+    )
     prayer_synced_at = models.DateTimeField(blank=True, null=True)
     jummah_section = models.CharField(
         max_length=100, blank=True,
@@ -198,6 +202,11 @@ class Mosque(models.Model):
             return 0
         from django.utils import timezone
         return (timezone.now() - self.sync_failing_since).days
+
+    @property
+    def whatsapp_number(self):
+        """Digits-only contact phone — wa.me links need no + or separators."""
+        return ''.join(c for c in (self.contact_phone or '') if c.isdigit())
 
     def __str__(self):
         return self.name

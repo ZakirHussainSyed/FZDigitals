@@ -283,6 +283,7 @@ def user_management(request):
         mosque_has_website = request.POST.get('mosque_has_website') == 'on'
         mosque_timezone = request.POST.get('mosque_timezone', '').strip()
         mosque_jummah_section = request.POST.get('mosque_jummah_section', '').strip()
+        mosque_contact_phone = request.POST.get('mosque_contact_phone', '').strip()
 
         def _pos_int(name, default):
             try:
@@ -377,6 +378,7 @@ def user_management(request):
                     sync_enabled=mosque_has_website,
                     timezone=tz_name,
                     jummah_section=mosque_jummah_section,
+                    contact_phone=mosque_contact_phone,
                 )
                 if manual_times:
                     PrayerTimeOverride.objects.create(
@@ -435,6 +437,7 @@ def edit_user(request, user_id):
             mosque.name = name
         mosque.website_url = request.POST.get(f'mosque_{mosque.id}_website', '').strip()
         mosque.jummah_section = request.POST.get(f'mosque_{mosque.id}_jummah_section', '').strip()
+        mosque.contact_phone = request.POST.get(f'mosque_{mosque.id}_contact_phone', '').strip()
         mosque.sync_enabled = request.POST.get(f'mosque_{mosque.id}_sync') == 'on'
         mosque.save()
 
