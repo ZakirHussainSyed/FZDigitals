@@ -1,6 +1,8 @@
 package com.fzdigitals.mosquetv;
 
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -45,10 +47,17 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
         + "+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", Base64.DEFAULT);
 
+    // On TV sticks the app can come up before Wi-Fi associates — keep
+    // reloading the main frame until connectivity returns rather than
+    // parking on the WebView error page.
+    private static final long RETRY_MS = 15_000;
+
     private final File webcacheDir;
     private final File tileDir;
     private final String userAgent;
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean triedCacheFallback = false;
+    private Runnable pendingRetry;
 
     public MosqueWebViewClient(Bridge bridge, File filesDir) {
         super(bridge);
@@ -75,6 +84,17 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
             view.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
             view.loadUrl(request.getUrl().toString());
             return;
+        }
+        if (request.isForMainFrame() && pendingRetry == null) {
+            final String url = request.getUrl().toString();
+            pendingRetry = () -> {
+                pendingRetry = null;
+                view.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+                view.loadUrl(url);
+            };
+            Log.i(TAG, "main frame still failing (" + error.getDescription()
+                    + "), reloading in " + (RETRY_MS / 1000) + "s");
+            handler.postDelayed(pendingRetry, RETRY_MS);
         }
         super.onReceivedError(view, request, error);
     }
