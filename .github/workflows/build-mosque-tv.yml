@@ -76,13 +76,19 @@ jobs:
           # resolution — wins home without disabling system packages that
           # the remote/BT stack depends on.
           sed -i 's|<intent-filter>|<intent-filter android:priority="10">|' $MANIFEST
-          sed -i 's|</manifest>|    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
+          # Install-only kiosk components: boot auto-launch + accessibility
+          # Home Guard that bounces the stock launcher back to our app.
+          sed -i 's|</application>|    <receiver android:name=".BootReceiver" android:exported="true">\n        <intent-filter>\n            <action android:name="android.intent.action.BOOT_COMPLETED" />\n            <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n        </intent-filter>\n    </receiver>\n    <service android:name=".KioskService"\n        android:exported="false"\n        android:foregroundServiceType="specialUse">\n        <property\n            android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"\n            android:value="TV kiosk home enforcement" />\n    </service>\n    <service android:name=".HomeGuardService"\n        android:exported="true"\n        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">\n        <intent-filter>\n            <action android:name="android.accessibilityservice.AccessibilityService" />\n        </intent-filter>\n        <meta-data\n            android:name="android.accessibilityservice"\n            android:resource="@xml/accessibility_service_config" />\n    </service>\n</application>|' $MANIFEST
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
 
       - name: Install custom WebView cache plugin
         working-directory: mobile-tv
         run: |
           mkdir -p android/app/src/main/java/com/fzdigitals/mosquetv
           cp android-plugin-src/com/fzdigitals/mosquetv/*.java android/app/src/main/java/com/fzdigitals/mosquetv/
+          mkdir -p android/app/src/main/res/xml
+          cp android-plugin-src/accessibility_service_config.xml android/app/src/main/res/xml/
+          sed -i 's|</resources>|    <string name="accessibility_desc">Keeps this TV on the Mosque display — returns to it automatically if another home screen opens.</string>\n</resources>|' android/app/src/main/res/values/strings.xml
 
       - name: Allow cleartext HTTP to local media server
         working-directory: mobile-tv

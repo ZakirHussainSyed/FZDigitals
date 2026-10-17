@@ -37,9 +37,10 @@ public class MainActivity extends BridgeActivity {
 
     /**
      * Kiosk without adb: make sure this app is the default home. Prefer the
-     * official role dialog (one remote press); on TV builds where HOME isn't
-     * a managed role, open the Home-app settings screen instead so the user
-     * can pick us. Checked on each launch until we actually hold it.
+     * official role dialog (one remote press). On firmware where the HOME
+     * role grant doesn't actually change routing (Google TV Onn builds),
+     * fall back to enabling the accessibility Home Guard — it bounces any
+     * other home app back to us and needs no adb, no commands, no disable.
      */
     private void maybeRequestHomeRole() {
         if (isDefaultHome()) return;
@@ -53,10 +54,21 @@ public class MainActivity extends BridgeActivity {
                 return;
             }
         }
-        try {
-            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
-        } catch (android.content.ActivityNotFoundException ignored) {
+        // Role grant didn't move HOME routing — offer the guard toggle.
+        if (!isGuardEnabled()) {
+            try {
+                startActivity(new Intent(
+                        Settings.ACTION_ACCESSIBILITY_SETTINGS));
+            } catch (android.content.ActivityNotFoundException ignored) {
+            }
         }
+    }
+
+    /** True while the user has enabled our accessibility Home Guard. */
+    private boolean isGuardEnabled() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        return enabled != null && enabled.contains("HomeGuardService");
     }
 
     /** True when Android resolves the HOME intent to us. */
@@ -71,10 +83,9 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Remote Settings (gear) button: the stock launcher normally consumes this
-     * key, but it is disabled in kiosk mode. Open system Settings directly so
-     * Wi-Fi and network stay reachable from the remote; pressing Home returns
-     * here because this app is the home activity.
+     * Remote Settings (gear) button: open system Settings directly so Wi-Fi
+     * and network stay reachable from the remote even in kiosk mode. With the
+     * Home Guard enabled, returning bounces back to this app automatically.
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
