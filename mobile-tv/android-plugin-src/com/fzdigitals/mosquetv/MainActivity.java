@@ -1,6 +1,8 @@
 package com.fzdigitals.mosquetv;
 
+import android.app.role.RoleManager;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.KeyEvent;
@@ -9,6 +11,8 @@ import android.webkit.WebSettings;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+
+    private static final int REQ_HOME_ROLE = 42;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -27,6 +31,26 @@ public class MainActivity extends BridgeActivity {
 
         bridge.getWebView().setWebViewClient(
                 new MosqueWebViewClient(bridge, getFilesDir()));
+
+        maybeRequestHomeRole();
+    }
+
+    /**
+     * Kiosk without adb: ask the system to make this app the default home.
+     * Shows the official "Set as home app" dialog — one remote press and the
+     * stick boots into us forever after. Re-asked on each launch until held,
+     * so declining once doesn't permanently break the kiosk setup.
+     */
+    private void maybeRequestHomeRole() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager rm = getSystemService(RoleManager.class);
+            if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_HOME)
+                    && !rm.isRoleHeld(RoleManager.ROLE_HOME)) {
+                startActivityForResult(
+                        rm.createRequestRoleIntent(RoleManager.ROLE_HOME),
+                        REQ_HOME_ROLE);
+            }
+        }
     }
 
     /**
