@@ -67,3 +67,4 @@ tizen/.manifest.tmp
 tizen/*.wgt
 tizen/author-signature.xml
 tizen/signature*.xml
+mobile-tv/provision-stick.sh
