@@ -9,6 +9,9 @@ on:
       - '.github/workflows/build-mosque-tv.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -79,7 +82,7 @@ jobs:
           # Install-only kiosk components: boot auto-launch + accessibility
           # Home Guard that bounces the stock launcher back to our app.
           sed -i 's|</application>|    <receiver android:name=".BootReceiver" android:exported="true">\n        <intent-filter>\n            <action android:name="android.intent.action.BOOT_COMPLETED" />\n            <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n        </intent-filter>\n    </receiver>\n    <service android:name=".KioskService"\n        android:exported="false"\n        android:foregroundServiceType="specialUse">\n        <property\n            android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"\n            android:value="TV kiosk home enforcement" />\n    </service>\n    <service android:name=".HomeGuardService"\n        android:exported="true"\n        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">\n        <intent-filter>\n            <action android:name="android.accessibilityservice.AccessibilityService" />\n        </intent-filter>\n        <meta-data\n            android:name="android.accessibilityservice"\n            android:resource="@xml/accessibility_service_config" />\n    </service>\n</application>|' $MANIFEST
-          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />\n    <uses-feature android:name="android.software.leanback" android:required="false" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n</manifest>|' $MANIFEST
 
       - name: Install custom WebView cache plugin
         working-directory: mobile-tv
@@ -162,3 +165,12 @@ jobs:
         with:
           name: fzscreens-mosquetv-release-apk
           path: mobile-tv/android/app/build/outputs/apk/release/app-release-signed.apk
+
+      - name: Publish OTA release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tv-${{ github.run_number }}
+          name: Mosque TV 1.0.${{ github.run_number }}
+          files: mobile-tv/android/app/build/outputs/apk/release/app-release-signed.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

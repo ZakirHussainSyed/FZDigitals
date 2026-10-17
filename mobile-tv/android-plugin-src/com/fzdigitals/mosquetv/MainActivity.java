@@ -33,6 +33,7 @@ public class MainActivity extends BridgeActivity {
                 new MosqueWebViewClient(bridge, getFilesDir()));
 
         maybeRequestHomeRole();
+        UpdateChecker.schedule(this);
     }
 
     /**
