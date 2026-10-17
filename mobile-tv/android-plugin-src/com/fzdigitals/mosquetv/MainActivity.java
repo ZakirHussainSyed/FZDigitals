@@ -36,12 +36,13 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Kiosk without adb: ask the system to make this app the default home.
-     * Shows the official "Set as home app" dialog — one remote press and the
-     * stick boots into us forever after. Re-asked on each launch until held,
-     * so declining once doesn't permanently break the kiosk setup.
+     * Kiosk without adb: make sure this app is the default home. Prefer the
+     * official role dialog (one remote press); on TV builds where HOME isn't
+     * a managed role, open the Home-app settings screen instead so the user
+     * can pick us. Checked on each launch until we actually hold it.
      */
     private void maybeRequestHomeRole() {
+        if (isDefaultHome()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             RoleManager rm = getSystemService(RoleManager.class);
             if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_HOME)
@@ -49,8 +50,24 @@ public class MainActivity extends BridgeActivity {
                 startActivityForResult(
                         rm.createRequestRoleIntent(RoleManager.ROLE_HOME),
                         REQ_HOME_ROLE);
+                return;
             }
         }
+        try {
+            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        } catch (android.content.ActivityNotFoundException ignored) {
+        }
+    }
+
+    /** True when Android resolves the HOME intent to us. */
+    private boolean isDefaultHome() {
+        Intent home = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_HOME);
+        android.content.pm.ResolveInfo ri = getPackageManager()
+                .resolveActivity(home,
+                        android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        return ri != null && ri.activityInfo != null
+                && getPackageName().equals(ri.activityInfo.packageName);
     }
 
     /**
