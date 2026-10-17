@@ -101,11 +101,12 @@ CONSUMER_PKGS=(
     com.walmart.onn.setup
     com.google.android.tv.setup
 )
-SYSTEM_PKGS=(          # can drop adbd/framework — disable LAST
-    com.google.android.katniss
-    com.google.android.tungsten.setupwraith
-    com.google.android.tvrecommendations
-)
+# NOTE: com.google.android.katniss (Assistant),
+# com.google.android.tungsten.setupwraith (setup wizard) and
+# com.google.android.tvrecommendations are intentionally NOT disabled —
+# on the Onn/Google TV build disabling them kills the BT remote and
+# wedges Wi-Fi (observed twice). Our HOME filter has priority=10, which
+# outranks setupwraith's RecoveryActivity (priority=1), so they can stay.
 disable_list() {
     for pkg in "$@"; do
         if "$ADB" -s "$TARGET" shell pm list packages | grep -q "^package:$pkg$"; then
@@ -142,9 +143,6 @@ case "$TOP" in
     *"$APP_PKG"*) echo "  kiosk OK — app owns Home" ;;
     *) echo "  WARNING: another app still owns Home — check manually" ;;
 esac
-
-say "Disabling system-ish packages (may drop adb — safe to ignore errors)"
-disable_list "${SYSTEM_PKGS[@]}" || true
 
 say "Rebooting"
 "$ADB" -s "$TARGET" reboot || true
