@@ -37,7 +37,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // If an OTA confirm sheet was blocked while the app was
         // frozen/backgrounded, surface it now.
