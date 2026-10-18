@@ -1,4 +1,4 @@
-package com.fzdigitals.tablet;
+package com.fzscreens.tablet;
 
 import android.net.Uri;
 import android.util.Log;

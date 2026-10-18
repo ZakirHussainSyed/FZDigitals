@@ -1,4 +1,4 @@
-package com.fzdigitals.tablet;
+package com.fzscreens.tablet;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebSettings;
 import com.getcapacitor.BridgeActivity;
-import com.fzdigitals.tablet.plugins.MediaDownloaderPlugin;
+import com.fzscreens.tablet.plugins.MediaDownloaderPlugin;
 import java.io.File;
 
 public class MainActivity extends BridgeActivity {

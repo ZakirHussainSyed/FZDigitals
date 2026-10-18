@@ -24,7 +24,7 @@ cat > "$OUT" << 'SCRIPT_EOF'
 # Embeds the signed APK — nothing else to copy. Requires: bash, curl.
 set -euo pipefail
 
-APP_PKG="com.fzdigitals.mosquetv"
+APP_PKG="com.fzscreens.mosquetv"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 

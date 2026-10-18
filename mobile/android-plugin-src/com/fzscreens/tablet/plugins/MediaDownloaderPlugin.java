@@ -1,4 +1,4 @@
-package com.fzdigitals.tablet.plugins;
+package com.fzscreens.tablet.plugins;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -9,7 +9,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.fzdigitals.tablet.LocalMediaServer;
+import com.fzscreens.tablet.LocalMediaServer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;

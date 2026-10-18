@@ -1,4 +1,4 @@
-package com.fzdigitals.mosquetv;
+package com.fzscreens.mosquetv;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

@@ -1,4 +1,4 @@
-package com.fzdigitals.mosquetv;
+package com.fzscreens.mosquetv;
 
 import android.net.Uri;
 import android.os.Handler;

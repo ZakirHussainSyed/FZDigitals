@@ -1,4 +1,4 @@
-package com.fzdigitals.mosquetv;
+package com.fzscreens.mosquetv;
 
 import android.app.role.RoleManager;
 import android.content.Intent;

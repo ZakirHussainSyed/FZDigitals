@@ -1,4 +1,4 @@
-package com.fzdigitals.mosquetv;
+package com.fzscreens.mosquetv;
 
 import android.app.DownloadManager;
 import android.app.PendingIntent;
@@ -190,7 +190,7 @@ public final class UpdateChecker {
     }
 
     private static final String ACTION_INSTALL_STATUS =
-            "com.fzdigitals.mosquetv.INSTALL_STATUS";
+            "com.fzscreens.mosquetv.INSTALL_STATUS";
 
     /**
      * Session-based install (PackageInstaller). Unlike file-manager

@@ -1,4 +1,4 @@
-package com.fzdigitals.mosquetv;
+package com.fzscreens.mosquetv;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
