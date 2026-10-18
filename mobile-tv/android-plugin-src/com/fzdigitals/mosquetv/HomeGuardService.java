@@ -15,12 +15,25 @@ import android.view.accessibility.AccessibilityEvent;
  */
 public class HomeGuardService extends AccessibilityService {
 
-    private static final String[] SUPPRESSED = {
-            "com.google.android.apps.tv.launcherx",
-            "com.google.android.tungsten.setupwraith",
-            "com.google.android.tvrecommendations",
-            "com.google.android.tv.setup",
-    };
+    // Built at bind: every package that offers a HOME activity — covers
+    // Google TV (launcherx), Android TV (tvlauncher), Fire TV
+    // (com.amazon.tv.launcher), AOSP boxes (launcher3 / vendor launchers)
+    // and setup wizards — without hardcoding per-device names.
+    private java.util.Set<String> suppressed = new java.util.HashSet<>();
+
+    private void buildSuppressed() {
+        Intent home = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_HOME);
+        for (android.content.pm.ResolveInfo ri : getPackageManager()
+                .queryIntentActivities(home, 0)) {
+            if (ri.activityInfo != null
+                    && ri.activityInfo.packageName != null
+                    && !ri.activityInfo.packageName
+                            .equals(getPackageName())) {
+                suppressed.add(ri.activityInfo.packageName);
+            }
+        }
+    }
 
     // Only bounce real home/recovery screens. Panels like the launcherx
     // quick-settings dropdown share the suppressed package name but a
@@ -45,6 +58,7 @@ public class HomeGuardService extends AccessibilityService {
      */
     @Override
     protected void onServiceConnected() {
+        buildSuppressed();
         checkForegroundNow();
         final android.os.Handler h = new android.os.Handler(getMainLooper());
         h.postDelayed(this::checkForegroundNow, 3_000);
@@ -112,10 +126,7 @@ public class HomeGuardService extends AccessibilityService {
     }
 
     private boolean isSuppressed(String pkg) {
-        for (String s : SUPPRESSED) {
-            if (s.equals(pkg)) return true;
-        }
-        return false;
+        return suppressed.contains(pkg);
     }
 
     @Override
