@@ -171,6 +171,7 @@ jobs:
         with:
           tag_name: tv-${{ github.run_number }}
           name: Mosque TV 1.0.${{ github.run_number }}
+          prerelease: true
           files: mobile-tv/android/app/build/outputs/apk/release/app-release-signed.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
