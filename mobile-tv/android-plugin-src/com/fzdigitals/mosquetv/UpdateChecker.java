@@ -50,20 +50,40 @@ public final class UpdateChecker {
                 .postDelayed(() -> check(app), CHECK_DELAY_MS);
     }
 
+    private static final int MAX_ATTEMPTS = 10;
+    private static final long RETRY_INTERVAL_MS = 45_000;
+
     private static void check(Context ctx) {
         new Thread(() -> {
-            try {
-                JSONObject rel = get(RELEASE_API);
-                if (rel == null) return;
-                int remote = parseVersion(rel.optString("tag_name", ""));
-                int local = versionCode(ctx);
-                Log.i(TAG, "installed=" + local + " latest=" + remote);
-                if (remote <= local) return;
-                String apk = findApkAsset(rel);
-                if (apk == null) return;
-                download(ctx, apk);
-            } catch (Exception e) {
-                Log.w(TAG, "update check failed", e);
+            // Cold boot: Wi-Fi often isn't up yet at the first check —
+            // retry for ~7 minutes so a slow network doesn't kill the
+            // only update path until the next launch.
+            for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                try {
+                    JSONObject rel = get(RELEASE_API);
+                    if (rel != null) {
+                        int remote =
+                                parseVersion(rel.optString("tag_name", ""));
+                        int local = versionCode(ctx);
+                        Log.i(TAG, "installed=" + local
+                                + " latest=" + remote);
+                        if (remote > local) {
+                            String apk = findApkAsset(rel);
+                            if (apk != null) {
+                                download(ctx, apk);
+                                return;
+                            }
+                        }
+                        return; // reachable + already up to date
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "update check failed", e);
+                }
+                try {
+                    Thread.sleep(RETRY_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    return;
+                }
             }
         }).start();
     }
