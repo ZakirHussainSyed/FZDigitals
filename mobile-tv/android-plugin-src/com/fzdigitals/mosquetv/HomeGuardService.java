@@ -25,6 +25,44 @@ public class HomeGuardService extends AccessibilityService {
     private static final long BOUNCE_INTERVAL_MS = 1500;
     private long lastBounce = 0;
 
+    /**
+     * Bind happens after the launcher is already front-most (boot),
+     * so no window event ever fires — inspect the current window
+     * directly and re-check while the launcher settles.
+     */
+    @Override
+    protected void onServiceConnected() {
+        checkForegroundNow();
+        android.os.Handler h = new android.os.Handler(getMainLooper());
+        h.postDelayed(this::checkForegroundNow, 3_000);
+        h.postDelayed(this::checkForegroundNow, 10_000);
+        h.postDelayed(this::checkForegroundNow, 30_000);
+    }
+
+    private void checkForegroundNow() {
+        android.view.accessibility.AccessibilityNodeInfo root =
+                getRootInActiveWindow();
+        if (root != null && root.getPackageName() != null
+                && isSuppressed(root.getPackageName().toString())) {
+            bounce();
+        }
+    }
+
+    private void bounce() {
+        long now = System.currentTimeMillis();
+        if (now - lastBounce < BOUNCE_INTERVAL_MS) return;
+        lastBounce = now;
+
+        Intent launch = new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        try {
+            startActivity(launch);
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null || event.getPackageName() == null) return;
