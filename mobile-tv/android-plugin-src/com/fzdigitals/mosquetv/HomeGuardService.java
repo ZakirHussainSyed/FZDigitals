@@ -22,8 +22,20 @@ public class HomeGuardService extends AccessibilityService {
             "com.google.android.tv.setup",
     };
 
+    // Only bounce real home/recovery screens. Panels like the launcherx
+    // quick-settings dropdown share the suppressed package name but a
+    // different window class — bouncing those kills Wi-Fi/settings UI.
+    private static final String[] HOME_CLASS_HINTS = {
+            "HomeActivity", "RecoveryActivity", "DeferredActivity",
+    };
+
     private static final long BOUNCE_INTERVAL_MS = 1500;
     private long lastBounce = 0;
+
+    // Last window class seen per suppressed package — lets the watchdog
+    // tell "home screen" apart from a transient panel (quick settings).
+    private final java.util.Map<String, String> lastClassByPkg =
+            new java.util.HashMap<>();
 
     /**
      * Bind happens after the launcher is already front-most (boot),
@@ -50,8 +62,14 @@ public class HomeGuardService extends AccessibilityService {
     private void checkForegroundNow() {
         android.view.accessibility.AccessibilityNodeInfo root =
                 getRootInActiveWindow();
-        if (root != null && root.getPackageName() != null
-                && isSuppressed(root.getPackageName().toString())) {
+        if (root == null || root.getPackageName() == null) return;
+        String pkg = root.getPackageName().toString();
+        if (!isSuppressed(pkg)) return;
+        String cls = lastClassByPkg.get(pkg);
+        // No event ever recorded (fresh boot, launcher already front) or
+        // last event was the home activity itself — bounce. A non-home
+        // class means a panel (e.g. quick settings) is open: leave it.
+        if (cls == null || isHomeClass(cls)) {
             bounce();
         }
     }
@@ -78,19 +96,19 @@ public class HomeGuardService extends AccessibilityService {
                 != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         String pkg = event.getPackageName().toString();
         if (!isSuppressed(pkg)) return;
-
-        long now = System.currentTimeMillis();
-        if (now - lastBounce < BOUNCE_INTERVAL_MS) return;
-        lastBounce = now;
-
-        Intent launch = new Intent(this, MainActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        try {
-            startActivity(launch);
-        } catch (Exception ignored) {
+        if (event.getClassName() != null) {
+            lastClassByPkg.put(pkg, event.getClassName().toString());
         }
+        if (event.getClassName() != null
+                && !isHomeClass(event.getClassName().toString())) return;
+        bounce();
+    }
+
+    private boolean isHomeClass(String cls) {
+        for (String hint : HOME_CLASS_HINTS) {
+            if (cls.contains(hint)) return true;
+        }
+        return false;
     }
 
     private boolean isSuppressed(String pkg) {
