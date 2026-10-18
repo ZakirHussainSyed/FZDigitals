@@ -253,6 +253,26 @@ public final class UpdateChecker {
         }
     }
 
+    /** Pending install-confirm intent kept alive for onResume retry. */
+    private static volatile Intent pendingConfirm = null;
+
+    /**
+     * Called from MainActivity.onResume — if a confirm sheet was lost
+     * (app frozen when the commit status arrived), re-fire it now that
+     * the app is guaranteed foreground.
+     */
+    public static void showPendingConfirm(Context ctx) {
+        Intent confirm = pendingConfirm;
+        if (confirm == null) return;
+        pendingConfirm = null;
+        confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(confirm);
+        } catch (Exception e) {
+            Log.w(TAG, "confirm sheet retry failed", e);
+        }
+    }
+
     /** Receives PackageInstaller commit status; opens the confirm sheet. */
     public static class InstallStatusReceiver extends BroadcastReceiver {
         @Override
@@ -265,7 +285,10 @@ public final class UpdateChecker {
                 try {
                     c.startActivity(confirm);
                 } catch (Exception e) {
-                    Log.w(TAG, "confirm sheet failed", e);
+                    // Blocked (app frozen/backgrounded) — keep for
+                    // onResume so the sheet can never be lost.
+                    pendingConfirm = confirm;
+                    Log.w(TAG, "confirm sheet deferred to onResume", e);
                 }
             } else {
                 Log.i(TAG, "install status=" + status);
