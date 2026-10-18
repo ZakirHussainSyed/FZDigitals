@@ -1,6 +1,7 @@
 package com.fzdigitals.mosquetv;
 
 import android.app.DownloadManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.pm.PackageInstaller;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -155,16 +157,7 @@ public final class UpdateChecker {
                 }
                 Uri apk = dm.getUriForDownloadedFile(id);
                 if (apk == null) return;
-                Intent install = new Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(apk,
-                                "application/vnd.android.package-archive")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                                | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try {
-                    c.startActivity(install);
-                } catch (Exception e) {
-                    Log.w(TAG, "install intent failed", e);
-                }
+                sessionInstall(c, apk);
             }
         };
         IntentFilter f = new IntentFilter(
@@ -173,6 +166,90 @@ public final class UpdateChecker {
             ctx.registerReceiver(done, f, Context.RECEIVER_NOT_EXPORTED);
         } else {
             ctx.registerReceiver(done, f);
+        }
+    }
+
+    private static final String ACTION_INSTALL_STATUS =
+            "com.fzdigitals.mosquetv.INSTALL_STATUS";
+
+    /**
+     * Session-based install (PackageInstaller). Unlike file-manager
+     * installs, a session install is not flagged "restricted" on
+     * Android 13+ — so an OTA update self-clears the sideload block
+     * and the Home Guard toggle becomes usable on-device. Falls back
+     * to the plain install intent if the session can't open.
+     */
+    private static void sessionInstall(Context c, Uri apk) {
+        try {
+            PackageInstaller pi = c.getPackageManager()
+                    .getPackageInstaller();
+            PackageInstaller.SessionParams params =
+                    new PackageInstaller.SessionParams(
+                            PackageInstaller.SessionParams
+                                    .MODE_FULL_INSTALL);
+            params.setAppPackageName(c.getPackageName());
+            PackageInstaller.Session session =
+                    pi.openSession(pi.createSession(params));
+            try (java.io.InputStream in =
+                         c.getContentResolver().openInputStream(apk);
+                 java.io.OutputStream out =
+                         session.openWrite("base.apk", 0, -1)) {
+                byte[] buf = new byte[65536];
+                int n;
+                while (in != null && (n = in.read(buf)) >= 0) {
+                    out.write(buf, 0, n);
+                }
+                session.fsync(out);
+            }
+            InstallStatusReceiver receiver = new InstallStatusReceiver();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                c.registerReceiver(receiver,
+                        new IntentFilter(ACTION_INSTALL_STATUS),
+                        Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                c.registerReceiver(receiver,
+                        new IntentFilter(ACTION_INSTALL_STATUS));
+            }
+            Intent callback = new Intent(ACTION_INSTALL_STATUS)
+                    .setPackage(c.getPackageName());
+            PendingIntent pending = PendingIntent.getBroadcast(c, 0,
+                    callback,
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                            | PendingIntent.FLAG_MUTABLE);
+            session.commit(pending.getIntentSender());
+            session.close();
+        } catch (Exception e) {
+            Log.w(TAG, "session install failed, falling back", e);
+            Intent install = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(apk,
+                            "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try {
+                c.startActivity(install);
+            } catch (Exception ex) {
+                Log.w(TAG, "install intent failed", ex);
+            }
+        }
+    }
+
+    /** Receives PackageInstaller commit status; opens the confirm sheet. */
+    public static class InstallStatusReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context c, Intent i) {
+            int status = i.getIntExtra(PackageInstaller.EXTRA_STATUS, -1);
+            if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
+                if (confirm == null) return;
+                confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    c.startActivity(confirm);
+                } catch (Exception e) {
+                    Log.w(TAG, "confirm sheet failed", e);
+                }
+            } else {
+                Log.i(TAG, "install status=" + status);
+            }
         }
     }
 }
