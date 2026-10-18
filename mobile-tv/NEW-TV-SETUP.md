@@ -42,6 +42,11 @@ Install-only kiosk setup. No laptop, no adb, no scripts, nothing disabled.
 ## Notes
 
 - Nothing is disabled — Wi-Fi, remote, and every stock feature keep working.
+- **Never run `pm disable` on Onn/Google TV builds.** Disabling
+  `launcherx`, `setupwraith`, `katniss`, or `tvrecommendations` wedges
+  HOME/Wi-Fi/BT remote and forces a factory reset (hit twice). The
+  accessibility Home Guard achieves the same kiosk behavior with zero
+  risk — it just bounces the launcher when it appears.
 - Android 14 blocks accessibility toggles for sideloaded apps until the
   app has updated once via a session install (step 3). This is an OS
   rule; a Play Store listing would remove the step entirely.

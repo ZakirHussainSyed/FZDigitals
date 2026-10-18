@@ -28,15 +28,23 @@ public class HomeGuardService extends AccessibilityService {
     /**
      * Bind happens after the launcher is already front-most (boot),
      * so no window event ever fires — inspect the current window
-     * directly and re-check while the launcher settles.
+     * directly and re-check while the launcher settles, then keep a
+     * slow watchdog so any later launcher appearance also recovers.
      */
     @Override
     protected void onServiceConnected() {
         checkForegroundNow();
-        android.os.Handler h = new android.os.Handler(getMainLooper());
+        final android.os.Handler h = new android.os.Handler(getMainLooper());
         h.postDelayed(this::checkForegroundNow, 3_000);
         h.postDelayed(this::checkForegroundNow, 10_000);
         h.postDelayed(this::checkForegroundNow, 30_000);
+        h.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                checkForegroundNow();
+                h.postDelayed(this, 15_000);
+            }
+        }, 15_000);
     }
 
     private void checkForegroundNow() {
