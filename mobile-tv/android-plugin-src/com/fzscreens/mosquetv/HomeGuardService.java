@@ -67,8 +67,12 @@ public class HomeGuardService extends AccessibilityService {
     // Only bounce real home/recovery screens. Panels like the launcherx
     // quick-settings dropdown share the suppressed package name but a
     // different window class — bouncing those kills Wi-Fi/settings UI.
+    // "MainActivity" covers generic vendor launchers whose home screen
+    // is their package's main activity (e.g. com.android.box.tvlauncher
+    // on Hugsun/AOSP sticks).
     private static final String[] HOME_CLASS_HINTS = {
             "HomeActivity", "RecoveryActivity", "DeferredActivity",
+            "MainActivity",
     };
 
     private static final long BOUNCE_INTERVAL_MS = 1500;
