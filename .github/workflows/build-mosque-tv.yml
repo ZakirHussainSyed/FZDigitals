@@ -87,8 +87,8 @@ jobs:
       - name: Install custom WebView cache plugin
         working-directory: mobile-tv
         run: |
-          mkdir -p android/app/src/main/java/com/fzdigitals/mosquetv
-          cp android-plugin-src/com/fzdigitals/mosquetv/*.java android/app/src/main/java/com/fzdigitals/mosquetv/
+          mkdir -p android/app/src/main/java/com/fzscreens/mosquetv
+          cp android-plugin-src/com/fzscreens/mosquetv/*.java android/app/src/main/java/com/fzscreens/mosquetv/
           mkdir -p android/app/src/main/res/xml
           cp android-plugin-src/accessibility_service_config.xml android/app/src/main/res/xml/
           sed -i 's|</resources>|    <string name="accessibility_desc">Keeps this TV on the Mosque display — returns to it automatically if another home screen opens.</string>\n</resources>|' android/app/src/main/res/values/strings.xml
@@ -121,7 +121,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: fzdigitals-mosquetv-debug
+          name: fzscreens-mosquetv-debug
           path: mobile-tv/android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Build release AAB

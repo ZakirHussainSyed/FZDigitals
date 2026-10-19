@@ -55,12 +55,12 @@ jobs:
       - name: Copy custom native media downloader plugin
         working-directory: mobile
         run: |
-          mkdir -p android/app/src/main/java/com/fzdigitals/tablet/plugins
-          cp -f android-plugin-src/com/fzdigitals/tablet/MainActivity.java android/app/src/main/java/com/fzdigitals/tablet/MainActivity.java
-          cp -f android-plugin-src/com/fzdigitals/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzdigitals/tablet/LocalMediaWebViewClient.java
-          cp -f android-plugin-src/com/fzdigitals/tablet/LocalMediaServer.java android/app/src/main/java/com/fzdigitals/tablet/LocalMediaServer.java
-          cp -f android-plugin-src/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzdigitals/tablet/plugins/MediaDownloaderPlugin.java
-          ls -R android/app/src/main/java/com/fzdigitals/tablet
+          mkdir -p android/app/src/main/java/com/fzscreens/tablet/plugins
+          cp -f android-plugin-src/com/fzscreens/tablet/MainActivity.java android/app/src/main/java/com/fzscreens/tablet/MainActivity.java
+          cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaWebViewClient.java
+          cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaServer.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaServer.java
+          cp -f android-plugin-src/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java
+          ls -R android/app/src/main/java/com/fzscreens/tablet
 
       - name: Auto-bump app version
         working-directory: mobile
