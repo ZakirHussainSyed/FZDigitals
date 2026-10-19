@@ -28,7 +28,26 @@ public class HomeGuardService extends AccessibilityService {
             "com.android.settings",
     };
 
+    // Known launcher packages — queryIntentActivities can return nothing
+    // on Android 11+ without manifest <queries>, so keep a static
+    // fallback covering every TV launcher we've seen.
+    private static final String[] STATIC_SUPPRESSED = {
+            "com.google.android.apps.tv.launcherx",
+            "com.google.android.tungsten.setupwraith",
+            "com.google.android.tvrecommendations",
+            "com.google.android.tv.setup",
+            "com.google.android.tvlauncher",
+            "com.android.box.tvlauncher",
+            "com.android.launcher3",
+            "com.amazon.tv.launcher",
+            "com.tcl.launcher",
+            "com.vewd.core.launcher",
+            "com.sony.dtv.irx.launcher",
+            "com.xiaomi.mitv.box",
+    };
+
     private void buildSuppressed() {
+        for (String s : STATIC_SUPPRESSED) suppressed.add(s);
         Intent home = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_HOME);
         for (android.content.pm.ResolveInfo ri : getPackageManager()
