@@ -21,17 +21,27 @@ public class HomeGuardService extends AccessibilityService {
     // and setup wizards — without hardcoding per-device names.
     private java.util.Set<String> suppressed = new java.util.HashSet<>();
 
+    // Some devices (Google TV) register tv.settings as a HOME fallback —
+    // it must never be bounced or Wi-Fi/settings become unreachable.
+    private static final String[] NEVER_SUPPRESS = {
+            "com.android.tv.settings",
+            "com.android.settings",
+    };
+
     private void buildSuppressed() {
         Intent home = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_HOME);
         for (android.content.pm.ResolveInfo ri : getPackageManager()
                 .queryIntentActivities(home, 0)) {
-            if (ri.activityInfo != null
-                    && ri.activityInfo.packageName != null
-                    && !ri.activityInfo.packageName
-                            .equals(getPackageName())) {
-                suppressed.add(ri.activityInfo.packageName);
+            if (ri.activityInfo == null
+                    || ri.activityInfo.packageName == null) continue;
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(getPackageName())) continue;
+            boolean skip = false;
+            for (String n : NEVER_SUPPRESS) {
+                if (n.equals(pkg)) { skip = true; break; }
             }
+            if (!skip) suppressed.add(pkg);
         }
     }
 
