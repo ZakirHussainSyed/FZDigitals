@@ -8,6 +8,7 @@ _TAKBIR = {
     # Logo artwork has no text — show the name beneath it.
     'wordmark': 'Takbir-al-Ula',
     'login_subtitle': 'Sign in to manage your masjid',
+    'login_title': 'Sign In - Takbir al Ula',
     'tagline': 'Never miss the jamaah — live iqamah times from your masjid, on every screen.',
 }
 
@@ -22,6 +23,7 @@ DEFAULT_BRAND = {
     'logo': '/static/logo.png',
     'wordmark': '',
     'login_subtitle': 'Sign in to manage your slideshows',
+    'login_title': 'Log In - FZ Screens',
     'tagline': 'Run and manage ads on multi screens remotely from anywhere.',
 }
 
