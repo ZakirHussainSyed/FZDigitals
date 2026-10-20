@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - FZ Screens</title>
+    <title>Login - {{ brand.name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -31,6 +31,13 @@
             margin: 0 auto 24px;
             border-radius: 12px;
             display: block;
+        }
+        .logo.with-wordmark { margin-bottom: 8px; }
+        .wordmark {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-bottom: 16px;
         }
         h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
         .subtitle { 
@@ -95,8 +102,9 @@
 </head>
 <body>
     <div class="login-container">
-        <img src="/static/logo.png" alt="FZ Screens" class="logo" />
-        <h1>Login to FZ Screens</h1>
+        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}" />
+        {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
+        <h1>Login to {{ brand.name }}</h1>
         <p class="subtitle">Sign in to your account</p>
         
         {% if form.errors %}

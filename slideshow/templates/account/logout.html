@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logout - FZ Screens</title>
+    <title>Logout - {{ brand.name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -27,6 +27,13 @@
             margin: 0 auto 32px;
             border-radius: 12px;
             display: block;
+        }
+        .logo.with-wordmark { margin-bottom: 10px; }
+        .wordmark {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-bottom: 18px;
         }
         .card {
             background: rgba(255,255,255,0.06);
@@ -89,7 +96,8 @@
 </head>
 <body>
     <div class="container">
-        <img src="/static/logo.png" alt="FZ Screens" class="logo" />
+        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}" />
+        {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
         <div class="card">
             <h1>Sign Out</h1>
             <p>Are you sure you want to sign out of your account?</p>
