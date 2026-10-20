@@ -105,7 +105,7 @@
                 localStorage.setItem(LS_DEVICE, data.device_id);
                 localStorage.setItem(LS_TOKEN, data.token);
 
-                statusEl.textContent = 'Powered By fzscreens.com';
+                statusEl.textContent = 'Powered by fzscreens.com';
                 qrImg.src = '/api/qr/?data=' + encodeURIComponent(data.setup_url);
                 qrImg.onload = () => { qrWrap.style.display = 'block'; };
                 qrImg.onerror = () => {
