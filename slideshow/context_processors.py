@@ -23,7 +23,7 @@ DEFAULT_BRAND = {
     'logo': '/static/logo.png',
     'wordmark': '',
     'login_subtitle': 'Sign in to manage your slideshows',
-    'login_title': 'Log In - FZ Screens',
+    'login_title': 'Sign In - FZ Screens',
     'tagline': 'Run and manage ads on multi screens remotely from anywhere.',
 }
 
