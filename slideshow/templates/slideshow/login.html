@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log In - FZ Screens</title>
+    <title>Log In - {{ brand.name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -26,10 +26,18 @@
             width: 90%;
         }
         .logo {
-            width: 80px;
-            height: 80px;
+            width: 88px;
+            height: 88px;
             margin-bottom: 24px;
-            border-radius: 12px;
+            border-radius: 24px;
+            object-fit: cover;
+        }
+        .logo.with-wordmark { margin-bottom: 10px; }
+        .wordmark {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-bottom: 18px;
         }
         h1 { font-size: 24px; margin-bottom: 8px; }
         .subtitle { 
@@ -131,8 +139,9 @@
 </head>
 <body>
     <div class="login-container">
-        <img src="/static/logo.png" alt="FZ Screens" class="logo" />
-        <p class="subtitle">Sign in to manage your slideshows</p>
+        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}" />
+        {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
+        <p class="subtitle">{{ brand.login_subtitle }}</p>
         
         <form method="post" action="{% url 'django_login' %}">
             {% csrf_token %}

@@ -5,6 +5,9 @@ _TAKBIR = {
     'key': 'takbir',
     'name': 'Takbir ul Ula',
     'logo': '/static/slideshow/logo_takbir.png',
+    # Logo artwork has no text — show the name beneath it.
+    'wordmark': 'Takbir-al-Ula',
+    'login_subtitle': 'Sign in to manage your masjid',
     'tagline': 'Never miss the jamaah — live iqamah times from your masjid, on every screen.',
 }
 
@@ -17,6 +20,8 @@ DEFAULT_BRAND = {
     'key': 'fzscreens',
     'name': 'FZ Screens',
     'logo': '/static/logo.png',
+    'wordmark': '',
+    'login_subtitle': 'Sign in to manage your slideshows',
     'tagline': 'Run and manage ads on multi screens remotely from anywhere.',
 }
 

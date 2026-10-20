@@ -19,7 +19,8 @@
             justify-content: center;
             padding: 24px;
         }
-        .logo { width: 140px; margin-bottom: 28px; }
+        .logo { width: 140px; height: 140px; border-radius: 36px; object-fit: cover; margin-bottom: 14px; }
+        .wordmark { font-size: 26px; font-weight: 700; letter-spacing: 0.4px; margin-bottom: 24px; }
         .status { font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 18px; text-align: center; }
         #qrWrap { background: #fff; padding: 16px; border-radius: 20px; margin-bottom: 18px; display: none; }
         #qrImg { width: 260px; height: 260px; display: block; }
@@ -28,7 +29,8 @@
     </style>
 </head>
 <body>
-    <img class="logo" src="/static/slideshow/logo.png" alt="FZ Screens" />
+    <img class="logo" src="/static/slideshow/logo_takbir.png" alt="Takbir-al-Ula" />
+    <div class="wordmark">Takbir-al-Ula</div>
     <div class="status" id="status">Starting Mosque TV…</div>
     <div id="qrWrap"><img id="qrImg" alt="Pairing QR code" /></div>
     <p class="hint" id="hint">Use your phone to scan the QR code, log in, and link this TV to your mosque.</p>
