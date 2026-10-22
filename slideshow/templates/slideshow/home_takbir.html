@@ -177,21 +177,17 @@
             <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}">
             {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
         </div>
-        <a href="/accounts/login/" class="btn btn-ghost">Sign In</a>
+        <a href="/accounts/login/" class="btn btn-primary">Get Started</a>
     </header>
 
     <div class="hero">
         <h1>Never miss the jamaah</h1>
-        <p>{{ brand.tagline }} Takbir al Ula turns any Android TV into a live masjid display — salah and iqamah times, announcements, and Jumu'ah schedules, always up to date.</p>
-        <div class="hero-ctas">
-            <a href="{% url 'mosque-map' %}" class="btn btn-gold">Open the Mosque Map</a>
-            <a href="/accounts/login/" class="btn btn-primary">Masjid Sign In</a>
-        </div>
+        <p>{{ brand.tagline }} Takbir al Ula puts live masjid times on every display — salah and iqamah times, announcements, and Jumu'ah schedules, always up to date.</p>
     </div>
 
     <section>
         <h2>Everything your masjid's screens need</h2>
-        <p class="lede">One dashboard, every screen — from the prayer hall TV to the community map on every phone.</p>
+        <p class="lede">One dashboard, every screen — from the prayer hall display to the community map on every phone.</p>
         <div class="cards">
             <div class="card gold-top">
                 <div class="ic">🕌</div>
@@ -200,8 +196,8 @@
             </div>
             <div class="card gold-top">
                 <div class="ic">📺</div>
-                <h3>Mosque TV App</h3>
-                <p>Purpose-built Android TV app. Auto-starts on boot, keeps the screen awake, and fills it with golden-framed prayer displays.</p>
+                <h3>Mosque Display App</h3>
+                <p>A purpose-built display app. Auto-starts on boot, keeps the screen awake, and fills it with golden-framed prayer displays.</p>
             </div>
             <div class="card gold-top">
                 <div class="ic">🗺️</div>
@@ -228,7 +224,7 @@
 
     <section>
         <h2>Live on your screens in minutes</h2>
-        <p class="lede">No proprietary hardware. If it runs Android, it can run Takbir.</p>
+        <p class="lede">No proprietary hardware. If it has a screen, it can run Takbir.</p>
         <div class="steps">
             <div class="step">
                 <div class="step-num">1</div>
@@ -238,7 +234,7 @@
             <div class="step">
                 <div class="step-num">2</div>
                 <h3>Install the app</h3>
-                <p>Install the Takbir mosque TV app on any Android TV, Fire/Onn stick, or Android box plugged into your displays.</p>
+                <p>Install the Takbir display app on any smart display or streaming stick plugged into your screens.</p>
             </div>
             <div class="step">
                 <div class="step-num">3</div>
@@ -251,8 +247,7 @@
     <div class="cta-band">
         <div class="cta-inner">
             <h2>Bring {{ brand.name }} to your masjid</h2>
-            <p>Talk to the FZ Screens team — we'll get your masjid set up and on the map.</p>
-            <a href="/accounts/login/" class="btn btn-gold">Masjid Sign In</a>
+            <a href="/accounts/login/" class="btn btn-gold">Get Started</a>
         </div>
     </div>
 
