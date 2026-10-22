@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ brand.name }} — Iqamah Times on Every Screen</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #f7f8fa;
+            color: #1f2430;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .brand-mark { text-align: center; }
+        .logo { max-height: 64px; display: block; border-radius: 12px; }
+        .logo.with-wordmark { margin-bottom: 4px; }
+        .wordmark { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; color: #0d5c46; }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            transition: 0.15s;
+        }
+        .btn-ghost {
+            background: rgba(0,0,0,0.05);
+            color: #1f2430;
+            border: 1px solid rgba(0,0,0,0.10);
+        }
+        .btn-ghost:hover { background: rgba(0,0,0,0.08); }
+        .btn-primary {
+            background: #0d5c46;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(13,92,70,0.28);
+        }
+        .btn-primary:hover { background: #0a4d3b; }
+        .btn-gold {
+            background: linear-gradient(135deg, #d4af37, #b8912b);
+            color: #1a1a12;
+            box-shadow: 0 4px 14px rgba(212,175,55,0.30);
+        }
+        .btn-gold:hover { filter: brightness(1.05); }
+
+        .hero {
+            text-align: center;
+            padding: 72px 24px 48px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 46px;
+            font-weight: 800;
+            line-height: 1.12;
+            background: linear-gradient(90deg, #0d5c46 0%, #96700a 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 18px;
+        }
+        .hero p {
+            font-size: 18px;
+            color: rgba(17,24,39,0.65);
+            max-width: 640px;
+            margin: 0 auto 32px;
+            line-height: 1.55;
+        }
+        .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .hero-ctas .btn { padding: 14px 28px; font-size: 15px; }
+
+        section {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+        section h2 {
+            font-size: 26px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        section .lede {
+            text-align: center;
+            color: rgba(17,24,39,0.55);
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card.gold-top { border-top: 3px solid #d4af37; }
+        .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .card p { font-size: 14px; color: rgba(17,24,39,0.6); line-height: 1.55; }
+        .card .ic { font-size: 22px; margin-bottom: 10px; }
+
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+        .step {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .step-num {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: #0d5c46;
+            color: #fff;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .step h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+        .step p { font-size: 14px; color: rgba(17,24,39,0.6); line-height: 1.55; }
+
+        .cta-band {
+            max-width: 1000px;
+            margin: 24px auto 0;
+            padding: 0 24px 72px;
+        }
+        .cta-inner {
+            background: linear-gradient(135deg, #0d5c46, #0a3d2f);
+            border-radius: 20px;
+            padding: 44px 32px;
+            text-align: center;
+            color: #fff;
+        }
+        .cta-inner h2 { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+        .cta-inner p { color: rgba(255,255,255,0.75); font-size: 15px; margin-bottom: 26px; }
+
+        footer {
+            border-top: 1px solid rgba(0,0,0,0.08);
+            padding: 24px;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(17,24,39,0.5);
+        }
+        footer a { color: #0d5c46; text-decoration: none; font-weight: 600; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            header { padding: 12px 16px; }
+            .logo { max-height: 48px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand-mark">
+            <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}">
+            {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
+        </div>
+        <a href="/accounts/login/" class="btn btn-ghost">Sign In</a>
+    </header>
+
+    <div class="hero">
+        <h1>Never miss the jamaah</h1>
+        <p>{{ brand.tagline }} Takbir al Ula turns any Android TV into a live masjid display — salah and iqamah times, announcements, and Jumu'ah schedules, always up to date.</p>
+        <div class="hero-ctas">
+            <a href="{% url 'mosque-map' %}" class="btn btn-gold">Open the Mosque Map</a>
+            <a href="/accounts/login/" class="btn btn-primary">Masjid Sign In</a>
+        </div>
+    </div>
+
+    <section>
+        <h2>Everything your masjid's screens need</h2>
+        <p class="lede">One dashboard, every screen — from the prayer hall TV to the community map on every phone.</p>
+        <div class="cards">
+            <div class="card gold-top">
+                <div class="ic">🕌</div>
+                <h3>Live Iqamah Times</h3>
+                <p>Display today's salah and iqamah times beautifully on any screen. Set them once, sync them automatically from your website, or enter them manually.</p>
+            </div>
+            <div class="card gold-top">
+                <div class="ic">📺</div>
+                <h3>Mosque TV App</h3>
+                <p>Purpose-built Android TV app. Auto-starts on boot, keeps the screen awake, and fills it with golden-framed prayer displays.</p>
+            </div>
+            <div class="card gold-top">
+                <div class="ic">🗺️</div>
+                <h3>Community Mosque Map</h3>
+                <p>A public map of every partner masjid with live iqamah times — so the community always knows where the next jamaah is.</p>
+            </div>
+            <div class="card">
+                <div class="ic">📢</div>
+                <h3>Announcements Banner</h3>
+                <p>Push a message to every screen instantly — event reminders, lost-and-found, or a simple "Assalamu alaikum".</p>
+            </div>
+            <div class="card">
+                <div class="ic">🌙</div>
+                <h3>Jumu'ah & Special Prayers</h3>
+                <p>Friday khutbah and Jumu'ah times get their own display treatment, pulled from your site's Jumu'ah section automatically.</p>
+            </div>
+            <div class="card">
+                <div class="ic">📶</div>
+                <h3>Works Offline</h3>
+                <p>Screens cache prayer times locally and keep running through outages — automatically re-syncing when the network returns.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Live on your screens in minutes</h2>
+        <p class="lede">No proprietary hardware. If it runs Android, it can run Takbir.</p>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h3>Get your masjid account</h3>
+                <p>We create a Takbir account for your masjid and load your prayer schedule or website feed.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h3>Install the app</h3>
+                <p>Install the Takbir mosque TV app on any Android TV, Fire/Onn stick, or Android box plugged into your displays.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h3>Stay on the map</h3>
+                <p>Your masjid appears on the public mosque map with live times — update once, every screen follows.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="cta-band">
+        <div class="cta-inner">
+            <h2>Bring {{ brand.name }} to your masjid</h2>
+            <p>Talk to the FZ Screens team — we'll get your masjid set up and on the map.</p>
+            <a href="/accounts/login/" class="btn btn-gold">Masjid Sign In</a>
+        </div>
+    </div>
+
+    <footer>
+        {{ brand.name }} — an <a href="https://fzscreens.com">FZ Screens</a> product · Powered by fzscreens.com
+    </footer>
+</body>
+</html>

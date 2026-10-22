@@ -93,7 +93,7 @@ def index(request):
         return redirect(f'/{request.user.id}/')
     host = request.get_host().split(':')[0].lower()
     if host.startswith('takbir-al-ula.') or host.startswith('qama.'):
-        return mosque_map(request)
+        return render(request, 'slideshow/home_takbir.html')
     return render(request, 'slideshow/home.html')
 
 
