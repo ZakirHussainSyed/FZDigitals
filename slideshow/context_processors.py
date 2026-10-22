@@ -31,4 +31,12 @@ DEFAULT_BRAND = {
 def brand(request):
     host = request.get_host().split(':')[0].lower()
     subdomain = host.split('.')[0] if host.count('.') >= 2 else ''
-    return {'brand': BRANDS.get(subdomain, DEFAULT_BRAND)}
+    b = BRANDS.get(subdomain, DEFAULT_BRAND)
+    # Mosque accounts carry the Takbir brand on any host (dashboard etc.).
+    user = getattr(request, 'user', None)
+    if user is not None and user.is_authenticated:
+        # getattr returns None when the OneToOne profile doesn't exist
+        profile = getattr(user, 'userprofile', None)
+        if profile is not None and profile.vertical == 'mosque':
+            b = _TAKBIR
+    return {'brand': b}
