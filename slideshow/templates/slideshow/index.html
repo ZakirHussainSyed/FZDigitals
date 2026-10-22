@@ -28,6 +28,13 @@
             display: block;
             border-radius: 16px;
         }
+        .logo.with-wordmark { margin-bottom: 6px; }
+        .wordmark {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: #1f2430;
+        }
         .user-info {
             display: flex;
             align-items: center;
@@ -422,7 +429,10 @@
 {% csrf_token %}
     <!-- Header -->
     <header class="header">
-        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
+        <div>
+            <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}" />
+            {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
+        </div>
         {% if user.is_authenticated %}
         <div class="user-info">
             <span>Welcome, {{ user.email|default:user.username }}</span>
