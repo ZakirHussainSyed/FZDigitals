@@ -250,7 +250,7 @@
 </head>
 <body>
     <div id="loader" class="loader{% if brand.key == 'takbir' %} splash{% endif %}">
-        {% if brand.key == 'takbir' %}<img src="/static/slideshow/takbir_splash.jpg" alt="Takbir-al-Ula">{% else %}Loading mosques...{% endif %}
+        {% if brand.key == 'takbir' %}<img src="/static/takbir_flash.png" alt="Takbir-al-Ula">{% else %}Loading mosques...{% endif %}
     </div>
     <div class="search-bar">
         <div class="search-box">
@@ -729,11 +729,13 @@
                 }, nxt - now);
             })();
 
+            const SPLASH_MIN_MS = {% if brand.key == 'takbir' %}5000{% else %}0{% endif %};
             let map;
             try {
                 // Cold-start retry: on app launch the network may not be up yet —
                 // keep retrying (splash stays up) until mosque data arrives;
                 // cached mosques fill the gap when available.
+                const bootedAt = Date.now();
                 if (!await fetchMosques()) {
                     loadCachedMosques();
                     for (let tries = 0; !allMosques.length && tries < 20; tries++) {
@@ -741,6 +743,9 @@
                         await fetchMosques();
                     }
                 }
+                // Takbir splash shows at least SPLASH_MIN_MS after app launch.
+                const holdMs = SPLASH_MIN_MS - (Date.now() - bootedAt);
+                if (holdMs > 0) await new Promise(function (r) { setTimeout(r, holdMs); });
                 loader.style.display = 'none';
 
                 map = L.map('map').setView([20, 0], 2);
