@@ -29,8 +29,10 @@ DEFAULT_BRAND = {
 
 
 def brand(request):
-    host = request.get_host().split(':')[0].lower()
-    subdomain = host.split('.')[0] if host.count('.') >= 2 else ''
+    host = request.get_host().split(':')[0].lower().removeprefix('www.')
+    # First label picks the brand — works for subdomains (takbir-al-ula.fzscreens.com)
+    # and bare domains (takbir-al-ula.com); unknown labels → FZ Screens.
+    subdomain = host.split('.')[0]
     b = BRANDS.get(subdomain, DEFAULT_BRAND)
     # Mosque accounts carry the Takbir brand on any host (dashboard etc.).
     user = getattr(request, 'user', None)

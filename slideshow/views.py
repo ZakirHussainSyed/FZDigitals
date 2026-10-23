@@ -91,7 +91,7 @@ def index(request):
     """Root URL - shows landing page or redirects to user dashboard"""
     if request.user.is_authenticated:
         return redirect(f'/{request.user.id}/')
-    host = request.get_host().split(':')[0].lower()
+    host = request.get_host().split(':')[0].lower().removeprefix('www.')
     if host.startswith('takbir-al-ula.') or host.startswith('qama.'):
         return render(request, 'slideshow/home_takbir.html')
     return render(request, 'slideshow/home.html')
