@@ -130,6 +130,8 @@
             z-index: 3000;
             font-size: 16px;
         }
+        .loader.splash { background: #fff; }
+        .loader.splash img { width: 100%; height: 100%; object-fit: contain; }
         .leaflet-popup-content { margin: 0; }
         .search-bar {
             position: absolute;
@@ -247,7 +249,9 @@
     </style>
 </head>
 <body>
-    <div id="loader" class="loader">Loading mosques...</div>
+    <div id="loader" class="loader{% if brand.key == 'takbir' %} splash{% endif %}">
+        {% if brand.key == 'takbir' %}<img src="/static/slideshow/takbir_splash.jpg" alt="Takbir-al-Ula">{% else %}Loading mosques...{% endif %}
+    </div>
     <div class="search-bar">
         <div class="search-box">
             <input type="text" id="search-input" class="search-input" placeholder="Zipcode, city, or address" autocomplete="off">
@@ -727,7 +731,16 @@
 
             let map;
             try {
-                if (!await fetchMosques()) loadCachedMosques();
+                // Cold-start retry: on app launch the network may not be up yet —
+                // keep retrying (splash stays up) until mosque data arrives;
+                // cached mosques fill the gap when available.
+                if (!await fetchMosques()) {
+                    loadCachedMosques();
+                    for (let tries = 0; !allMosques.length && tries < 20; tries++) {
+                        await new Promise(function (r) { setTimeout(r, 3000); });
+                        await fetchMosques();
+                    }
+                }
                 loader.style.display = 'none';
 
                 map = L.map('map').setView([20, 0], 2);
