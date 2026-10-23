@@ -55,6 +55,7 @@
             box-shadow: 0 4px 14px rgba(212,175,55,0.30);
         }
         .btn-gold:hover { filter: brightness(1.05); }
+        .header-ctas { display: flex; gap: 10px; align-items: center; }
 
         .hero {
             text-align: center;
@@ -177,7 +178,10 @@
             <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo{% if brand.wordmark %} with-wordmark{% endif %}">
             {% if brand.wordmark %}<div class="wordmark">{{ brand.wordmark }}</div>{% endif %}
         </div>
-        <a href="/accounts/login/" class="btn btn-primary">Get Started</a>
+        <div class="header-ctas">
+            <a href="/accounts/login/" class="btn btn-gold">Sign In</a>
+            <a href="https://wa.me/917075985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn btn-primary">Get Started</a>
+        </div>
     </header>
 
     <div class="hero">
@@ -247,7 +251,7 @@
     <div class="cta-band">
         <div class="cta-inner">
             <h2>Bring {{ brand.name }} to your masjid</h2>
-            <a href="/accounts/login/" class="btn btn-gold">Get Started</a>
+            <a href="https://wa.me/917075985403?text=Hello%2C%20I%20am%20interested%20in%20{{ brand.name|urlencode }}" target="_blank" class="btn btn-gold">Get Started</a>
         </div>
     </div>
 
