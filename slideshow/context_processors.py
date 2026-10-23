@@ -1,9 +1,9 @@
-"""Per-host branding — takbir-al-ula.fzscreens.com serves the Takbir ul Ula
+"""Per-host branding — takbir-al-ula.fzscreens.com serves the Takbir al Ula
 mosque brand, everything else stays FZ Screens."""
 
 _TAKBIR = {
     'key': 'takbir',
-    'name': 'Takbir ul Ula',
+    'name': 'Takbir al Ula',
     'logo': '/static/slideshow/logo_takbir.png',
     # Logo artwork has no text — show the name beneath it.
     'wordmark': 'Takbir-al-Ula',
