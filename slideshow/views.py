@@ -1452,11 +1452,19 @@ def api_pairing_new(request):
             device.token = generate_device_token()
             device.save()
 
+        setup_path = f'/setup/?device_id={device_id}&token={device.token}'
+        if request.GET.get('brand') == 'takbir':
+            # Mosque TV QR scans should land on the Takbir-branded site
+            # (login → dashboard), not the generic FZ Screens host.
+            setup_url = f'https://takbir-al-ula.com{setup_path}'
+        else:
+            setup_url = request.build_absolute_uri(setup_path)
+
         response = JsonResponse({
             'success': True,
             'device_id': device.device_id,
             'token': device.token,
-            'setup_url': request.build_absolute_uri(f'/setup/?device_id={device_id}&token={device.token}'),
+            'setup_url': setup_url,
         })
         response['Cache-Control'] = 'no-store, must-revalidate'
         return response

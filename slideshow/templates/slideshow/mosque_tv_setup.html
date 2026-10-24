@@ -93,7 +93,7 @@
             const browserId = getOrCreate(LS_BROWSER, makeBrowserId);
 
             try {
-                const res = await fetch('/api/pairing/new/?browser_id=' + encodeURIComponent(browserId), {
+                const res = await fetch('/api/pairing/new/?browser_id=' + encodeURIComponent(browserId) + '&brand=takbir', {
                     cache: 'no-store',
                     credentials: 'same-origin'
                 });
