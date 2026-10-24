@@ -259,9 +259,9 @@
         let transitioning = false;
         let devicePaired = false;  // set once the slideshow API returns success
         let pollTimer = null;
-        // Fast QR polling is capped at 5 minutes; a fresh QR pairing resets
+        // Fast QR polling is capped at 10 minutes; a fresh QR pairing resets
         // the window. After it lapses we poll at the normal (slow) cadence.
-        let fastPollUntil = Date.now() + 5 * 60 * 1000;
+        let fastPollUntil = Date.now() + 10 * 60 * 1000;
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
@@ -1051,11 +1051,11 @@
             await showQrImage(setupUrl);
         }
 
-        // Poll fast while the QR screen is up (max 5 minutes) so linking
+        // Poll fast while the QR screen is up (max 10 minutes) so linking
         // feels instant, then drop to a slow cadence — also once media plays.
-        const POLL_FAST = 4000;
+        const POLL_FAST = 5000;
         const POLL_SLOW = 30000;
-        const FAST_WINDOW_MS = 5 * 60 * 1000;
+        const FAST_WINDOW_MS = 10 * 60 * 1000;
         function poll() {
             clearTimeout(pollTimer);
             const fast = !devicePaired && Date.now() < fastPollUntil;
