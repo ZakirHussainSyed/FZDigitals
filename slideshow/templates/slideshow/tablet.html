@@ -259,6 +259,9 @@
         let transitioning = false;
         let devicePaired = false;  // set once the slideshow API returns success
         let pollTimer = null;
+        // Fast QR polling is capped at 5 minutes; a fresh QR pairing resets
+        // the window. After it lapses we poll at the normal (slow) cadence.
+        let fastPollUntil = Date.now() + 5 * 60 * 1000;
         let deviceToken = localStorage.getItem('fz_device_token') || null;
         let pairedScreen = 1;
         let deviceId = localStorage.getItem('fz_device_id') || null;
@@ -317,8 +320,16 @@
         // Screensaver / display-off detection: if the WebView goes hidden the
         // next flush after resume will carry this line → separates "TV slept"
         // from "network died" in remote diagnostics.
-        document.addEventListener('visibilitychange', () =>
-            dlog('visibility:', document.visibilityState));
+        document.addEventListener('visibilitychange', () => {
+            dlog('visibility:', document.visibilityState);
+            // App resumed / display back on — one immediate poll instead of
+            // waiting for the next scheduled interval.
+            if (document.visibilityState === 'visible')
+                Promise.resolve(refresh()).catch(() => {});
+        });
+        window.addEventListener('pageshow', e => {
+            if (e.persisted) Promise.resolve(refresh()).catch(() => {});
+        });
         window.addEventListener('offline', () => dwarn('network: offline'));
         window.addEventListener('online', () => dlog('network: online'));
         window.addEventListener('error', e =>
@@ -899,6 +910,7 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
+                        fastPollUntil = Date.now() + FAST_WINDOW_MS;
                         dlog('QR pairing created:', deviceId);
                     } else {
                         dwarn('QR pairing failed:', data.error);
@@ -1019,6 +1031,7 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
+                        fastPollUntil = Date.now() + FAST_WINDOW_MS;
                         dlog('QR pairing created:', deviceId);
                     } else {
                         dwarn('QR pairing failed:', data.error);
@@ -1038,13 +1051,15 @@
             await showQrImage(setupUrl);
         }
 
-        // Poll fast while the QR screen is up so linking feels instant, then
-        // drop to a slow cadence once media is playing.
+        // Poll fast while the QR screen is up (max 5 minutes) so linking
+        // feels instant, then drop to a slow cadence — also once media plays.
         const POLL_FAST = 4000;
         const POLL_SLOW = 30000;
+        const FAST_WINDOW_MS = 5 * 60 * 1000;
         function poll() {
             clearTimeout(pollTimer);
-            pollTimer = setTimeout(runAndRequeue, devicePaired ? POLL_SLOW : POLL_FAST);
+            const fast = !devicePaired && Date.now() < fastPollUntil;
+            pollTimer = setTimeout(runAndRequeue, fast ? POLL_FAST : POLL_SLOW);
         }
         function runAndRequeue() {
             Promise.resolve(refresh()).catch(() => {}).then(poll);

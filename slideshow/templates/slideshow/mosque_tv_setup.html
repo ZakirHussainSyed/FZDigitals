@@ -120,9 +120,13 @@
         }
 
         async function pollForAssignment(deviceId, token) {
+            // Poll every 3s for the first 5 minutes so a fresh QR links
+            // instantly, then drop to the normal 30s cadence — an unattended
+            // QR screen shouldn't hammer the API all day.
+            const fastUntil = Date.now() + 5 * 60 * 1000;
             let attempts = 0;
             while (true) {
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise(r => setTimeout(r, Date.now() < fastUntil ? 3000 : 30000));
                 try {
                     if (await checkLinked(deviceId, token)) return;
                 } catch (err) {

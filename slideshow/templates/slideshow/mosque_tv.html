@@ -420,8 +420,21 @@
         }
         setInterval(flushLogs, 15000);
         window.addEventListener('beforeunload', flushLogs);
-        document.addEventListener('visibilitychange', () =>
-            dlog('visibility:', document.visibilityState));
+        document.addEventListener('visibilitychange', () => {
+            dlog('visibility:', document.visibilityState);
+            if (document.visibilityState === 'visible') {
+                // TV/app came back to front — one immediate poll for slides
+                // and prayer times instead of waiting for the next interval.
+                Promise.resolve(refreshSlideshow()).catch(() => {});
+                updateNextPrayer();
+            }
+        });
+        window.addEventListener('pageshow', e => {
+            if (e.persisted) {
+                Promise.resolve(refreshSlideshow()).catch(() => {});
+                updateNextPrayer();
+            }
+        });
         window.addEventListener('offline', () => dwarn('network: offline'));
         window.addEventListener('online', () => dlog('network: online'));
         window.addEventListener('error', e =>
