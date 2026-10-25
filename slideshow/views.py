@@ -28,7 +28,7 @@ from .prayer_sync import (
     sunset_time,
     sync_mosque_prayer_times,
 )
-from .geo import geocode_address, parse_google_maps_url, reverse_geocode, timezone_for_coords
+from .geo import parse_google_maps_url, reverse_geocode, timezone_for_coords
 
 logger = logging.getLogger(__name__)
 
@@ -1884,35 +1884,11 @@ def prayer_times(request):
     if request.method == 'POST':
         website = request.POST.get('website_url', '').strip()
         sync_enabled = request.POST.get('sync_enabled') == 'on'
-        address = request.POST.get('address', '').strip()
-        tz_name = request.POST.get('timezone', '').strip()
-        if tz_name:
-            try:
-                ZoneInfo(tz_name)
-            except Exception:
-                messages.error(request, f'Invalid timezone "{tz_name}" — keeping current setting.')
-                tz_name = mosque.timezone
-        if (website != mosque.website_url or sync_enabled != mosque.sync_enabled
-                or tz_name != mosque.timezone or address != mosque.address):
+        if website != mosque.website_url or sync_enabled != mosque.sync_enabled:
             mosque.website_url = website
             mosque.sync_enabled = sync_enabled
-            mosque.timezone = tz_name
-            mosque.address = address
             mosque.prayer_synced_at = None  # force re-sync on settings change
-            mosque.save(update_fields=['website_url', 'sync_enabled', 'timezone', 'address', 'prayer_synced_at'])
-
-        if request.POST.get('action') == 'geolocate':
-            coords = geocode_address(mosque.address)
-            if not coords:
-                messages.error(request, 'Could not find that address — check it and try again.')
-            else:
-                mosque.latitude = Decimal(str(coords[0]))
-                mosque.longitude = Decimal(str(coords[1]))
-                if not mosque.timezone:
-                    mosque.timezone = timezone_for_coords(*coords) or ''
-                mosque.save(update_fields=['latitude', 'longitude', 'timezone'])
-                messages.success(request, f'Location detected: {coords[0]:.5f}, {coords[1]:.5f}')
-            return redirect('prayer-times')
+            mosque.save(update_fields=['website_url', 'sync_enabled', 'prayer_synced_at'])
 
         def _parse(field, optional=False):
             hour = request.POST.get(f'{field}_hour', '').strip()
@@ -1986,7 +1962,7 @@ def prayer_times(request):
             override_vals['maghrib_sunset_minutes'] = offset
             PrayerTimeOverride.objects.update_or_create(
                 mosque=mosque, date=today, defaults=override_vals)
-            messages.success(request, 'Prayer times updated.')
+            messages.success(request, 'Changes will be displayed in 1 hour.')
             return redirect('prayer-times')
         except Exception as e:
             messages.error(request, f'Invalid prayer time: {e}')
