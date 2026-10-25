@@ -1514,7 +1514,15 @@ def setup_pairing(request):
                     'error': f'Screen must be between 1 and {max_screens}',
                 })
 
-            name = request.POST.get('name', '').strip() or f'Display {screen}'
+            name = request.POST.get('name', '').strip()
+            if not name:
+                return render(request, 'slideshow/setup.html', {
+                    'device_id': device_id,
+                    'token': token,
+                    'screens': range(1, max_screens + 1),
+                    'mosques': mosques,
+                    'error': 'Display name is required',
+                })
 
             mosque_id = request.POST.get('mosque_id')
             mosque = mosques.filter(id=mosque_id).first() if mosque_id else mosques.first()
@@ -1546,7 +1554,6 @@ def setup_pairing(request):
         'token': token,
         'screens': range(1, max_screens + 1),
         'mosques': mosques,
-        'default_name': f'Display {device.screen}',
     })
 
 
