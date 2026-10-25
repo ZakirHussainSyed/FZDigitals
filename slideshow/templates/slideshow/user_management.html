@@ -177,6 +177,25 @@
             text-align: center;
             color: rgba(31,36,48,0.45);
         }
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(0,0,0,0.10);
+        }
+        .tab-btn {
+            padding: 10px 18px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: rgba(31,36,48,0.6);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: -1px;
+        }
+        .tab-btn:hover { color: #1f2430; }
+        .tab-btn.active { color: #7c5cff; border-bottom-color: #7c5cff; }
         @media (max-width: 700px) {
             body { padding: 20px 12px; }
             .header { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
@@ -204,6 +223,12 @@
         <div class="alert error">{{ error }}</div>
         {% endif %}
 
+        <div class="tab-bar">
+            <button type="button" class="tab-btn active" id="tabBtnUsers" onclick="switchTab('users')">User Management</button>
+            <button type="button" class="tab-btn" id="tabBtnSync" onclick="switchTab('sync')">Prayer Sync</button>
+        </div>
+
+        <div id="tabSync" style="display: none;">
         {% if sync_mosques %}
         <h2 style="font-size: 18px; margin-bottom: 14px;">Prayer Sync Health</h2>
         <div class="table-container" style="margin-bottom: 32px;">
@@ -234,7 +259,7 @@
                     <td>{{ m.prayer_synced_at|date:"M d g:i a"|default:"—" }}</td>
                     <td style="max-width: 280px; font-size: 12px; color: rgba(31,36,48,0.65);">{{ m.sync_error|default:"—" }}</td>
                     <td>
-                        <form method="post" action="/user-management/" style="margin: 0;">
+                        <form method="post" action="/user-management/?tab=sync" style="margin: 0;">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="resync_mosque">
                             <input type="hidden" name="mosque_id" value="{{ m.id }}">
@@ -245,8 +270,12 @@
                 {% endfor %}
             </table>
         </div>
+        {% else %}
+        <div class="empty-state">No mosques have website sync enabled.</div>
         {% endif %}
+        </div>
 
+        <div id="tabUsers">
         <div class="create-card">
             <h2>Create New User</h2>
             <form method="post" action="/user-management/">
@@ -418,6 +447,7 @@
             </div>
             {% endif %}
         </div>
+        </div>
     </div>
     
     <!-- Edit User Modals -->
@@ -508,6 +538,15 @@
     </div>
     
     <script>
+        function switchTab(name) {
+            const isUsers = name === 'users';
+            document.getElementById('tabUsers').style.display = isUsers ? 'block' : 'none';
+            document.getElementById('tabSync').style.display = isUsers ? 'none' : 'block';
+            document.getElementById('tabBtnUsers').classList.toggle('active', isUsers);
+            document.getElementById('tabBtnSync').classList.toggle('active', !isUsers);
+        }
+        if (new URLSearchParams(location.search).get('tab') === 'sync') switchTab('sync');
+
         function showResetPasswordModal(userId, username) {
             document.getElementById('resetUserId').value = userId;
             document.getElementById('resetUsername').textContent = username;
