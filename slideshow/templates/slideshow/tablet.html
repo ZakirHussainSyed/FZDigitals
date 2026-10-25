@@ -1055,11 +1055,12 @@
         // feels instant, then drop to a slow cadence — also once media plays.
         const POLL_FAST = 5000;
         const POLL_SLOW = 30000;
+        const POLL_PAIRED = 60 * 60 * 1000;
         const FAST_WINDOW_MS = 10 * 60 * 1000;
         function poll() {
             clearTimeout(pollTimer);
             const fast = !devicePaired && Date.now() < fastPollUntil;
-            pollTimer = setTimeout(runAndRequeue, fast ? POLL_FAST : POLL_SLOW);
+            pollTimer = setTimeout(runAndRequeue, fast ? POLL_FAST : (devicePaired ? POLL_PAIRED : POLL_SLOW));
         }
         function runAndRequeue() {
             Promise.resolve(refresh()).catch(() => {}).then(poll);
