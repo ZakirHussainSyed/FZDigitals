@@ -164,6 +164,7 @@
 
         <form method="post">
             {% csrf_token %}
+            {% if mosque.website_url %}
             <div class="form-group">
                 <label class="sync-toggle" for="id_sync_enabled">
                     <input type="checkbox" name="sync_enabled" id="id_sync_enabled" {% if mosque.sync_enabled %}checked{% endif %}>
@@ -175,6 +176,7 @@
                 <input type="url" name="website_url" id="id_website_url" class="url-input"
                        placeholder="Enter website URL" value="{{ mosque.website_url }}">
             </div>
+            {% endif %}
             {% for f in prayer_fields %}
             <div class="form-group">
                 <label>{{ f.label }}</label>
@@ -206,7 +208,9 @@
             </div>
             {% endfor %}
             <button type="submit" class="submit-btn">Save Prayer Times</button>
+            {% if mosque.website_url %}
             <button type="submit" name="action" value="sync" class="sync-btn" id="sync-actions" {% if not mosque.sync_enabled %}style="display:none"{% endif %}>Sync from Website</button>
+            {% endif %}
         </form>
 
         <a href="/{{ request.user.id }}/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;">Dashboard</a>
@@ -224,7 +228,7 @@
             const off = msSel.value === '0';
             msFields.forEach(function (id) {
                 const el = document.getElementById(id);
-                if (el) el.disabled = syncBox.checked || !off;
+                if (el) el.disabled = (syncBox && syncBox.checked) || !off;
             });
         }
         function applySyncState() {
@@ -237,9 +241,9 @@
             });
             if (!on) toggleMs();
         }
-        syncBox.addEventListener('change', applySyncState);
+        if (syncBox) syncBox.addEventListener('change', applySyncState);
         msSel.addEventListener('change', toggleMs);
-        if (!syncBox.checked) toggleMs();
+        if (!syncBox || !syncBox.checked) toggleMs();
     </script>
 </body>
 </html>
