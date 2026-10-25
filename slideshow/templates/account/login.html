@@ -72,6 +72,24 @@
         .form-input::placeholder {
             color: rgba(232,234,240,0.4);
         }
+        .password-container {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(232,234,240,0.6);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+        }
+        .toggle-password:hover {
+            color: rgba(232,234,240,0.9);
+        }
         .submit-btn {
             width: 100%;
             padding: 12px;
@@ -91,14 +109,26 @@
             margin-bottom: 16px;
             text-align: center;
         }
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-            color: rgba(232,234,240,0.7);
-            text-decoration: none;
-            font-size: 14px;
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
         }
-        .back-link:hover { color: #e8eaf0; }
+        .ghost-btn {
+            flex: 1;
+            display: block;
+            padding: 11px;
+            border: 1px solid rgba(232,234,240,0.2);
+            border-radius: 8px;
+            color: rgba(232,234,240,0.85);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+        }
+        .ghost-btn:hover { border-color: rgba(232,234,240,0.45); }
+        .whatsapp-btn { border-color: rgba(37,211,102,0.5); color: #25d366; }
+        .whatsapp-btn:hover { border-color: #25d366; }
     </style>
 </head>
 <body>
@@ -130,12 +160,31 @@
             </div>
             <div class="form-group">
                 <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password" class="form-input" placeholder="Enter password" required>
+                <div class="password-container">
+                    <input type="password" name="password" id="id_password" class="form-input" placeholder="Enter password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('id_password', this)">Show</button>
+                </div>
             </div>
             <button type="submit" class="submit-btn">Sign In</button>
         </form>
         
-        <a href="/" class="back-link">← Back to Home</a>
+        <div class="btn-row">
+            <a href="/" class="ghost-btn">Back</a>
+            <a href="https://wa.me/917075985403?text=Hi%20I%20need%20help%20with%20sign%20in" target="_blank" class="ghost-btn whatsapp-btn">Sign in Help</a>
+        </div>
     </div>
+    
+    <script>
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+    </script>
 </body>
 </html>
