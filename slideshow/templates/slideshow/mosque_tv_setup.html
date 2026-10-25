@@ -105,7 +105,7 @@
                 localStorage.setItem(LS_DEVICE, data.device_id);
                 localStorage.setItem(LS_TOKEN, data.token);
 
-                statusEl.textContent = 'takbir-al-ula.com';
+                statusEl.textContent = 'Powered by takbir-al-ula.com';
                 qrImg.src = '/api/qr/?data=' + encodeURIComponent(data.setup_url);
                 qrImg.onload = () => { qrWrap.style.display = 'block'; };
                 qrImg.onerror = () => {
