@@ -17,14 +17,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: clamp(10px, 3vh, 24px) 24px;
         }
-        .logo { width: 140px; height: 140px; border-radius: 36px; object-fit: cover; margin-bottom: 14px; }
-        .wordmark { font-size: 26px; font-weight: 700; letter-spacing: 0.4px; margin-bottom: 24px; }
-        .status { font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 18px; text-align: center; }
-        #qrWrap { background: #fff; padding: 16px; border-radius: 20px; margin-bottom: 18px; display: none; }
-        #qrImg { width: 260px; height: 260px; display: block; }
-        .hint { color: rgba(255,255,255,0.6); font-size: 14px; text-align: center; max-width: 360px; line-height: 1.5; }
+        .logo { width: clamp(70px, 16vh, 140px); height: clamp(70px, 16vh, 140px); border-radius: 26%; object-fit: cover; margin-bottom: clamp(6px, 2vh, 14px); }
+        .wordmark { font-size: clamp(18px, 4vh, 26px); font-weight: 700; letter-spacing: 0.4px; margin-bottom: clamp(10px, 3vh, 24px); }
+        .status { font-size: clamp(14px, 2.8vh, 18px); color: rgba(255,255,255,0.8); margin-bottom: clamp(8px, 2.5vh, 18px); text-align: center; }
+        #qrWrap { background: #fff; padding: clamp(8px, 2vh, 16px); border-radius: clamp(12px, 3vh, 20px); margin-bottom: clamp(8px, 2.5vh, 18px); display: none; }
+        #qrImg { width: clamp(150px, 36vh, 260px); height: clamp(150px, 36vh, 260px); display: block; }
+        .hint { color: rgba(255,255,255,0.6); font-size: clamp(12px, 2.4vh, 14px); text-align: center; max-width: min(360px, 80vw); line-height: 1.5; }
         .error { color: #ff6b6b; text-align: center; margin-top: 12px; max-width: 360px; }
     </style>
 </head>
@@ -105,7 +105,7 @@
                 localStorage.setItem(LS_DEVICE, data.device_id);
                 localStorage.setItem(LS_TOKEN, data.token);
 
-                statusEl.textContent = 'takbir-al-ula.com';
+                statusEl.textContent = '';
                 qrImg.src = '/api/qr/?data=' + encodeURIComponent(data.setup_url);
                 qrImg.onload = () => { qrWrap.style.display = 'block'; };
                 qrImg.onerror = () => {
