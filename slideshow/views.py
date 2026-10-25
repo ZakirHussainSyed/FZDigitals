@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 
 from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide
 from .prayer_sync import (
+    maybe_sync_mosque,
     sunrise_time,
     sunset_time,
     sync_mosque_prayer_times,
@@ -1793,6 +1794,7 @@ def api_public_mosques(request):
                 m_tz = ZoneInfo(m.timezone or default_tz)
                 m_today = timezone.now().astimezone(m_tz).date()
                 m_now = datetime.now(m_tz)
+                maybe_sync_mosque(m)
                 prayer_time = resolve_prayer_time(m, m_today)
                 timings = {}
                 if prayer_time:
@@ -1856,6 +1858,8 @@ def prayer_times(request):
     if not mosque:
         messages.error(request, 'No mosque is associated with your account.')
         return redirect(f'/{request.user.id}/')
+
+    maybe_sync_mosque(mosque)
 
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
@@ -2042,6 +2046,8 @@ def mosque_tv(request):
         messages.error(request, 'No mosque is associated with your account.')
         return redirect('prayer-times')
 
+    maybe_sync_mosque(mosque)
+
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     # Resolved = synced base + manual overrides; only seed placeholder
@@ -2134,6 +2140,8 @@ def mosque_tv_device(request):
     mosque = device.mosque
     if not mosque:
         return HttpResponse('No mosque assigned to this device', status=400)
+    
+    maybe_sync_mosque(mosque)
     
     today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
