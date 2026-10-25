@@ -501,8 +501,10 @@ def user_dashboard(request, user_id):
     
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     max_slideshows = profile.max_slideshows
+    mosque = Mosque.objects.filter(user=request.user).first()
     return render(request, 'slideshow/index.html', {
         'user': request.user,
+        'mosque': mosque,
         'max_slideshows': max_slideshows,
         'screens': range(1, max_slideshows + 1),
         'max_upload_size_mb': settings.MAX_UPLOAD_SIZE_MB,

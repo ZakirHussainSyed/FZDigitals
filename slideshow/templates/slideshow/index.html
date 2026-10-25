@@ -425,7 +425,7 @@
         <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
         {% if user.is_authenticated %}
         <div class="user-info">
-            <span>Welcome, {{ user.email|default:user.username }}</span>
+            <span>Welcome, {{ mosque.name|default:user.email|default:user.username }}</span>
             <a href="/screens/">My Screens</a>
             {% if user.userprofile.vertical == 'mosque' %}
                 <a href="{% url 'prayer-times' %}">Prayer Timings</a>
