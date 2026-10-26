@@ -28,6 +28,18 @@
             display: block;
             border-radius: 16px;
         }
+        .brand-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .brand-name {
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1f2430;
+            text-align: center;
+        }
         .user-info {
             display: flex;
             align-items: center;
@@ -422,7 +434,12 @@
 {% csrf_token %}
     <!-- Header -->
     <header class="header">
-        <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
+        <div class="brand-block">
+            <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="logo" />
+            {% if user.userprofile.vertical == 'mosque' %}
+            <div class="brand-name">{{ brand.wordmark }}</div>
+            {% endif %}
+        </div>
         {% if user.is_authenticated %}
         <div class="user-info">
             <span>Welcome, {{ mosque.name|default:user.email|default:user.username }}</span>
