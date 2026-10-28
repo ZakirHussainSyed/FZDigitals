@@ -99,6 +99,7 @@
         .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
         .hero-ctas .btn { padding: 14px 28px; font-size: 15px; }
         .video-wrap {
+            position: relative;
             max-width: 860px;
             margin: 0 auto;
             border-radius: 18px;
@@ -107,6 +108,22 @@
             background: #000;
         }
         .video-wrap video { display: block; width: 100%; height: auto; }
+        .sound-cue {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.72);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+        }
+        .sound-cue:hover { background: rgba(0,0,0,0.85); }
 
         section {
             max-width: 1000px;
@@ -220,6 +237,7 @@
         <p class="lede">A quick look at how Takbir brings salah times to every screen in your masjid.</p>
         <div class="video-wrap">
             <video id="takbirPromo" muted playsinline controls preload="metadata" src="{% static 'takbir_home_video1.MP4' %}"></video>
+            <button id="soundCue" class="sound-cue" type="button">🔊 Tap for sound</button>
         </div>
     </section>
 
@@ -296,6 +314,17 @@
         (function() {
             var v = document.getElementById('takbirPromo');
             if (!v || !('IntersectionObserver' in window)) return;
+            var cue = document.getElementById('soundCue');
+            if (cue) {
+                cue.addEventListener('click', function() {
+                    v.muted = false;
+                    v.volume = 1;
+                    v.play().catch(function() {});
+                });
+                v.addEventListener('volumechange', function() {
+                    cue.style.display = (v.muted || v.volume === 0) ? 'block' : 'none';
+                });
+            }
             var userPaused = false;
             v.addEventListener('pause', function() { if (!v.ended) userPaused = true; });
             v.addEventListener('play', function() { userPaused = false; });
