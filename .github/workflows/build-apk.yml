@@ -50,7 +50,9 @@ jobs:
 
       - name: Add Android platform
         working-directory: mobile
-        run: npx cap add android
+        run: |
+          npx cap add android
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/' android/variables.gradle
 
       - name: Copy custom native media downloader plugin
         working-directory: mobile
