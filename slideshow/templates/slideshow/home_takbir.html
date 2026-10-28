@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +98,15 @@
         }
         .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
         .hero-ctas .btn { padding: 14px 28px; font-size: 15px; }
+        .video-wrap {
+            max-width: 860px;
+            margin: 0 auto;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(13,92,70,0.18);
+            background: #000;
+        }
+        .video-wrap video { display: block; width: 100%; height: auto; }
 
         section {
             max-width: 1000px;
@@ -204,6 +214,14 @@
         <p class="hadith">Allah's Messenger (ﷺ) said, "If the people knew the reward for pronouncing the Adhan and for standing in the first row (in congregational prayers) and found no other way to get that except by drawing lots they would draw lots, and if they knew the reward of the Zuhr prayer (in the early moments of its stated time) they would race for it (go early) and if they knew the reward of ‘Isha' and Fajr (morning) prayers in congregation, they would come to offer them even if they had to crawl."</p>
         <div class="hadith-ref">— Sahih al-Bukhari 615</div>
     </div>
+
+    <section>
+        <h2>See {{ brand.name }} in action</h2>
+        <p class="lede">A quick look at how Takbir brings salah times to every screen in your masjid.</p>
+        <div class="video-wrap">
+            <video controls playsinline preload="metadata" src="{% static 'takbir_home_video1.MP4' %}"></video>
+        </div>
+    </section>
 
     <section>
         <h2>Everything your masjid's screens need</h2>
