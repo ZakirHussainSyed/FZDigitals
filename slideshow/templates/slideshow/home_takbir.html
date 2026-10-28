@@ -219,7 +219,7 @@
         <h2>See {{ brand.name }} in action</h2>
         <p class="lede">A quick look at how Takbir brings salah times to every screen in your masjid.</p>
         <div class="video-wrap">
-            <video controls playsinline preload="metadata" src="{% static 'takbir_home_video1.MP4' %}"></video>
+            <video id="takbirPromo" muted playsinline controls preload="metadata" src="{% static 'takbir_home_video1.MP4' %}"></video>
         </div>
     </section>
 
@@ -292,5 +292,24 @@
     <footer>
         {{ brand.name }} · Powered by <a href="https://fzscreens.com">fzscreens.com</a>
     </footer>
+    <script>
+        (function() {
+            var v = document.getElementById('takbirPromo');
+            if (!v || !('IntersectionObserver' in window)) return;
+            var userPaused = false;
+            v.addEventListener('pause', function() { if (!v.ended) userPaused = true; });
+            v.addEventListener('play', function() { userPaused = false; });
+            new IntersectionObserver(function(entries) {
+                entries.forEach(function(e) {
+                    if (e.isIntersecting) {
+                        if (!userPaused && !v.ended) v.play().catch(function() {});
+                    } else {
+                        v.pause();
+                        userPaused = false;
+                    }
+                });
+            }, { threshold: 0.5 }).observe(v);
+        })();
+    </script>
 </body>
 </html>
