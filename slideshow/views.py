@@ -1802,6 +1802,17 @@ def api_public_mosques(request):
     try:
         default_tz = getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata')
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+        # Optional viewport filter — ?bbox=<south>,<west>,<north>,<east>
+        # limits the feed to mosques inside the requested map bounds so
+        # clients can fetch only the region they're showing.
+        bbox = request.GET.get('bbox', '')
+        if bbox:
+            try:
+                s, w, n, e = (float(v) for v in bbox.split(','))
+                if -90 <= s <= n <= 90 and -180 <= w <= e <= 180:
+                    mosques = mosques.filter(latitude__range=(s, n), longitude__range=(w, e))
+            except (TypeError, ValueError):
+                pass  # malformed bbox — fall back to the full feed
         data = []
         for m in mosques:
             try:

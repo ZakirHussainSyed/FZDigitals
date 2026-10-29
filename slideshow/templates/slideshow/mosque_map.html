@@ -501,12 +501,13 @@
                         sub.textContent = parts.slice(2).join(', ');
                         item.appendChild(main);
                         item.appendChild(sub);
-                        item.addEventListener('click', function() {
+                        item.addEventListener('click', async function() {
                             hideDropdown();
                             searchInput.value = parts.slice(0, 2).join(', ');
                             const lat = parseFloat(r.lat);
                             const lon = parseFloat(r.lon);
                             map.setView([lat, lon], 13);
+                            await fetchAround(lat, lon, 31); // fresh ~50 km viewport
                             filterByDistance(lat, lon, 31); // ~50 km
                         });
                         ddResults.appendChild(item);
@@ -531,6 +532,7 @@
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
                     map.setView([lat, lon], 13);
+                    await fetchAround(lat, lon, 31); // fresh ~50 km viewport
                     filterByDistance(lat, lon, 31); // ~50 km
                 } catch (err) {
                     console.error('Geocode error:', err);
@@ -538,7 +540,7 @@
                 }
             }
 
-            function focusNearMe(lat, lon) {
+            async function focusNearMe(lat, lon) {
                 setUserLocation(lat, lon);
                 // Frame by horizontal radius (8 mi). Zoom is single-scale, so
                 // vertical extent = horizontal × screen aspect (taller on
@@ -552,30 +554,43 @@
                     [[lat - latD, lon - lngD], [lat + latD, lon + lngD]],
                     {padding: [20, 20]}
                 );
-                // No distance filter — render every mosque; the framed radius
-                // is the viewport itself. Pins outside stay visible on pan.
-                renderMosques(allMosques, false);
+                // Fetch the framed viewport for fresh timings; a failed fetch
+                // falls back to whatever allMosques already holds.
                 const b = map.getBounds();
-                if (!allMosques.some(function(m) {
-                    return b.contains([m.latitude, m.longitude]);
-                })) {
+                const fetched = await fetchMosquesInBounds(b);
+                const viewMosques = fetched !== null ? fetched
+                    : allMosques.filter(function(m) {
+                        return b.contains([m.latitude, m.longitude]);
+                    });
+                renderMosques(viewMosques, false);
+                if (!viewMosques.length) {
                     showStatus('No mosques near you yet — drag the map to explore.', 5);
+                } else {
+                    statusMsg.style.display = 'none';
                 }
             }
 
             // Coarse city-level fallback when browser geolocation fails —
             // server-side IP lookup via our own endpoint (no third-party
             // client rate limits, no permission prompt).
-            async function focusByIP() {
+            async function fetchApproxLocation() {
                 try {
                     const res = await fetch('/api/approx-location/');
                     const data = await res.json();
                     if (data && data.success && data.latitude && data.longitude) {
-                        focusNearMe(parseFloat(data.latitude), parseFloat(data.longitude));
-                        return true;
+                        return {lat: parseFloat(data.latitude), lon: parseFloat(data.longitude)};
                     }
                 } catch (err) {
                     console.error('IP geolocation error:', err);
+                }
+                return null;
+            }
+
+            async function focusByIP() {
+                const loc = await fetchApproxLocation();
+                if (loc) {
+                    focusNearMe(loc.lat, loc.lon);
+                    return true;
                 }
                 return false;
             }
@@ -668,20 +683,54 @@
                 return t.fajr ? {name: 'Fajr', time: t.fajr} : {name: null, time: ''};
             }
 
-            async function fetchMosques() {
+            // Merge fetched mosques into allMosques — update by id so a
+            // viewport refetch refreshes timings on pins already shown.
+            function mergeMosques(list) {
+                const idx = {};
+                allMosques.forEach(function(m, i) { idx[m.id] = i; });
+                list.forEach(function(m) {
+                    if (idx[m.id] !== undefined) allMosques[idx[m.id]] = m;
+                    else allMosques.push(m);
+                });
+            }
+
+            // Fetch mosques — with a 's,w,n,e' bbox only that viewport comes
+            // back; without it the whole feed (boot fallback). Returns the
+            // fetched list, or null on failure.
+            async function fetchMosques(bboxParam) {
                 try {
-                    const res = await fetch('/api/public/mosques/');
+                    const res = await fetch('/api/public/mosques/' +
+                        (bboxParam ? '?bbox=' + bboxParam : ''));
                     const data = await res.json();
-                    if (!data.success || !data.mosques || !data.mosques.length) return false;
-                    allMosques = data.mosques;
+                    if (!data.success || !data.mosques) return null;
+                    mergeMosques(data.mosques);
                     try {
                         localStorage.setItem(MAP_CACHE_KEY,
                             JSON.stringify({saved: Date.now(), mosques: allMosques}));
                     } catch (e) { /* storage full or blocked */ }
-                    return true;
+                    return data.mosques;
                 } catch (err) {
-                    return false;
+                    return null;
                 }
+            }
+
+            // Bounding box in degrees covering `miles` around a point (s,w,n,e).
+            function milesBox(lat, lon, miles) {
+                const km = miles * 1.60934;
+                const latD = km / 111.32;
+                const lngD = km / (111.32 * Math.cos(lat * Math.PI / 180));
+                return [lat - latD, lon - lngD, lat + latD, lon + lngD];
+            }
+
+            function fetchAround(lat, lon, miles) {
+                return fetchMosques(milesBox(lat, lon, miles).join(','));
+            }
+
+            function fetchMosquesInBounds(b) {
+                return fetchMosques([
+                    b.getSouth().toFixed(5), b.getWest().toFixed(5),
+                    b.getNorth().toFixed(5), b.getEast().toFixed(5)
+                ].join(','));
             }
 
             function loadCachedMosques() {
@@ -736,7 +785,13 @@
                 // keep retrying (splash stays up) until mosque data arrives;
                 // cached mosques fill the gap when available.
                 const bootedAt = Date.now();
-                if (!await fetchMosques()) {
+                // Viewport-first boot: coarse IP location scopes the initial
+                // fetch to the user's area instead of pulling the whole feed.
+                // The full feed stays as fallback when location is unknown
+                // or the area has no mosques yet.
+                const approxLoc = await fetchApproxLocation();
+                if (approxLoc) await fetchAround(approxLoc.lat, approxLoc.lon, 50);
+                if (!allMosques.length && await fetchMosques() === null) {
                     loadCachedMosques();
                     for (let tries = 0; !allMosques.length && tries < 20; tries++) {
                         await new Promise(function (r) { setTimeout(r, 3000); });
@@ -802,12 +857,16 @@
                     if (userGestured) areaBtn.style.display = 'block';
                     userGestured = false;
                 });
-                areaBtn.addEventListener('click', function() {
+                areaBtn.addEventListener('click', async function() {
                     areaBtn.style.display = 'none';
                     const b = map.getBounds();
-                    const inView = allMosques.filter(function(m) {
-                        return b.contains([m.latitude, m.longitude]);
-                    });
+                    // Fetch this viewport for fresh timings; fall back to the
+                    // already-loaded list when the network fails.
+                    const fetched = await fetchMosquesInBounds(b);
+                    const inView = fetched !== null ? fetched
+                        : allMosques.filter(function(m) {
+                            return b.contains([m.latitude, m.longitude]);
+                        });
                     if (inView.length === 0) {
                         showStatus('No mosques found in this area.', 4);
                     } else {
