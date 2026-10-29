@@ -38,13 +38,6 @@
         }
         .mosque-pin strong { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
         .mosque-pin .next-salah { display: block; font-size: 17px; font-weight: 700; color: #ffd54f; }
-        /* Far-zoom pins collapse to small dots — Google Maps style. */
-        .mosque-pin.pin-dot {
-            min-width: 0; width: 14px; height: 14px; padding: 0;
-            border-radius: 50%;
-            transform: translate(-50%, -50%); margin-top: 0;
-        }
-        .mosque-pin.pin-dot::after { display: none; }
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -427,16 +420,7 @@
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
 
-            const PIN_LABEL_ZOOM = 12; // below this zoom pins render as dots
             function createIcon(m) {
-                if (map && map.getZoom() < PIN_LABEL_ZOOM) {
-                    return L.divIcon({
-                        className: '',
-                        html: '<div class="mosque-pin pin-dot"></div>',
-                        iconSize: null,
-                        iconAnchor: [0, 0]
-                    });
-                }
                 const nextLabel = m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
                     : '';
@@ -871,7 +855,16 @@
                     const q = searchInput.value.trim();
                     if (q.length < 3) { ddResults.innerHTML = ''; return; }
                     suggestTimer = setTimeout(function() { fetchSuggestions(q); }, 350);
-                });
+                });{
+                        
+                        // Re-thin the loaded set for the new view — zooming
+                        // in reveals pins the wide-view grid collapsed, and
+                        // panning re-shows what was already fetched.
+                        const vb = map.getBounds();
+                        renderMosques(allMosques.filter(function(m) {
+                            return vb.contains([m.latitude, m.longitude]);
+                        }), false);
+                    }
 
                 document.getElementById('dd-current-loc').addEventListener('click', function() {
                     hideDropdown();
@@ -891,14 +884,6 @@
                     userGestured = true;
                 });
                 map.on('moveend', function() {
-                    // Re-render for the new view on ANY move — pins swap
-                    // dot↔label as zoom crosses PIN_LABEL_ZOOM and the grid
-                    // re-thins; the "Search this area" button only appears
-                    // after a real user gesture.
-                    const vb = map.getBounds();
-                    renderMosques(allMosques.filter(function(m) {
-                        return vb.contains([m.latitude, m.longitude]);
-                    }), false);
                     if (userGestured) areaBtn.style.display = 'block';
                     userGestured = false;
                 });
