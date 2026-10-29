@@ -441,8 +441,7 @@
             let userLon = null;
             let userMarker = null;
 
-            const NEAR_ME_RADIUS_MILES = 8; // horizontal radius of the near-me frame
-            const NEAR_ME_RADIUS_M = NEAR_ME_RADIUS_MILES * 1609.34;
+            const NEAR_ME_ZOOM = 14; // Google-style local view (~3-4 km across)
             const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com', 'takbir-al-ula.com', 'www.takbir-al-ula.com'];
             // Coarse (network) location is plenty for a near-me view and returns
             // fast; without a timeout the promise can hang forever in WebViews.
@@ -555,26 +554,16 @@
                     await fetchAround(lat, lon, 31); // fresh ~50 km viewport
                     filterByDistance(lat, lon, 31); // ~50 km
                 } catch (err) {
-                    console.error('Geocode error:', err); Pins
-                // outside the view re-appear when panning back over them.
+                    console.error('Geocode error:', err);
                     showStatus('Search failed. Please try again.', 3);
                 }
             }
 
             async function focusNearMe(lat, lon) {
                 setUserLocation(lat, lon);
-                // Frame by horizontal radius (8 mi). Zoom is single-scale, so
-                // vertical extent = horizontal × screen aspect (taller on
-                // portrait phones, shallower on landscape desktops).
-                const px = map.getSize();
-                const halfLngM = NEAR_ME_RADIUS_M;
-                const halfLatM = NEAR_ME_RADIUS_M * (px.y / px.x);
-                const latD = halfLatM / 111320;
-                const lngD = halfLngM / (111320 * Math.cos(lat * Math.PI / 180));
-                map.fitBounds(
-                    [[lat - latD, lon - lngD], [lat + latD, lon + lngD]],
-                    {padding: [20, 20]}
-                );
+                // Google-style near-me: center at a fixed zoom; the viewport
+                // itself is the fetch region — no hardcoded radius.
+                map.setView([lat, lon], NEAR_ME_ZOOM);
                 // Fetch the framed viewport for fresh timings; a failed fetch
                 // falls back to whatever allMosques already holds.
                 const b = map.getBounds();
