@@ -1820,6 +1820,16 @@ def api_public_mosques(request):
                     mosques = mosques.filter(latitude__range=(s, n), longitude__range=(w, e))
             except (TypeError, ValueError):
                 pass  # malformed bbox — fall back to the full feed
+        # Bound the response — dense regions (e.g. India) can hold hundreds of
+        # mosques in a small bbox, and each row costs per-mosque timing work.
+        # ?limit=N overrides the default (max 2000).
+        try:
+            limit = int(request.GET.get('limit', 200))
+        except (TypeError, ValueError):
+            limit = 200
+        limit = max(1, min(limit, 2000))
+        total = mosques.count()
+        mosques = mosques.order_by('id')[:limit]
         data = []
         for m in mosques:
             try:
@@ -1866,7 +1876,8 @@ def api_public_mosques(request):
                 logger.exception(
                     f'api_public_mosques: mosque {m.id} ({m.name}) failed')
                 continue
-        return JsonResponse({'success': True, 'mosques': data})
+        return JsonResponse({'success': True, 'mosques': data,
+                             'truncated': total > len(data)})
     except Exception as e:
         logger.error(f"Error in api_public_mosques: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
