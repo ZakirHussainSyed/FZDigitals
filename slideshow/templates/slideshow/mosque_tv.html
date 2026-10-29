@@ -810,6 +810,13 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
+                // Dashboard prayer-time edit reached the poll — a single
+                // reload repaints every row and the banner correctly.
+                if (data.timings && JSON.stringify(data.timings) !== JSON.stringify(tvTimings)) {
+                    dlog('timings changed — reloading for fresh times');
+                    location.reload();
+                    return;
+                }
                 devlogOn = !!data.debug;  // server-opt-in remote diagnostics
                 const newFiles = data.files || [];
                 const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));

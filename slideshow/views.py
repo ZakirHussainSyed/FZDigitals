@@ -1234,12 +1234,25 @@ def api_device_slideshow(request, device_id):
                 'device_name': device.name
             }, status=404)
 
+        # Mosque TV devices: ship current prayer timings with each poll so
+        # dashboard edits reach the TV panel on the hourly refresh rather
+        # than waiting for the page's once-daily reload.
+        mosque = device.mosque or Mosque.objects.filter(
+            user=device.user, is_active=True).first()
+        timings = None
+        timings_tz = None
+        if mosque:
+            _pt, timings, tz = _mosque_timings(mosque)
+            timings_tz = str(tz)
+
         files = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
         return JsonResponse({
             'success': True,
             'device_id': device.device_id,
             'user_id': device.user.id,
             'screen': device.screen,
+            'timings': timings,
+            'tz': timings_tz,
             # Server-side switch for remote diagnostics: tablet only ships
             # its dlog buffer when this device's id is in DEVICE_DEBUG_LOGS.
             'debug': device.device_id in settings.DEVICE_DEBUG_LOGS,
@@ -2012,22 +2025,14 @@ def prayer_times(request):
     })
 
 
-@login_required
-def mosque_tv(request):
-    """Mosque TV view showing prayer times and the user's slideshow."""
-    try:
-        profile = request.user.userprofile
-        if profile.vertical != 'mosque':
-            return redirect(f'/{request.user.id}/')
-    except UserProfile.DoesNotExist:
-        return redirect(f'/{request.user.id}/')
+def _mosque_timings(mosque, for_date=None):
+    """Resolved, display-formatted prayer timings for a mosque.
 
-    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
-    if not mosque:
-        messages.error(request, 'No mosque is associated with your account.')
-        return redirect('prayer-times')
-
-    today = timezone.now().date()
+    Shared by the mosque-tv page renders and the device slideshow API so
+    the TV panel picks up dashboard edits on the hourly refresh instead of
+    waiting for the 1:30 AM page reload. Returns (prayer_time, timings, tz).
+    """
+    today = for_date or timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     # Resolved = synced base + manual overrides; only seed placeholder
     # defaults when the mosque has never had any times at all — and never
@@ -2065,6 +2070,25 @@ def mosque_tv(request):
         'jummah2': _format_prayer_time(prayer_time.jummah2),
         'jummah3': _format_prayer_time(prayer_time.jummah3),
     }
+    return prayer_time, timings, tz
+
+
+def mosque_tv(request):
+    """Mosque TV view showing prayer times and the user's slideshow."""
+    try:
+        profile = request.user.userprofile
+        if profile.vertical != 'mosque':
+            return redirect(f'/{request.user.id}/')
+    except UserProfile.DoesNotExist:
+        return redirect(f'/{request.user.id}/')
+
+    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
+    if not mosque:
+        messages.error(request, 'No mosque is associated with your account.')
+        return redirect('prayer-times')
+
+    today = timezone.now().date()
+    prayer_time, timings, tz = _mosque_timings(mosque, today)
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
     if next_salah.get('time'):
@@ -2121,44 +2145,7 @@ def mosque_tv_device(request):
         return HttpResponse('No mosque assigned to this device', status=400)
     
     today = timezone.now().date()
-    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
-    prayer_time = resolve_prayer_time(mosque, today)
-    if prayer_time is None or prayer_time.base is None:
-        if mosque.sync_enabled:
-            # Synced mosque with no successful row yet — never seed
-            # placeholders; blanks + sync_error are honest, and the last
-            # synced row already survives via resolve() when one exists.
-            prayer_time = prayer_time or _blank_resolved(mosque, today, tz)
-        else:
-            # Seed placeholder defaults only when the mosque has no base
-            # row; overrides (if any) are overlaid again on the seeded row.
-            PrayerTime.objects.get_or_create(
-                mosque=mosque,
-                date=today,
-                defaults={
-                    'fajr': datetime.strptime('05:00', '%H:%M').time(),
-                    'dhuhr': datetime.strptime('13:00', '%H:%M').time(),
-                    'asr': datetime.strptime('16:00', '%H:%M').time(),
-                    'maghrib': datetime.strptime('18:30', '%H:%M').time(),
-                    'isha': datetime.strptime('20:00', '%H:%M').time(),
-                    'jummah': datetime.strptime('13:30', '%H:%M').time(),
-                    'sunset': sunset_time(mosque.latitude, mosque.longitude, today, tz),
-                }
-            )
-            prayer_time = resolve_prayer_time(mosque, today)
-    
-    timings = {
-        'fajr': _format_prayer_time(prayer_time.fajr),
-        'sunrise': _format_prayer_time(sunrise_time(mosque.latitude, mosque.longitude, today, tz)),
-        'dhuhr': _format_prayer_time(prayer_time.dhuhr),
-        'asr': _format_prayer_time(prayer_time.asr),
-        'sunset': _format_prayer_time(prayer_time.sunset),
-        'maghrib': _format_prayer_time(prayer_time.maghrib),
-        'isha': _format_prayer_time(prayer_time.isha),
-        'jummah': _format_prayer_time(prayer_time.jummah),
-        'jummah2': _format_prayer_time(prayer_time.jummah2),
-        'jummah3': _format_prayer_time(prayer_time.jummah3),
-    }
+    prayer_time, timings, tz = _mosque_timings(mosque, today)
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
     if next_salah.get('time'):
@@ -2193,4 +2180,5 @@ def mosque_tv_device(request):
         'device_id': device_id,
         'token': token,
     })
+
 
