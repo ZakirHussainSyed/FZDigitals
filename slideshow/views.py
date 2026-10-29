@@ -1798,7 +1798,14 @@ def api_approx_location(request):
 
 @require_http_methods(["GET"])
 def api_public_mosques(request):
-    """Public list of mosques with today's prayer times, sunrise, and next salah."""
+    """Public list of mosques with today's prayer times, sunrise, and next salah.
+
+    SCALE TODO: timings are resolved per-mosque on every request — fine at
+    current size (bbox keeps each request's subset small). If mosque density
+    or traffic grows, add per-mosque timings caching: cache timings under
+    `mosque_timings:<id>` (per-request bboxes share entries, a response-level
+    cache would rarely hit) and delete the key when prayer times are saved.
+    """
     try:
         default_tz = getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata')
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
