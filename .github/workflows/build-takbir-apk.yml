@@ -43,6 +43,7 @@ jobs:
         run: |
           npx cap add android
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/' android/variables.gradle
+          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/' android/variables.gradle
 
       - name: Copy custom map-cache WebView client
         working-directory: mobile-takbir
