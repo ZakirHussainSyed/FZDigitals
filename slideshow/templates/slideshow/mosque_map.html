@@ -804,11 +804,13 @@
                 const autoNearMe = isNativeApp ||
                     AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
                 const approxLoc = await fetchApproxLocation();
-                // Tiered viewport fetches bound the download — 50 mi, then
-                // 250 mi around the coarse location.
+                // Tiered viewport fetches bound the download — 25 mi, then
+                // 100 mi around the coarse location. Small boxes also keep
+                // the capped result set centered near the user in dense
+                // regions; the zoom-14 near-me fetch refines further.
                 if (approxLoc) {
-                    await fetchAround(approxLoc.lat, approxLoc.lon, 50);
-                    if (!allMosques.length) await fetchAround(approxLoc.lat, approxLoc.lon, 250);
+                    await fetchAround(approxLoc.lat, approxLoc.lon, 25);
+                    if (!allMosques.length) await fetchAround(approxLoc.lat, approxLoc.lon, 100);
                 }
                 if (!allMosques.length) {
                     if (autoNearMe) {
