@@ -780,7 +780,10 @@
                 nxt.setHours(1, 30, 0, 0);
                 if (nxt <= now) nxt.setDate(nxt.getDate() + 1);
                 setTimeout(async function tick() {
-                    if (await fetchMosques()) {
+                    // Refresh just the current viewport — not the world feed.
+                    const ok = map ? await fetchMosquesInBounds(map.getBounds())
+                                   : await fetchMosques();
+                    if (ok) {
                         refreshSalahLabels();
                         renderMosques(allMosques, false);
                     }
@@ -797,15 +800,29 @@
                 const bootedAt = Date.now();
                 // Viewport-first boot: coarse IP location scopes the initial
                 // fetch to the user's area instead of pulling the whole feed.
-                // The full feed stays as fallback when location is unknown
-                // or the area has no mosques yet.
+                const isNativeApp = !!window.Capacitor;
+                const autoNearMe = isNativeApp ||
+                    AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
                 const approxLoc = await fetchApproxLocation();
-                if (approxLoc) await fetchAround(approxLoc.lat, approxLoc.lon, 50);
-                if (!allMosques.length && await fetchMosques() === null) {
-                    loadCachedMosques();
-                    for (let tries = 0; !allMosques.length && tries < 20; tries++) {
-                        await new Promise(function (r) { setTimeout(r, 3000); });
-                        await fetchMosques();
+                // Tiered viewport fetches bound the download — 50 mi, then
+                // 250 mi around the coarse location.
+                if (approxLoc) {
+                    await fetchAround(approxLoc.lat, approxLoc.lon, 50);
+                    if (!allMosques.length) await fetchAround(approxLoc.lat, approxLoc.lon, 250);
+                }
+                if (!allMosques.length) {
+                    if (autoNearMe) {
+                        // App hosts never pull the world feed — an empty area
+                        // stays empty; near-me fetches below and the local
+                        // cache fill any gap.
+                        loadCachedMosques();
+                    } else if (await fetchMosques() === null) {
+                        // Web only: full feed as last resort, with retries.
+                        loadCachedMosques();
+                        for (let tries = 0; !allMosques.length && tries < 20; tries++) {
+                            await new Promise(function (r) { setTimeout(r, 3000); });
+                            await fetchMosques();
+                        }
                     }
                 }
                 // Takbir splash shows at least SPLASH_MIN_MS after app launch.
@@ -844,16 +861,7 @@
                     const q = searchInput.value.trim();
                     if (q.length < 3) { ddResults.innerHTML = ''; return; }
                     suggestTimer = setTimeout(function() { fetchSuggestions(q); }, 350);
-                });{
-                        
-                        // Re-thin the loaded set for the new view — zooming
-                        // in reveals pins the wide-view grid collapsed, and
-                        // panning re-shows what was already fetched.
-                        const vb = map.getBounds();
-                        renderMosques(allMosques.filter(function(m) {
-                            return vb.contains([m.latitude, m.longitude]);
-                        }), false);
-                    }
+                });
 
                 document.getElementById('dd-current-loc').addEventListener('click', function() {
                     hideDropdown();
@@ -873,7 +881,16 @@
                     userGestured = true;
                 });
                 map.on('moveend', function() {
-                    if (userGestured) areaBtn.style.display = 'block';
+                    if (userGestured) {
+                        areaBtn.style.display = 'block';
+                        // Re-thin the loaded set for the new view — zooming
+                        // in reveals pins the wide-view grid collapsed, and
+                        // panning re-shows what was already fetched.
+                        const vb = map.getBounds();
+                        renderMosques(allMosques.filter(function(m) {
+                            return vb.contains([m.latitude, m.longitude]);
+                        }), false);
+                    }
                     userGestured = false;
                 });
                 areaBtn.addEventListener('click', async function() {
@@ -894,20 +911,19 @@
                     renderMosques(inView);
                 });
 
-                if (!allMosques.length) {
+                // Don't return early on empty — app hosts still need the
+                // geolocation flow below to drive the near-me fetch.
+                if (allMosques.length) {
+                    refreshSalahLabels();
+                    renderMosques(allMosques);
+                } else {
                     showStatus('No mosques found.', 4);
-                    return;
                 }
-
-                refreshSalahLabels();
-                renderMosques(allMosques);
 
                 // Native apps always open on the user's location; the web
                 // page only auto-zooms on whitelisted hosts so general
                 // visitors don't get an unprompted permission request.
-                const isNativeApp = !!window.Capacitor;
-                const autoNearMe = isNativeApp ||
-                    AUTO_NEAR_ME_HOSTS.indexOf(location.hostname) >= 0;
+                // (isNativeApp/autoNearMe computed during boot, above.)
                 if (!navigator.geolocation && autoNearMe) {
                     focusByIP();
                 } else if (navigator.geolocation) {
