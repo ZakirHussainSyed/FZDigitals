@@ -1099,6 +1099,37 @@
         // Keep list updated
         showSplash().then(startApp);
 
+        // FCM push: the server pings this device the moment its slides or
+        // timings change — refresh in ~seconds instead of the next poll.
+        (function initPush() {
+            try {
+                const PN = window.Capacitor && Capacitor.Plugins &&
+                    Capacitor.Plugins.PushNotifications;
+                if (!PN) return;  // plain browser / old WebView — poll only
+                PN.addListener('registration', t => {
+                    if (!deviceId || !deviceToken) return;
+                    fetch(`/api/device/${encodeURIComponent(deviceId)}/fcm/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Device-Token': deviceToken,
+                        },
+                        body: JSON.stringify({fcm_token: t.value}),
+                    }).catch(() => {});
+                });
+                PN.addListener('registrationError', e =>
+                    dwarn('push registration failed', e && e.error));
+                PN.addListener('pushNotificationReceived', n => {
+                    if (n && n.data && n.data.type === 'refresh') {
+                        Promise.resolve(refresh()).catch(() => {});
+                    }
+                });
+                PN.requestPermissions().then(p => {
+                    if (p.receive === 'granted') PN.register();
+                }).catch(() => {});
+            } catch (e) { /* Capacitor bridge absent */ }
+        })();
+
         // Register the media-cache SW whenever the native plugin can't run —
         // browsers AND old-WebView sticks where the Capacitor bridge never
         // initialized (window.Capacitor undefined → isNativePlatform() would

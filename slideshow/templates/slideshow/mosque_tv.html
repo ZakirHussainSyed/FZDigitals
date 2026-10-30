@@ -845,6 +845,37 @@
 
         setInterval(refreshSlideshow, 60 * 60 * 1000);
 
+        // FCM push: the server pings this device the moment its slides or
+        // prayer timings change — refresh in ~seconds instead of the next
+        // hourly poll (which stays as the safety net).
+        (function initPush() {
+            try {
+                const PN = window.Capacitor && Capacitor.Plugins &&
+                    Capacitor.Plugins.PushNotifications;
+                if (!PN || !window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+                PN.addListener('registration', t => {
+                    fetch(`/api/device/${encodeURIComponent(window.DEVICE_ID)}/fcm/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Device-Token': window.DEVICE_TOKEN,
+                        },
+                        body: JSON.stringify({fcm_token: t.value}),
+                    }).catch(() => {});
+                });
+                PN.addListener('registrationError', e =>
+                    dlog('push registration failed', e && e.error));
+                PN.addListener('pushNotificationReceived', n => {
+                    if (n && n.data && n.data.type === 'refresh') {
+                        Promise.resolve(refreshSlideshow()).catch(() => {});
+                    }
+                });
+                PN.requestPermissions().then(p => {
+                    if (p.receive === 'granted') PN.register();
+                }).catch(() => {});
+            } catch (e) { /* web preview — no Capacitor bridge */ }
+        })();
+
         renderSlides();
         playCurrent();
 

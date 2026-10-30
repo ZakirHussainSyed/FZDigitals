@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/device/register/', views.api_device_register, name='api-device-register'),
     path('api/device/<str:device_id>/slideshow/', views.api_device_slideshow, name='api-device-slideshow'),
     path('api/device/<str:device_id>/log/', views.api_device_log, name='api-device-log'),
+    path('api/device/<str:device_id>/fcm/', views.api_device_fcm, name='api-device-fcm'),
     path('api/user-devices/', views.api_user_devices, name='api-user-devices'),
     path('api/devices/', views.api_devices_list, name='api-devices-list'),
     path('api/users/', views.api_users_list, name='api-users-list'),

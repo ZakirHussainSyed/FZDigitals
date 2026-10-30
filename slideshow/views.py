@@ -1306,6 +1306,33 @@ def api_device_log(request, device_id):
     return JsonResponse({'success': True, 'count': len(lines)})
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_device_fcm(request, device_id):
+    """Store the device's FCM registration token — posted by the Capacitor
+    PushNotifications plugin when the app registers/refreshes its token."""
+    try:
+        device = Device.objects.get(device_id=device_id)
+    except Device.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Device not found'}, status=404)
+
+    token = request.headers.get('X-Device-Token', '') or request.GET.get('token', '')
+    if not constant_time_compare(token, device.token):
+        return JsonResponse({'success': False, 'error': 'Invalid device token'}, status=403)
+
+    try:
+        fcm_token = json.loads(request.body[:4096]).get('fcm_token', '')
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'bad payload'}, status=400)
+    if not fcm_token:
+        return JsonResponse({'success': False, 'error': 'fcm_token required'}, status=400)
+
+    if device.fcm_token != fcm_token:
+        device.fcm_token = fcm_token
+        device.save(update_fields=['fcm_token'])
+    return JsonResponse({'success': True})
+
+
 @login_required
 @require_http_methods(["GET"])
 def api_user_devices(request):

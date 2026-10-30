@@ -1,8 +1,9 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.contrib.auth.models import User
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+import threading
 import uuid
 
 class MediaFile(models.Model):
@@ -141,6 +142,10 @@ class Device(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Assigned user
     screen = models.IntegerField(default=1, validators=[MinValueValidator(1)])  # Assigned screen
     mosque = models.ForeignKey('Mosque', on_delete=models.SET_NULL, null=True, blank=True, related_name='devices')  # Assigned mosque for Mosque TV
+    # Firebase Cloud Messaging registration token — set by the Android app
+    # (Capacitor PushNotifications) via /api/device/<id>/fcm/. Used to push
+    # a 'refresh' data message when this device's content changes.
+    fcm_token = models.CharField(max_length=255, blank=True, default='')
     last_seen = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -306,3 +311,54 @@ def delete_mosque_slide_file(sender, instance, **kwargs):
     """Delete the stored mosque slide file when a MosqueSlide is deleted"""
     if instance.file:
         instance.file.delete(save=False)
+
+
+# --- FCM push triggers ---------------------------------------------------
+# Model signals cover every write path at once (dashboard views, admin,
+# sync jobs) so a missed view can never leave a device stale. Sends run
+# after commit, off the request thread — FCM latency never blocks a save.
+
+def _fcm_push_for_devices(device_qs):
+    """Fire-and-forget 'refresh' data push to every registered device in qs."""
+    tokens = list(device_qs.exclude(fcm_token='').values_list('fcm_token', flat=True))
+    if not tokens:
+        return
+
+    def _send():
+        from .fcm import send_refresh
+        dead = send_refresh(tokens)
+        if dead:
+            # Token died on Firebase's side — drop it so we stop retrying.
+            Device.objects.filter(fcm_token__in=dead).update(fcm_token='')
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
+@receiver(post_save, sender=MediaFile)
+@receiver(post_delete, sender=MediaFile)
+def media_changed_push(sender, instance, **kwargs):
+    """A slide was uploaded/edited/reordered/deleted → ping that user's devices."""
+    if not instance.user_id:
+        return
+    transaction.on_commit(lambda: _fcm_push_for_devices(
+        Device.objects.filter(user=instance.user, screen=instance.screen)))
+
+
+@receiver(post_save, sender=PrayerTime)
+@receiver(post_delete, sender=PrayerTime)
+@receiver(post_save, sender=PrayerTimeOverride)
+@receiver(post_delete, sender=PrayerTimeOverride)
+def prayer_changed_push(sender, instance, **kwargs):
+    """Prayer timings changed → ping the mosque's TV devices."""
+    mosque = getattr(instance, 'mosque', None)
+    if mosque:
+        transaction.on_commit(lambda: _fcm_push_for_devices(mosque.devices.all()))
+
+
+@receiver(post_save, sender=MosqueSlide)
+@receiver(post_delete, sender=MosqueSlide)
+def mosque_slide_changed_push(sender, instance, **kwargs):
+    """A mosque slide changed → ping the mosque's TV devices."""
+    mosque = getattr(instance, 'mosque', None)
+    if mosque:
+        transaction.on_commit(lambda: _fcm_push_for_devices(mosque.devices.all()))
