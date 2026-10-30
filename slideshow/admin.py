@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide
+from .models import UserProfile, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide, Device
 
 
 class UserProfileInline(admin.StackedInline):
@@ -66,3 +66,16 @@ class MosqueSlideAdmin(admin.ModelAdmin):
     list_display = ('title', 'mosque', 'order', 'is_active', 'created_at')
     list_filter = ('mosque', 'is_active')
     search_fields = ('title',)
+
+
+@admin.register(Device)
+class DeviceAdmin(admin.ModelAdmin):
+    list_display = ('device_id', 'name', 'device_type', 'user', 'mosque',
+                    'screen', 'is_active', 'has_push', 'last_seen')
+    list_filter = ('device_type', 'is_active')
+    search_fields = ('device_id', 'name')
+    readonly_fields = ('token', 'fcm_token')
+
+    @admin.display(boolean=True, description='FCM')
+    def has_push(self, obj):
+        return bool(obj.fcm_token)
