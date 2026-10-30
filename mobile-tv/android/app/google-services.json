@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "100801966712",
+    "project_id": "fzscreens-2081c",
+    "storage_bucket": "fzscreens-2081c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100801966712:android:b6eca3cdbd4965951a338d",
+        "android_client_info": {
+          "package_name": "com.fzscreens.mosquetv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARlwsAaM8gSCSk1Habe8AozZeCi7t5YhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100801966712:android:0ec646fe38cadecd1a338d",
+        "android_client_info": {
+          "package_name": "com.fzscreens.tablet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARlwsAaM8gSCSk1Habe8AozZeCi7t5YhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
