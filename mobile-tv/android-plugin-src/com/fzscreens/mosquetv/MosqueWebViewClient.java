@@ -86,6 +86,7 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
             return;
         }
         if (request.isForMainFrame() && pendingRetry == null) {
+            showOfflinePage(view);
             final String url = request.getUrl().toString();
             pendingRetry = () -> {
                 pendingRetry = null;
@@ -97,6 +98,22 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
             handler.postDelayed(pendingRetry, RETRY_MS);
         }
         super.onReceivedError(view, request, error);
+    }
+
+    /** Branded placeholder while waiting for connectivity — friendlier
+     *  than the stock WebView error screen a kiosk can park on. */
+    private void showOfflinePage(WebView view) {
+        view.loadDataWithBaseURL(null,
+            "<!DOCTYPE html><html><head>"
+            + "<meta name='viewport' content='width=device-width'>"
+            + "<style>body{margin:0;background:#000;color:#fff;font-family:sans-serif;"
+            + "display:flex;flex-direction:column;align-items:center;justify-content:center;"
+            + "height:100vh;text-align:center}h1{font-size:28px;margin-bottom:12px}"
+            + "p{color:rgba(255,255,255,.6);font-size:16px;line-height:1.6}</style>"
+            + "</head><body><h1>Mosque TV</h1>"
+            + "<p>No internet connection.<br>Retrying automatically&hellip;</p>"
+            + "</body></html>",
+            "text/html", "utf-8", null);
     }
 
     @Override

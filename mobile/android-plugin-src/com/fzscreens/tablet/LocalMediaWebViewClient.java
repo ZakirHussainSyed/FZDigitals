@@ -1,6 +1,8 @@
 package com.fzscreens.tablet;
 
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.MimeTypeMap;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -37,6 +39,13 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
     private final String userAgent;
     private boolean triedCacheFallback = false;
 
+    // Keep reloading the main frame until connectivity returns — the app
+    // can boot before Wi-Fi associates, and parking on the WebView error
+    // page means the screen stays dead until someone force-quits it.
+    private static final long RETRY_MS = 15_000;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable pendingRetry;
+
     public LocalMediaWebViewClient(Bridge bridge, File base) {
         super(bridge);
         this.bridgeRef = bridge;
@@ -66,7 +75,37 @@ public class LocalMediaWebViewClient extends BridgeWebViewClient {
             view.loadUrl(request.getUrl().toString());
             return;
         }
+        if (request.isForMainFrame() && pendingRetry == null) {
+            // Cache fallback also failed — show a clean offline page and
+            // keep reloading until the network is back.
+            showOfflinePage(view);
+            final String url = request.getUrl().toString();
+            pendingRetry = () -> {
+                pendingRetry = null;
+                view.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+                view.loadUrl(url);
+            };
+            Log.i(TAG, "main frame still failing (" + error.getDescription()
+                    + "), reloading in " + (RETRY_MS / 1000) + "s");
+            handler.postDelayed(pendingRetry, RETRY_MS);
+        }
         super.onReceivedError(view, request, error);
+    }
+
+    /** Branded placeholder while waiting for connectivity — friendlier
+     *  than the stock WebView error screen a kiosk can park on. */
+    private void showOfflinePage(WebView view) {
+        view.loadDataWithBaseURL(null,
+            "<!DOCTYPE html><html><head>"
+            + "<meta name='viewport' content='width=device-width'>"
+            + "<style>body{margin:0;background:#000;color:#fff;font-family:sans-serif;"
+            + "display:flex;flex-direction:column;align-items:center;justify-content:center;"
+            + "height:100vh;text-align:center}h1{font-size:28px;margin-bottom:12px}"
+            + "p{color:rgba(255,255,255,.6);font-size:16px;line-height:1.6}</style>"
+            + "</head><body><h1>FZ Screens</h1>"
+            + "<p>No internet connection.<br>Retrying automatically&hellip;</p>"
+            + "</body></html>",
+            "text/html", "utf-8", null);
     }
 
     @Override
