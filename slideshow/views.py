@@ -2040,7 +2040,7 @@ def prayer_times(request):
             override_vals['maghrib_sunset_minutes'] = offset
             PrayerTimeOverride.objects.update_or_create(
                 mosque=mosque, date=today, defaults=override_vals)
-            messages.success(request, 'Changes will be displayed in 1 hour.')
+            messages.success(request, 'Successfully Updated')
             return redirect('prayer-times')
         except Exception as e:
             messages.error(request, f'Invalid prayer time: {e}')
