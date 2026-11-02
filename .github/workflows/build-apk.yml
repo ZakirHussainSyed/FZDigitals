@@ -62,6 +62,8 @@ jobs:
           cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaWebViewClient.java
           cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaServer.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaServer.java
           cp -f android-plugin-src/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java
+          # Required for push: the gms plugin only applies when this file exists
+          cp -f google-services.json android/app/google-services.json
           ls -R android/app/src/main/java/com/fzscreens/tablet
 
       - name: Auto-bump app version
