@@ -794,6 +794,7 @@
 
         async function refreshSlideshow() {
             if (!window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+            postFcmToken();  // no-op once posted; retries while pending
             try {
                 const ctl = new AbortController();
                 const fetchTimer = setTimeout(() => ctl.abort(), 8000);
@@ -848,20 +849,30 @@
         // FCM push: the server pings this device the moment its slides or
         // prayer timings change — refresh in ~seconds instead of the next
         // hourly poll (which stays as the safety net).
+        let pendingFcmToken = null;
+        function postFcmToken() {
+            if (!pendingFcmToken || !window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+            const t = pendingFcmToken;
+            fetch(`/api/device/${encodeURIComponent(window.DEVICE_ID)}/fcm/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Token': window.DEVICE_TOKEN,
+                },
+                body: JSON.stringify({fcm_token: t}),
+            }).then(() => {
+                pendingFcmToken = null;
+                dlog('fcm token posted');
+            }).catch(() => {});
+        }
         (function initPush() {
             try {
                 const PN = window.Capacitor && Capacitor.Plugins &&
                     Capacitor.Plugins.PushNotifications;
-                if (!PN || !window.DEVICE_ID || !window.DEVICE_TOKEN) return;
+                if (!PN) return;
                 PN.addListener('registration', t => {
-                    fetch(`/api/device/${encodeURIComponent(window.DEVICE_ID)}/fcm/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Device-Token': window.DEVICE_TOKEN,
-                        },
-                        body: JSON.stringify({fcm_token: t.value}),
-                    }).catch(() => {});
+                    pendingFcmToken = t.value;
+                    postFcmToken();
                 });
                 PN.addListener('registrationError', e =>
                     dlog('push registration failed', e && e.error));
