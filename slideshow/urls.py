@@ -47,5 +47,4 @@ urlpatterns = [
     path('setup/', views.setup_pairing, name='setup-pairing'),
     path('screens/', views.my_screens, name='my-screens'),
     path('api/qr/', views.api_qr_svg, name='api-qr-svg'),
-    path('privacy/', views.privacy, name='privacy'),
 ]
