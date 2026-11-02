@@ -139,12 +139,29 @@
             margin-top: 40px;
         }
         .video-card {
+            position: relative;
             background: #ffffff;
             border: 1px solid rgba(0,0,0,0.08);
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             border-radius: 16px;
             overflow: hidden;
         }
+        .sound-cue {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.72);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+        }
+        .sound-cue:hover { background: rgba(0,0,0,0.85); }
         .video-card video {
             width: 100%;
             aspect-ratio: 16/9;
@@ -269,10 +286,11 @@
         <p>Watch how {{ brand.name }} transforms your displays.</p>
         <div class="videos">
             <div class="video-card">
-                <video muted loop playsinline>
+                <video id="demoVideo" muted loop playsinline>
                     <source src="/static/demo-video-1.MP4" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
+                <button id="soundCue" class="sound-cue" type="button">🔊 Tap for sound</button>
             </div>
         </div>
     </section>
@@ -325,6 +343,22 @@
         document.querySelectorAll('.video-card video').forEach(video => {
             observer.observe(video);
         });
+
+        // 'Tap for sound' pill — browsers block unmuted autoplay, so a tap
+        // unmutes and hides the cue; it reappears if the user mutes again.
+        var demoVideo = document.getElementById('demoVideo');
+        var soundCue = document.getElementById('soundCue');
+        if (demoVideo && soundCue) {
+            soundCue.addEventListener('click', function() {
+                demoVideo.muted = false;
+                demoVideo.volume = 1;
+                demoVideo.play().catch(function() {});
+                soundCue.style.display = 'none';
+            });
+            demoVideo.addEventListener('volumechange', function() {
+                soundCue.style.display = (demoVideo.muted || demoVideo.volume === 0) ? 'block' : 'none';
+            });
+        }
     </script>
 </body>
 </html>
