@@ -809,6 +809,7 @@
 
             if (deviceToken && deviceId) {
                 dlog('refresh: using existing pairing');
+                postFcmToken();  // no-op once posted; retries while pending
                 let res, data;
                 const ctl = new AbortController();
                 // navigator.onLine is true on dead WAN — cap the fetch so a
@@ -910,6 +911,7 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
+                        postFcmToken();
                         fastPollUntil = Date.now() + FAST_WINDOW_MS;
                         dlog('QR pairing created:', deviceId);
                     } else {
@@ -1031,6 +1033,7 @@
                         deviceToken = data.token;
                         localStorage.setItem('fz_device_id', deviceId);
                         localStorage.setItem('fz_device_token', deviceToken);
+                        postFcmToken();
                         fastPollUntil = Date.now() + FAST_WINDOW_MS;
                         dlog('QR pairing created:', deviceId);
                     } else {
@@ -1101,21 +1104,30 @@
 
         // FCM push: the server pings this device the moment its slides or
         // timings change — refresh in ~seconds instead of the next poll.
+        let pendingFcmToken = null;
+        function postFcmToken() {
+            if (!pendingFcmToken || !deviceId || !deviceToken) return;
+            const t = pendingFcmToken;
+            fetch(`/api/device/${encodeURIComponent(deviceId)}/fcm/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Token': deviceToken,
+                },
+                body: JSON.stringify({fcm_token: t}),
+            }).then(() => {
+                pendingFcmToken = null;
+                dlog('fcm token posted');
+            }).catch(() => {});
+        }
         (function initPush() {
             try {
                 const PN = window.Capacitor && Capacitor.Plugins &&
                     Capacitor.Plugins.PushNotifications;
                 if (!PN) return;  // plain browser / old WebView — poll only
                 PN.addListener('registration', t => {
-                    if (!deviceId || !deviceToken) return;
-                    fetch(`/api/device/${encodeURIComponent(deviceId)}/fcm/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Device-Token': deviceToken,
-                        },
-                        body: JSON.stringify({fcm_token: t.value}),
-                    }).catch(() => {});
+                    pendingFcmToken = t.value;
+                    postFcmToken();
                 });
                 PN.addListener('registrationError', e =>
                     dwarn('push registration failed', e && e.error));
