@@ -2238,3 +2238,7 @@ def mosque_tv_device(request):
     })
 
 
+
+
+def privacy(request):
+    return render(request, 'slideshow/privacy.html')
