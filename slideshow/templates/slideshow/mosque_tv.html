@@ -881,13 +881,14 @@
                         Promise.resolve(refreshSlideshow()).catch(() => {});
                     }
                 });
-                // Register unconditionally: our pushes are data-only (handled
-                // inside the running WebView), so POST_NOTIFICATIONS display
-                // permission doesn't matter — and on Android TV the prompt
-                // may not even exist, so receive never resolves 'granted'.
-                PN.requestPermissions()
-                    .catch(() => {})
-                    .then(() => PN.register());
+                // Register immediately and unconditionally: our pushes are
+                // data-only (handled inside the running WebView), so
+                // POST_NOTIFICATIONS display permission doesn't matter —
+                // and on Android TV the prompt may not even exist, so
+                // chaining register() after the permission promise risked
+                // it never firing.
+                PN.register();
+                PN.requestPermissions().catch(() => {});
             } catch (e) { /* web preview — no Capacitor bridge */ }
         })();
 
