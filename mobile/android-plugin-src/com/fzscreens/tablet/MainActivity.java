@@ -31,6 +31,16 @@ public class MainActivity extends BridgeActivity {
 
         File base = new File(getFilesDir(), "slideshow");
         bridge.getWebView().setWebViewClient(new LocalMediaWebViewClient(bridge, base));
+
+        UpdateChecker.schedule(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // If an OTA confirm sheet was blocked while the app was
+        // frozen/backgrounded, surface it now.
+        UpdateChecker.showPendingConfirm(this);
     }
 
     /**

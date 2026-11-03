@@ -62,8 +62,11 @@ jobs:
           cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaWebViewClient.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaWebViewClient.java
           cp -f android-plugin-src/com/fzscreens/tablet/LocalMediaServer.java android/app/src/main/java/com/fzscreens/tablet/LocalMediaServer.java
           cp -f android-plugin-src/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java android/app/src/main/java/com/fzscreens/tablet/plugins/MediaDownloaderPlugin.java
+          cp -f android-plugin-src/com/fzscreens/tablet/UpdateChecker.java android/app/src/main/java/com/fzscreens/tablet/UpdateChecker.java
           # Required for push: the gms plugin only applies when this file exists
           cp -f google-services.json android/app/google-services.json
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />\n</manifest>|' $MANIFEST
           ls -R android/app/src/main/java/com/fzscreens/tablet
 
       - name: Auto-bump app version
@@ -170,3 +173,13 @@ jobs:
         with:
           name: fzscreens-release-apk
           path: mobile/android/app/build/outputs/apk/release/app-release-signed.apk
+
+      - name: Publish OTA release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tablet-${{ github.run_number }}
+          name: FZ Screens Tablet 1.0.${{ github.run_number }}
+          prerelease: true
+          files: mobile/android/app/build/outputs/apk/release/app-release-signed.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
