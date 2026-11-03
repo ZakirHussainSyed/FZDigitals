@@ -881,9 +881,13 @@
                         Promise.resolve(refreshSlideshow()).catch(() => {});
                     }
                 });
-                PN.requestPermissions().then(p => {
-                    if (p.receive === 'granted') PN.register();
-                }).catch(() => {});
+                // Register unconditionally: our pushes are data-only (handled
+                // inside the running WebView), so POST_NOTIFICATIONS display
+                // permission doesn't matter — and on Android TV the prompt
+                // may not even exist, so receive never resolves 'granted'.
+                PN.requestPermissions()
+                    .catch(() => {})
+                    .then(() => PN.register());
             } catch (e) { /* web preview — no Capacitor bridge */ }
         })();
 

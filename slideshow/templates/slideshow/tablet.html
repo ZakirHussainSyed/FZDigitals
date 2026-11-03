@@ -1136,9 +1136,11 @@
                         Promise.resolve(refresh()).catch(() => {});
                     }
                 });
-                PN.requestPermissions().then(p => {
-                    if (p.receive === 'granted') PN.register();
-                }).catch(() => {});
+                // Register unconditionally — data-only pushes are handled in-app,
+                // so notification-display permission isn't a prerequisite.
+                PN.requestPermissions()
+                    .catch(() => {})
+                    .then(() => PN.register());
             } catch (e) { /* Capacitor bridge absent */ }
         })();
 
