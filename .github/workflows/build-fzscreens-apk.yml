@@ -129,3 +129,13 @@ jobs:
         with:
           name: fzscreens-release-apk
           path: mobile-fzscreens/android/app/build/outputs/apk/release/app-release-signed.apk
+
+      - name: Publish OTA release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: fz-${{ github.run_number }}
+          name: FZ Screens 1.0.${{ github.run_number }}
+          prerelease: true
+          files: mobile-fzscreens/android/app/build/outputs/apk/release/app-release-signed.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
