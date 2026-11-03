@@ -24,17 +24,25 @@ import java.net.URL;
 
 /**
  * Over-the-air APK update with no laptop:
- * once per launch, fetch the latest GitHub release; if its tag
- * (tv-<versionCode>) is newer than the installed build, download the
- * signed APK and open the system install sheet. One remote press
- * applies the update — same signature, so settings and the Home Guard
- * toggle survive.
+ * once per launch, fetch the newest non-prerelease GitHub release whose
+ * tag starts with "tv-"; if its number (tv-<versionCode>) is newer
+ * than the installed build, download the signed APK and open the
+ * system install sheet. One remote press applies the update — same
+ * signature, so settings and the Home Guard toggle survive.
+ *
+ * Two safety rails:
+ *  - Play-installed copies skip this entirely (Play policy + Play App
+ *    Signing makes the sideload signature-incompatible anyway).
+ *  - The tv- prefix is required because tv-* and fz-* release series
+ *    share this repo; /releases/latest can point at the other app, and
+ *    the matching keystore would make a wrong-APK install succeed.
  */
 public final class UpdateChecker {
 
     private static final String TAG = "UpdateChecker";
     private static final String RELEASE_API =
-            "https://api.github.com/repos/ZakirHussainSyed/FZDigitals/releases/latest";
+            "https://api.github.com/repos/ZakirHussainSyed/FZDigitals/releases?per_page=15";
+    private static final String RELEASE_PREFIX = "tv-";
     private static final long CHECK_DELAY_MS = 20_000;
     private static boolean ran = false;
 
@@ -45,9 +53,31 @@ public final class UpdateChecker {
     public static void schedule(final Context ctx) {
         if (ran) return;
         ran = true;
+        // Installed from Google Play → Play Store owns updates. Any
+        // sideload channel here would also fail signature checks (Play
+        // App Signing re-signs) and violates Play policy.
+        if (isPlayInstall(ctx)) return;
         final Context app = ctx.getApplicationContext();
         new Handler(Looper.getMainLooper())
                 .postDelayed(() -> check(app), CHECK_DELAY_MS);
+    }
+
+    /** True when this copy was installed by the Play Store. */
+    private static boolean isPlayInstall(Context ctx) {
+        try {
+            String installer;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                installer = ctx.getPackageManager()
+                        .getInstallSourceInfo(ctx.getPackageName())
+                        .getInstallingPackageName();
+            } else {
+                installer = ctx.getPackageManager()
+                        .getInstallerPackageName(ctx.getPackageName());
+            }
+            return "com.android.vending".equals(installer);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static final int MAX_ATTEMPTS = 10;
@@ -60,7 +90,8 @@ public final class UpdateChecker {
             // only update path until the next launch.
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
-                    JSONObject rel = get(RELEASE_API);
+                    JSONArray list = get(RELEASE_API);
+                    JSONObject rel = findOurLatest(list);
                     if (rel != null) {
                         int remote =
                                 parseVersion(rel.optString("tag_name", ""));
@@ -88,7 +119,27 @@ public final class UpdateChecker {
         }).start();
     }
 
-    private static JSONObject get(String url) {
+    /**
+     * Newest promoted (non-prerelease) release in our tag series.
+     * The releases list is newest-first, so the first match wins —
+     * pre-releases stay invisible to production devices until promoted.
+     */
+    private static JSONObject findOurLatest(JSONArray list) {
+        if (list == null) return null;
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject rel = list.optJSONObject(i);
+            if (rel == null) continue;
+            if (rel.optBoolean("prerelease", false)) continue;
+            if (rel.optBoolean("draft", false)) continue;
+            if (rel.optString("tag_name", "")
+                    .startsWith(RELEASE_PREFIX)) {
+                return rel;
+            }
+        }
+        return null;
+    }
+
+    private static JSONArray get(String url) {
         try {
             HttpURLConnection c = (HttpURLConnection)
                     new URL(url).openConnection();
@@ -103,7 +154,7 @@ public final class UpdateChecker {
                 String line;
                 while ((line = r.readLine()) != null) sb.append(line);
             }
-            return new JSONObject(sb.toString());
+            return new JSONArray(sb.toString());
         } catch (Exception e) {
             return null;
         }
