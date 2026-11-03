@@ -50,9 +50,6 @@ jobs:
           mkdir -p android/app/src/main/java/com/fzscreens/app
           cp -f android-plugin-src/com/fzscreens/app/MainActivity.java android/app/src/main/java/com/fzscreens/app/MainActivity.java
           cp -f android-plugin-src/com/fzscreens/app/SiteWebViewClient.java android/app/src/main/java/com/fzscreens/app/SiteWebViewClient.java
-          cp -f android-plugin-src/com/fzscreens/app/UpdateChecker.java android/app/src/main/java/com/fzscreens/app/UpdateChecker.java
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />\n</manifest>|' $MANIFEST
           ls -R android/app/src/main/java/com/fzscreens/app
 
       - name: Auto-bump app version
@@ -132,13 +129,3 @@ jobs:
         with:
           name: fzscreens-release-apk
           path: mobile-fzscreens/android/app/build/outputs/apk/release/app-release-signed.apk
-
-      - name: Publish OTA release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: fz-${{ github.run_number }}
-          name: FZ Screens 1.0.${{ github.run_number }}
-          prerelease: true
-          files: mobile-fzscreens/android/app/build/outputs/apk/release/app-release-signed.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
