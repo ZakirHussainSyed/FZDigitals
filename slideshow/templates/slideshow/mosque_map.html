@@ -565,7 +565,7 @@
                             const lat = parseFloat(r.lat);
                             const lon = parseFloat(r.lon);
                             map.setView([lat, lon], 13);
-                            await fetchAround(lat, lon, 31); // fresh ~50 km viewport
+                            await fetchAround(lat, lon, 31, 13); // fresh ~50 km viewport at zoom 13
                             filterByDistance(lat, lon, 31); // ~50 km
                         });
                         ddResults.appendChild(item);
@@ -590,7 +590,7 @@
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
                     map.setView([lat, lon], 13);
-                    await fetchAround(lat, lon, 31); // fresh ~50 km viewport
+                    await fetchAround(lat, lon, 31, 13); // fresh ~50 km viewport at zoom 13
                     filterByDistance(lat, lon, 31); // ~50 km
                 } catch (err) {
                     console.error('Geocode error:', err);
@@ -746,9 +746,9 @@
             // Fetch mosques — with a 's,w,n,e' bbox only that viewport comes
             // back; without it the whole feed (boot fallback). Returns the
             // fetched list, or null on failure.
-            async function fetchMosques(bboxParam) {
+            async function fetchMosques(bboxParam, zoomParam) {
                 try {
-                    const zoom = map ? map.getZoom() : 14;
+                    const zoom = zoomParam !== undefined ? zoomParam : (map ? map.getZoom() : 14);
                     const params = new URLSearchParams();
                     if (bboxParam) params.set('bbox', bboxParam);
                     params.set('zoom', zoom);
@@ -774,8 +774,8 @@
                 return [lat - latD, lon - lngD, lat + latD, lon + lngD];
             }
 
-            function fetchAround(lat, lon, miles) {
-                return fetchMosques(milesBox(lat, lon, miles).join(','));
+            function fetchAround(lat, lon, miles, zoom) {
+                return fetchMosques(milesBox(lat, lon, miles).join(','), zoom);
             }
 
             function fetchMosquesInBounds(b) {
