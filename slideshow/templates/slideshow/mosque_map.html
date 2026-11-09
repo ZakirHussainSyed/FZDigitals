@@ -606,7 +606,7 @@
                 // Fetch the framed viewport for fresh timings; a failed fetch
                 // falls back to whatever allMosques already holds.
                 const b = map.getBounds();
-                const fetched = await fetchMosquesInBounds(b);
+                const fetched = await fetchMosquesInBounds(b, NEAR_ME_ZOOM);
                 const viewMosques = fetched !== null ? fetched
                     : allMosques.filter(function(m) {
                         return b.contains([m.latitude, m.longitude]);
@@ -778,11 +778,11 @@
                 return fetchMosques(milesBox(lat, lon, miles).join(','), zoom);
             }
 
-            function fetchMosquesInBounds(b) {
+            function fetchMosquesInBounds(b, zoom) {
                 return fetchMosques([
                     b.getSouth().toFixed(5), b.getWest().toFixed(5),
                     b.getNorth().toFixed(5), b.getEast().toFixed(5)
-                ].join(','));
+                ].join(','), zoom);
             }
 
             function loadCachedMosques() {
@@ -823,7 +823,7 @@
                 if (nxt <= now) nxt.setDate(nxt.getDate() + 1);
                 setTimeout(async function tick() {
                     // Refresh just the current viewport — not the world feed.
-                    const ok = map ? await fetchMosquesInBounds(map.getBounds())
+                    const ok = map ? await fetchMosquesInBounds(map.getBounds(), map.getZoom())
                                    : await fetchMosques();
                     if (ok) {
                         refreshSalahLabels();
@@ -942,7 +942,7 @@
                     const b = map.getBounds();
                     // Fetch this viewport for fresh timings; fall back to the
                     // already-loaded list when the network fails.
-                    const fetched = await fetchMosquesInBounds(b);
+                    const fetched = await fetchMosquesInBounds(b, map.getZoom());
                     const inView = fetched !== null ? fetched
                         : allMosques.filter(function(m) {
                             return b.contains([m.latitude, m.longitude]);
