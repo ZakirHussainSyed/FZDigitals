@@ -15,6 +15,7 @@ from django.db import transaction
 from django.core.cache import cache
 import json
 import logging
+import os
 import secrets
 from types import SimpleNamespace
 
@@ -1902,6 +1903,80 @@ out center;
     except Exception as e:
         logger.debug(f"Overpass API failed for bbox {s},{w},{n},{e}: {e}")
         return []
+
+
+# Prefetched OSM mosque dataset (scripts/fetch_india_mosques.py →
+# slideshow/static/india_mosques.json). Loaded once per process — the
+# Overpass API is unreachable from the server, so the map reads the
+# local snapshot instead of querying live.
+_OSM_MOSQUES = None
+_OSM_MOSQUES_LOADED = False
+
+
+def _load_osm_mosques():
+    global _OSM_MOSQUES, _OSM_MOSQUES_LOADED
+    if _OSM_MOSQUES_LOADED:
+        return _OSM_MOSQUES
+    _OSM_MOSQUES_LOADED = True
+    path = os.path.join(settings.BASE_DIR, 'slideshow', 'static', 'india_mosques.json')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            _OSM_MOSQUES = json.load(f).get('mosques', [])
+    except Exception:
+        logger.warning('india_mosques.json missing or unreadable', exc_info=True)
+        _OSM_MOSQUES = []
+    return _OSM_MOSQUES
+
+
+@require_http_methods(["GET"])
+def api_osm_mosques(request):
+    """OSM mosque pins from the prefetched India snapshot.
+
+    ?bbox=<s>,<w>,<n>,<e> filters by viewport, ?limit=N caps rows
+    (default 2000). Returns the same per-mosque shape as the public
+    mosques feed with has_timings=false — the client merges them with
+    the DB entries under osm_* ids.
+    """
+    data = _load_osm_mosques()
+    s = w = n = e = None
+    bbox = request.GET.get('bbox', '')
+    if bbox:
+        try:
+            s, w, n, e = (float(v) for v in bbox.split(','))
+        except (TypeError, ValueError):
+            s = w = n = e = None
+    try:
+        limit = max(1, min(int(request.GET.get('limit', 2000)), 5000))
+    except (TypeError, ValueError):
+        limit = 2000
+    if s is not None:
+        data = [m for m in data
+                if s <= m['latitude'] <= n and w <= m['longitude'] <= e]
+    # City/town-name filter for searches — cheap substring match, capped
+    # so a broad term can't return the whole country.
+    q = (request.GET.get('q') or '').strip().lower()
+    if q:
+        data = [m for m in data
+                if q in (m.get('name') or '').lower()
+                or q in (m.get('address') or '').lower()][:limit]
+    else:
+        data = data[:limit]
+    out = []
+    for m in data:
+        out.append({
+            'id': m['id'],
+            'name': m.get('name') or 'Mosque',
+            'address': m.get('address') or '',
+            'latitude': m['latitude'],
+            'longitude': m['longitude'],
+            'has_timings': False,
+            'timings': {},
+            'next_salah': None,
+            'timezone': 'Asia/Kolkata',
+            'website': None,
+        })
+    return JsonResponse({'success': True, 'mosques': out,
+                         'count': len(out)})
 
 
 @require_http_methods(["GET"])

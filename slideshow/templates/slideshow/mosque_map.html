@@ -715,11 +715,18 @@
             // fetched list, or null on failure.
             async function fetchMosques(bboxParam) {
                 try {
-                    const res = await fetch('/api/public/mosques/' +
-                        (bboxParam ? '?bbox=' + bboxParam : ''));
-                    const data = await res.json();
+                    const qs = bboxParam ? '?bbox=' + bboxParam : '';
+                    // DB mosques (timings) + prefetched OSM snapshot (pins).
+                    // OSM entries carry osm_* ids so mergeMosques dedupes.
+                    const [dbRes, osmRes] = await Promise.all([
+                        fetch('/api/public/mosques/' + qs),
+                        fetch('/api/osm/mosques/' + qs)
+                    ]);
+                    const data = await dbRes.json();
+                    if (data.success && data.mosques) mergeMosques(data.mosques);
+                    const osm = await osmRes.json().catch(() => null);
+                    if (osm && osm.mosques) mergeMosques(osm.mosques);
                     if (!data.success || !data.mosques) return null;
-                    mergeMosques(data.mosques);
                     try {
                         localStorage.setItem(MAP_CACHE_KEY,
                             JSON.stringify({saved: Date.now(), mosques: allMosques}));
