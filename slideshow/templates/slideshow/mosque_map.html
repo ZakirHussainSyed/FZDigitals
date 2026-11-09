@@ -374,20 +374,25 @@
                 } else {
                     webEl.style.display = 'none';
                 }
+                
+                // Handle mosques without timings (OSM mosques)
                 const timings = mosque.timings || {};
-                document.getElementById('t-fajr').textContent = timings.fajr || '-';
-                document.getElementById('t-sunrise').textContent = timings.sunrise || '-';
-                document.getElementById('t-dhuhr').textContent = timings.dhuhr || '-';
-                document.getElementById('t-asr').textContent = timings.asr || '-';
-                document.getElementById('t-sunset').textContent = timings.sunset || '-';
-                document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
-                document.getElementById('t-isha').textContent = timings.isha || '-';
+                const hasTimings = mosque.has_timings !== false;
+                
+                document.getElementById('t-fajr').textContent = timings.fajr || (hasTimings ? '-' : '--');
+                document.getElementById('t-sunrise').textContent = timings.sunrise || (hasTimings ? '-' : '--');
+                document.getElementById('t-dhuhr').textContent = timings.dhuhr || (hasTimings ? '-' : '--');
+                document.getElementById('t-asr').textContent = timings.asr || (hasTimings ? '-' : '--');
+                document.getElementById('t-sunset').textContent = timings.sunset || (hasTimings ? '-' : '--');
+                document.getElementById('t-maghrib').textContent = timings.maghrib || (hasTimings ? '-' : '--');
+                document.getElementById('t-isha').textContent = timings.isha || (hasTimings ? '-' : '--');
                 document.getElementById('t-jummah').textContent = timings.jummah || '--';
                 document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
                 document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
 
                 modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
-                if (mosque.next_salah && mosque.next_salah.name) {
+                // Only highlight next salah if mosque has timings
+                if (hasTimings && mosque.next_salah && mosque.next_salah.name) {
                     // Display name -> timings key: 'Jumu'ah 2' -> 'jummah2' -> id 't-jummah2'
                     const NEXT_KEY = {"Jumu'ah": 'jummah', "Jumu'ah 2": 'jummah2', "Jumu'ah 3": 'jummah3'};
                     const nk = NEXT_KEY[mosque.next_salah.name]
@@ -421,9 +426,10 @@
             }
 
             function createIcon(m) {
-                const nextLabel = m.next_salah && m.next_salah.name
+                // Handle mosques without timings (OSM mosques)
+                const nextLabel = m.has_timings && m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
-                    : '';
+                    : (m.has_timings === false ? '<span class="next-salah">No timings</span>' : '');
                 const html = `${nextLabel}<strong>${m.name}</strong>`;
                 return L.divIcon({
                     className: '',

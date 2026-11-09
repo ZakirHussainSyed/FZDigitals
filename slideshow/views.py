@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.db.models import F, Sum, Max
 from django.db import transaction
+from django.core.cache import cache
 import json
 import logging
 import secrets
@@ -1823,6 +1824,86 @@ def api_approx_location(request):
     return JsonResponse({'success': False})
 
 
+def _fetch_osm_mosques(s, w, n, e):
+    """Fetch mosques from OpenStreetMap for the given bounding box.
+    
+    Returns list of mosques with lat/lon/name/address. Caches for 24h.
+    Filters to India only (6.5-37.0N, 68.0-97.0E).
+    """
+    # India bounding box
+    INDIA_S, INDIA_W = 6.5, 68.0
+    INDIA_N, INDIA_E = 37.0, 97.0
+    
+    # Intersect with India bounds
+    s = max(s, INDIA_S)
+    w = max(w, INDIA_W)
+    n = min(n, INDIA_N)
+    e = min(e, INDIA_E)
+    
+    if s >= n or w >= e:
+        return []  # No overlap with India
+    
+    cache_key = f'osm_mosques:{s:.4f},{w:.4f},{n:.4f},{e:.4f}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    
+    try:
+        query = f'''
+[out:json][timeout:10];
+(
+  node["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
+  way["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
+  relation["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
+);
+out center;
+'''
+        resp = requests.post(
+            'https://overpass-api.de/api/interpreter',
+            data={'data': query},
+            timeout=10
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        
+        mosques = []
+        for elem in result.get('elements', []):
+            lat = lon = name = address = None
+            if elem['type'] == 'node':
+                lat = elem.get('lat')
+                lon = elem.get('lon')
+            else:
+                center = elem.get('center', {})
+                lat = center.get('lat')
+                lon = center.get('lon')
+            
+            if lat is None or lon is None:
+                continue
+            
+            tags = elem.get('tags', {})
+            name = tags.get('name') or tags.get('name:en') or 'Mosque'
+            address = tags.get('addr:full') or tags.get('addr:city') or ''
+            
+            mosques.append({
+                'id': f"osm_{elem['id']}",
+                'name': name,
+                'address': address,
+                'latitude': lat,
+                'longitude': lon,
+                'has_timings': False,
+                'timings': {},
+                'next_salah': None,
+                'timezone': 'Asia/Kolkata',
+                'website': None,
+            })
+        
+        cache.set(cache_key, mosques, 86400)  # 24h cache
+        return mosques
+    except Exception as e:
+        logger.warning(f"Overpass API failed for bbox {s},{w},{n},{e}: {e}")
+        return []
+
+
 @require_http_methods(["GET"])
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah.
@@ -1840,6 +1921,7 @@ def api_public_mosques(request):
         # limits the feed to mosques inside the requested map bounds so
         # clients can fetch only the region they're showing.
         bbox = request.GET.get('bbox', '')
+        s, w, n, e = None, None, None, None
         if bbox:
             try:
                 s, w, n, e = (float(v) for v in bbox.split(','))
@@ -1896,6 +1978,7 @@ def api_public_mosques(request):
                     'timings': timings,
                     'timezone': str(m_tz),
                     'website': m.website_url,
+                    'has_timings': True,
                 })
             except Exception:
                 # One bad mosque (crashed sync, invalid timezone string,
@@ -1903,6 +1986,23 @@ def api_public_mosques(request):
                 logger.exception(
                     f'api_public_mosques: mosque {m.id} ({m.name}) failed')
                 continue
+        
+        # Fetch OSM mosques if bbox is provided
+        if s is not None and w is not None and n is not None and e is not None:
+            osm_mosques = _fetch_osm_mosques(s, w, n, e)
+            # Merge OSM mosques, avoiding duplicates by proximity (~50m)
+            db_coords = {(m['latitude'], m['longitude']): m for m in data}
+            for osm_m in osm_mosques:
+                lat, lon = osm_m['latitude'], osm_m['longitude']
+                # Check if close to any DB mosque
+                is_duplicate = False
+                for db_lat, db_lon in db_coords.keys():
+                    if abs(lat - db_lat) < 0.0005 and abs(lon - db_lon) < 0.0005:
+                        is_duplicate = True
+                        break
+                if not is_duplicate:
+                    data.append(osm_m)
+        
         return JsonResponse({'success': True, 'mosques': data,
                              'truncated': total > len(data)})
     except Exception as e:
