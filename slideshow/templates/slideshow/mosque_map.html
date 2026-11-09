@@ -38,6 +38,22 @@
         }
         .mosque-pin strong { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
         .mosque-pin .next-salah { display: block; font-size: 17px; font-weight: 700; color: #ffd54f; }
+        .cluster-pin {
+            position: relative;
+            background: #7c5cff;
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+            transform: translate(-50%, -50%);
+        }
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -374,20 +390,25 @@
                 } else {
                     webEl.style.display = 'none';
                 }
+                
+                // Handle mosques without timings (OSM mosques)
                 const timings = mosque.timings || {};
-                document.getElementById('t-fajr').textContent = timings.fajr || '-';
-                document.getElementById('t-sunrise').textContent = timings.sunrise || '-';
-                document.getElementById('t-dhuhr').textContent = timings.dhuhr || '-';
-                document.getElementById('t-asr').textContent = timings.asr || '-';
-                document.getElementById('t-sunset').textContent = timings.sunset || '-';
-                document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
-                document.getElementById('t-isha').textContent = timings.isha || '-';
+                const hasTimings = mosque.has_timings !== false;
+                
+                document.getElementById('t-fajr').textContent = timings.fajr || (hasTimings ? '-' : '--');
+                document.getElementById('t-sunrise').textContent = timings.sunrise || (hasTimings ? '-' : '--');
+                document.getElementById('t-dhuhr').textContent = timings.dhuhr || (hasTimings ? '-' : '--');
+                document.getElementById('t-asr').textContent = timings.asr || (hasTimings ? '-' : '--');
+                document.getElementById('t-sunset').textContent = timings.sunset || (hasTimings ? '-' : '--');
+                document.getElementById('t-maghrib').textContent = timings.maghrib || (hasTimings ? '-' : '--');
+                document.getElementById('t-isha').textContent = timings.isha || (hasTimings ? '-' : '--');
                 document.getElementById('t-jummah').textContent = timings.jummah || '--';
                 document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
                 document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
 
                 modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
-                if (mosque.next_salah && mosque.next_salah.name) {
+                // Only highlight next salah if mosque has timings
+                if (hasTimings && mosque.next_salah && mosque.next_salah.name) {
                     // Display name -> timings key: 'Jumu'ah 2' -> 'jummah2' -> id 't-jummah2'
                     const NEXT_KEY = {"Jumu'ah": 'jummah', "Jumu'ah 2": 'jummah2', "Jumu'ah 3": 'jummah3'};
                     const nk = NEXT_KEY[mosque.next_salah.name]
@@ -421,9 +442,20 @@
             }
 
             function createIcon(m) {
-                const nextLabel = m.next_salah && m.next_salah.name
+                // Handle cluster markers
+                if (m.cluster) {
+                    return L.divIcon({
+                        className: '',
+                        html: `<div class="cluster-pin">${m.count}</div>`,
+                        iconSize: null,
+                        iconAnchor: [0, 0]
+                    });
+                }
+                
+                // Handle mosques without timings (OSM mosques)
+                const nextLabel = m.has_timings && m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
-                    : '';
+                    : (m.has_timings === false ? '<span class="next-salah">No timings</span>' : '');
                 const html = `${nextLabel}<strong>${m.name}</strong>`;
                 return L.divIcon({
                     className: '',
@@ -481,7 +513,14 @@
                 thinForView(mosques).forEach(function(m) {
                     const marker = L.marker([m.latitude, m.longitude], {icon: createIcon(m)});
                     marker.mosqueRef = m;
-                    marker.on('click', function() { openModal(m); });
+                    // Cluster markers zoom in on click
+                    if (m.cluster) {
+                        marker.on('click', function() {
+                            map.setView([m.latitude, m.longitude], map.getZoom() + 2);
+                        });
+                    } else {
+                        marker.on('click', function() { openModal(m); });
+                    }
                     markers.addLayer(marker);
                 });
             }
@@ -709,8 +748,11 @@
             // fetched list, or null on failure.
             async function fetchMosques(bboxParam) {
                 try {
-                    const res = await fetch('/api/public/mosques/' +
-                        (bboxParam ? '?bbox=' + bboxParam : ''));
+                    const zoom = map ? map.getZoom() : 14;
+                    const params = new URLSearchParams();
+                    if (bboxParam) params.set('bbox', bboxParam);
+                    params.set('zoom', zoom);
+                    const res = await fetch('/api/public/mosques/?' + params.toString());
                     const data = await res.json();
                     if (!data.success || !data.mosques) return null;
                     mergeMosques(data.mosques);

@@ -12,9 +12,11 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.db.models import F, Sum, Max
 from django.db import transaction
+from django.core.cache import cache
 import json
 import logging
 import secrets
+import math
 from types import SimpleNamespace
 
 import requests
@@ -1823,9 +1825,148 @@ def api_approx_location(request):
     return JsonResponse({'success': False})
 
 
+def _fetch_osm_mosques(south, west, north, east, zoom_level):
+    """Fetch mosques from OpenStreetMap via Overpass API with caching and India filter.
+    
+    Mitigations:
+    - 24h cache per bbox
+    - Zoom threshold: only fetch at zoom 12+ (city level)
+    - India filter: only return mosques within India bounds
+    - Timeout fallback: return empty list if Overpass is slow
+    - Clustering: for zoom < 14, return clustered results (Google Maps style)
+    """
+    # Zoom threshold: only fetch OSM mosques when zoomed in enough
+    if zoom_level < 12:
+        return []
+    
+    # India bounds (approximate)
+    INDIA_BOUNDS = {'south': 6.5, 'north': 37.0, 'west': 68.0, 'east': 97.0}
+    
+    # Check if bbox overlaps with India
+    if not (south <= INDIA_BOUNDS['north'] and north >= INDIA_BOUNDS['south'] and
+            west <= INDIA_BOUNDS['east'] and east >= INDIA_BOUNDS['west']):
+        return []
+    
+    # Cache key based on bbox
+    cache_key = f"osm_mosques:{south:.4f},{west:.4f},{north:.4f},{east:.4f}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    
+    try:
+        # Overpass API query for mosques
+        query = f"""
+[out:json][timeout:25];
+(
+  node["amenity"="place_of_worship"]["religion"="muslim"]({south},{west},{north},{east});
+  way["amenity"="place_of_worship"]["religion"="muslim"]({south},{west},{north},{east});
+  relation["amenity"="place_of_worship"]["religion"="muslim"]({south},{west},{north},{east});
+);
+out center;
+"""
+        response = requests.get(
+            'https://overpass-api.de/api/interpreter',
+            params={'data': query},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        # Parse OSM results
+        mosques = []
+        for element in data.get('elements', []):
+            lat = element.get('lat') or element.get('center', {}).get('lat')
+            lon = element.get('lon') or element.get('center', {}).get('lon')
+            if lat is None or lon is None:
+                continue
+            
+            # Filter to India bounds
+            if not (INDIA_BOUNDS['south'] <= lat <= INDIA_BOUNDS['north'] and
+                    INDIA_BOUNDS['west'] <= lon <= INDIA_BOUNDS['east']):
+                continue
+            
+            tags = element.get('tags', {})
+            name = tags.get('name') or tags.get('name:en', 'Mosque')
+            address = tags.get('addr:full') or tags.get('addr:street', '')
+            
+            mosques.append({
+                'osm_id': element.get('id'),
+                'name': name,
+                'address': address,
+                'latitude': lat,
+                'longitude': lon,
+                'has_timings': False,
+            })
+        
+        # Cache for 24 hours
+        cache.set(cache_key, mosques, 86400)
+        return mosques
+        
+    except Exception as e:
+        logger.warning(f'Overpass API failed for bbox {south:.4f},{west:.4f},{north:.4f},{east:.4f}: {e}')
+        # Return empty list on failure (fallback to DB-only)
+        return []
+
+
+def _cluster_mosques(mosques, zoom_level):
+    """Cluster mosques for zoomed-out views (Google Maps style).
+    
+    At zoom < 14, group nearby mosques into clusters to avoid overcrowding.
+    Returns a mix of individual mosques and cluster markers.
+    """
+    if zoom_level >= 14:
+        return mosques  # No clustering at high zoom
+    
+    # Cluster radius in degrees (approximate, varies by latitude)
+    # At zoom 12: ~0.5 degrees (~50km)
+    # At zoom 13: ~0.25 degrees (~25km)
+    cluster_radius = 0.5 / (2 ** (zoom_level - 12))
+    
+    clusters = []
+    used = set()
+    
+    for i, m1 in enumerate(mosques):
+        if i in used:
+            continue
+        
+        cluster = [m1]
+        for j, m2 in enumerate(mosques[i+1:], i+1):
+            if j in used:
+                continue
+            
+            # Calculate distance
+            dist = math.sqrt((m1['latitude'] - m2['latitude'])**2 + 
+                           (m1['longitude'] - m2['longitude'])**2)
+            
+            if dist < cluster_radius:
+                cluster.append(m2)
+                used.add(j)
+        
+        used.add(i)
+        
+        if len(cluster) == 1:
+            clusters.append(m1)
+        else:
+            # Create cluster marker
+            avg_lat = sum(m['latitude'] for m in cluster) / len(cluster)
+            avg_lon = sum(m['longitude'] for m in cluster) / len(cluster)
+            clusters.append({
+                'cluster': True,
+                'count': len(cluster),
+                'latitude': avg_lat,
+                'longitude': avg_lon,
+            })
+    
+    return clusters
+
+
 @require_http_methods(["GET"])
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah.
+
+    Now includes OpenStreetMap mosques for India (Phase 1). OSM mosques show
+    "--" for prayer times until claimed (Phase 2). Includes clustering for
+    zoomed-out views (Google Maps style).
 
     SCALE TODO: timings are resolved per-mosque on every request — fine at
     current size (bbox keeps each request's subset small). If mosque density
@@ -1835,11 +1976,19 @@ def api_public_mosques(request):
     """
     try:
         default_tz = getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata')
+        
+        # Get zoom level for clustering and OSM threshold
+        try:
+            zoom_level = int(request.GET.get('zoom', 14))
+        except (TypeError, ValueError):
+            zoom_level = 14
+        
+        # Fetch DB mosques
         mosques = Mosque.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+        
         # Optional viewport filter — ?bbox=<south>,<west>,<north>,<east>
-        # limits the feed to mosques inside the requested map bounds so
-        # clients can fetch only the region they're showing.
         bbox = request.GET.get('bbox', '')
+        s, w, n, e = None, None, None, None
         if bbox:
             try:
                 s, w, n, e = (float(v) for v in bbox.split(','))
@@ -1847,6 +1996,7 @@ def api_public_mosques(request):
                     mosques = mosques.filter(latitude__range=(s, n), longitude__range=(w, e))
             except (TypeError, ValueError):
                 pass  # malformed bbox — fall back to the full feed
+        
         # Bound the response — dense regions (e.g. India) can hold hundreds of
         # mosques in a small bbox, and each row costs per-mosque timing work.
         # ?limit=N overrides the default (max 2000).
@@ -1857,7 +2007,9 @@ def api_public_mosques(request):
         limit = max(1, min(limit, 2000))
         total = mosques.count()
         mosques = mosques.order_by('id')[:limit]
-        data = []
+        
+        # Build DB mosque data with prayer times
+        db_mosques = {}
         for m in mosques:
             try:
                 if not m.timezone:
@@ -1886,7 +2038,10 @@ def api_public_mosques(request):
                     }
                 timings['sunrise'] = _format_prayer_time(sunrise_time(m.latitude, m.longitude, m_today, m_tz))
                 next_salah = _next_salah(prayer_time, m_now, m_tz)
-                data.append({
+                
+                # Index by lat/lon for OSM matching
+                key = f"{m.latitude:.5f},{m.longitude:.5f}"
+                db_mosques[key] = {
                     'id': m.id,
                     'name': m.name,
                     'address': m.address,
@@ -1896,13 +2051,75 @@ def api_public_mosques(request):
                     'timings': timings,
                     'timezone': str(m_tz),
                     'website': m.website_url,
-                })
+                    'has_timings': True,
+                }
             except Exception:
                 # One bad mosque (crashed sync, invalid timezone string,
                 # malformed row) must not take down the whole map feed.
                 logger.exception(
                     f'api_public_mosques: mosque {m.id} ({m.name}) failed')
                 continue
+        
+        # Fetch OSM mosques if bbox is provided and zoom >= 12
+        osm_mosques = []
+        if s is not None and w is not None and n is not None and e is not None:
+            osm_mosques = _fetch_osm_mosques(s, w, n, e, zoom_level)
+        
+        # Merge OSM mosques with DB mosques
+        # Match by lat/lon proximity (within 50 meters ~ 0.0005 degrees)
+        data = []
+        used_db_keys = set()
+        
+        for osm_m in osm_mosques:
+            osm_key = f"{osm_m['latitude']:.5f},{osm_m['longitude']:.5f}"
+            
+            # Check if DB mosque matches (within 50 meters)
+            matched = False
+            for db_key, db_m in db_mosques.items():
+                if db_key in used_db_keys:
+                    continue
+                dist = math.sqrt((osm_m['latitude'] - db_m['latitude'])**2 + 
+                               (osm_m['longitude'] - db_m['longitude'])**2)
+                if dist < 0.0005:  # ~50 meters
+                    data.append(db_m)
+                    used_db_keys.add(db_key)
+                    matched = True
+                    break
+            
+            if not matched:
+                # OSM mosque without DB match — add with "--" timings
+                data.append({
+                    'id': None,  # No DB ID
+                    'name': osm_m['name'],
+                    'address': osm_m['address'],
+                    'latitude': osm_m['latitude'],
+                    'longitude': osm_m['longitude'],
+                    'next_salah': None,
+                    'timings': {
+                        'fajr': '--',
+                        'dhuhr': '--',
+                        'asr': '--',
+                        'maghrib': '--',
+                        'isha': '--',
+                        'sunrise': '--',
+                        'jummah': '--',
+                        'jummah2': '--',
+                        'jummah3': '--',
+                    },
+                    'timezone': default_tz,
+                    'website': None,
+                    'has_timings': False,
+                })
+        
+        # Add remaining DB mosques not matched to OSM
+        for db_key, db_m in db_mosques.items():
+            if db_key not in used_db_keys:
+                data.append(db_m)
+        
+        # Apply clustering for zoomed-out views
+        if zoom_level < 14:
+            data = _cluster_mosques(data, zoom_level)
+        
         return JsonResponse({'success': True, 'mosques': data,
                              'truncated': total > len(data)})
     except Exception as e:
