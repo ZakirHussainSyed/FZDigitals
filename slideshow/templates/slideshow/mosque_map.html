@@ -565,6 +565,14 @@
                             const lat = parseFloat(r.lat);
                             const lon = parseFloat(r.lon);
                             map.setView([lat, lon], 13);
+                            // Wait for zoom to complete before fetching
+                            await new Promise(function(resolve) {
+                                const handler = function() {
+                                    map.off('moveend', handler);
+                                    resolve();
+                                };
+                                map.on('moveend', handler);
+                            });
                             await fetchAround(lat, lon, 31, 13); // fresh ~50 km viewport at zoom 13
                             filterByDistance(lat, lon, 31); // ~50 km
                         });
@@ -590,6 +598,14 @@
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
                     map.setView([lat, lon], 13);
+                    // Wait for zoom to complete before fetching
+                    await new Promise(function(resolve) {
+                        const handler = function() {
+                            map.off('moveend', handler);
+                            resolve();
+                        };
+                        map.on('moveend', handler);
+                    });
                     await fetchAround(lat, lon, 31, 13); // fresh ~50 km viewport at zoom 13
                     filterByDistance(lat, lon, 31); // ~50 km
                 } catch (err) {
@@ -603,6 +619,14 @@
                 // Google-style near-me: center at a fixed zoom; the viewport
                 // itself is the fetch region — no hardcoded radius.
                 map.setView([lat, lon], NEAR_ME_ZOOM);
+                // Wait for zoom to complete before fetching bounds
+                await new Promise(function(resolve) {
+                    const handler = function() {
+                        map.off('moveend', handler);
+                        resolve();
+                    };
+                    map.on('moveend', handler);
+                });
                 // Fetch the framed viewport for fresh timings; a failed fetch
                 // falls back to whatever allMosques already holds.
                 const b = map.getBounds();
