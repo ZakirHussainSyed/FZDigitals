@@ -1900,7 +1900,7 @@ out center;
         cache.set(cache_key, mosques, 86400)  # 24h cache
         return mosques
     except Exception as e:
-        logger.warning(f"Overpass API failed for bbox {s},{w},{n},{e}: {e}")
+        logger.debug(f"Overpass API failed for bbox {s},{w},{n},{e}: {e}")
         return []
 
 
