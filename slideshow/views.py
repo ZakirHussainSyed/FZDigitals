@@ -1988,20 +1988,21 @@ def api_public_mosques(request):
                 continue
         
         # Fetch OSM mosques if bbox is provided
-        if s is not None and w is not None and n is not None and e is not None:
-            osm_mosques = _fetch_osm_mosques(s, w, n, e)
-            # Merge OSM mosques, avoiding duplicates by proximity (~50m)
-            db_coords = {(m['latitude'], m['longitude']): m for m in data}
-            for osm_m in osm_mosques:
-                lat, lon = osm_m['latitude'], osm_m['longitude']
-                # Check if close to any DB mosque
-                is_duplicate = False
-                for db_lat, db_lon in db_coords.keys():
-                    if abs(lat - db_lat) < 0.0005 and abs(lon - db_lon) < 0.0005:
-                        is_duplicate = True
-                        break
-                if not is_duplicate:
-                    data.append(osm_m)
+        # DISABLED: Overpass API not reachable from server (406/timeout errors)
+        # if s is not None and w is not None and n is not None and e is not None:
+        #     osm_mosques = _fetch_osm_mosques(s, w, n, e)
+        #     # Merge OSM mosques, avoiding duplicates by proximity (~50m)
+        #     db_coords = {(m['latitude'], m['longitude']): m for m in data}
+        #     for osm_m in osm_mosques:
+        #         lat, lon = osm_m['latitude'], osm_m['longitude']
+        #         # Check if close to any DB mosque
+        #         is_duplicate = False
+        #         for db_lat, db_lon in db_coords.keys():
+        #             if abs(lat - db_lat) < 0.0005 and abs(lon - db_lon) < 0.0005:
+        #                 is_duplicate = True
+        #                 break
+        #         if not is_duplicate:
+        #             data.append(osm_m)
         
         return JsonResponse({'success': True, 'mosques': data,
                              'truncated': total > len(data)})
