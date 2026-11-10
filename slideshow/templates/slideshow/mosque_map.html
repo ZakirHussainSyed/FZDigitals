@@ -426,10 +426,10 @@
             }
 
             function createIcon(m) {
-                // Handle mosques without timings (OSM mosques)
+                // For OSM mosques (no timings), show only the name. For DB mosques, show next salah.
                 const nextLabel = m.has_timings && m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
-                    : (m.has_timings === false ? '<span class="next-salah">No timings</span>' : '');
+                    : '';
                 const html = `${nextLabel}<strong>${m.name}</strong>`;
                 return L.divIcon({
                     className: '',

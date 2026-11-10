@@ -1,149 +1,167 @@
 #!/usr/bin/env python3
 """
 Download mosques from OpenStreetMap for India and save to JSON.
+Uses Geofabrik India extract + osmium (Overpass is dead/406).
 Run this script locally to refresh the mosque data.
 Usage: python scripts/fetch_india_mosques.py
 """
 
 import urllib.request
-import urllib.parse
 import json
-import time
+import hashlib
+import subprocess
+import os
+from datetime import datetime
 
 # India bounding box
 INDIA_S, INDIA_W = 6.5, 68.0
 INDIA_N, INDIA_E = 37.0, 97.0
 
-# overpass-api.de is the only public instance covering India — other
-# "mirrors" are region-locked (osm.ch = Switzerland only) or down.
-# NB: Geofabrik extract + osmium-tool is the reliable path while
-# overpass-api.de returns 406; see india_mosques.json provenance.
-OVERPASS_HOSTS = [
-    'https://overpass-api.de/api/interpreter',
-]
+# Geofabrik India extract URL
+GEOFABRIK_URL = 'https://download.geofabrik.de/asia/india-latest.osm.pbf'
+PBF_PATH = '/tmp/india-latest.osm.pbf'
+FILTERED_PBF = '/tmp/pow.osm.pbf'
+GEOJSONSEQ = '/tmp/pow.geojsonseq'
+OUTPUT_FILE = 'slideshow/static/india_mosques.json'
 
 
-def post_overpass(query):
-    last_err = None
-    for url in OVERPASS_HOSTS:
-        try:
-            data = urllib.parse.urlencode({'data': query}).encode('utf-8')
-            req = urllib.request.Request(
-                url,
-                data=data,
-                headers={
-                    'User-Agent': 'FZDigitals Mosque Data Fetcher/1.0',
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            )
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                if resp.status == 200:
-                    return json.loads(resp.read().decode('utf-8'))
-                last_err = f'{url}: HTTP {resp.status}'
-        except Exception as e:
-            last_err = f'{url}: {e}'
-    raise RuntimeError(f'All Overpass mirrors failed: {last_err}')
-
-
-def fetch_mosques_for_bbox(s, w, n, e):
-    """Fetch mosques for a specific bounding box."""
-    query = f'''
-[out:json][timeout:60];
-(
-  node["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
-  way["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
-  relation["amenity"="place_of_worship"]["religion"="muslim"]({s},{w},{n},{e});
-);
-out center;
-'''
+def download_pbf():
+    """Download the India Geofabrik extract if not present or outdated."""
+    if os.path.exists(PBF_PATH):
+        size = os.path.getsize(PBF_PATH)
+        # Expected size is ~1.7GB; if too small, redownload
+        if size > 1_500_000_000:
+            print(f"Using existing PBF ({size} bytes)")
+            return
     
-    try:
-        result = post_overpass(query)
-        
-        mosques = []
-        for elem in result.get('elements', []):
-            lat = lon = name = address = None
-            if elem['type'] == 'node':
-                lat = elem.get('lat')
-                lon = elem.get('lon')
-            else:
-                center = elem.get('center', {})
-                lat = center.get('lat')
-                lon = center.get('lon')
+    print(f"Downloading {GEOFABRIK_URL} to {PBF_PATH}...")
+    urllib.request.urlretrieve(GEOFABRIK_URL, PBF_PATH)
+    print(f"Downloaded {os.path.getsize(PBF_PATH)} bytes")
+
+
+def filter_place_of_worship():
+    """Filter for place_of_worship using osmium."""
+    print("Filtering place_of_worship elements...")
+    cmd = [
+        'osmium', 'tags-filter',
+        PBF_PATH, 'a/amenity=place_of_worship',
+        '-o', FILTERED_PBF,
+        '--overwrite'
+    ]
+    subprocess.run(cmd, check=True)
+    print(f"Filtered PBF size: {os.path.getsize(FILTERED_PBF)} bytes")
+
+
+def export_geojsonseq():
+    """Export to GeoJSONSeq with point/linestring/polygon geometry."""
+    print("Exporting to GeoJSONSeq...")
+    cmd = [
+        'osmium', 'export',
+        FILTERED_PBF,
+        '-o', GEOJSONSEQ,
+        '--geometry-types=point,linestring,polygon',
+        '--output-format=geojsonseq',
+        '--overwrite'
+    ]
+    subprocess.run(cmd, check=True)
+    print(f"GeoJSONSeq size: {os.path.getsize(GEOJSONSEQ)} bytes")
+
+
+def parse_geojsonseq():
+    """Parse GeoJSONSeq and extract Muslim mosques."""
+    print("Parsing GeoJSONSeq and filtering Muslim mosques...")
+    mosques = []
+    seen = set()
+    
+    with open(GEOJSONSEQ, 'r') as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            
+            props = obj.get('properties', {})
+            religion = props.get('religion')
+            if religion != 'muslim':
+                continue
+            
+            # Get coordinates
+            geom = obj.get('geometry', {})
+            geom_type = geom.get('type')
+            coords = geom.get('coordinates')
+            
+            lat, lon = None, None
+            if geom_type == 'Point' and coords:
+                lon, lat = coords
+            elif geom_type in ('LineString', 'Polygon') and coords:
+                # Calculate centroid
+                flat = []
+                if geom_type == 'LineString':
+                    flat = coords
+                elif geom_type == 'Polygon':
+                    flat = coords[0] if coords else []
+                if flat:
+                    lat = sum(c[1] for c in flat) / len(flat)
+                    lon = sum(c[0] for c in flat) / len(flat)
             
             if lat is None or lon is None:
                 continue
             
-            tags = elem.get('tags', {})
-            name = tags.get('name') or tags.get('name:en') or 'Mosque'
-            address = tags.get('addr:full') or tags.get('addr:city') or ''
+            # India bounds check
+            if not (INDIA_S <= lat <= INDIA_N and INDIA_W <= lon <= INDIA_E):
+                continue
+            
+            raw_name = props.get('name') or props.get('name:en') or 'Mosque'
+            # Truncate to 2 words (phrases) for long names
+            name = ' '.join(raw_name.split()[:2])
+            address = props.get('addr:full') or props.get('addr:city') or ''
+            
+            # Dedup by name+coords (hash-based ID)
+            key = f"{name.lower()}_{lat:.6f}_{lon:.6f}"
+            if key in seen:
+                continue
+            seen.add(key)
+            
+            # Stable ID from hash
+            hash_val = hashlib.md5(key.encode()).hexdigest()[:10]
             
             mosques.append({
-                'id': f"osm_{elem['id']}",
+                'id': f"osm_{hash_val}",
                 'name': name,
                 'address': address,
                 'latitude': lat,
                 'longitude': lon,
             })
-        
-        return mosques
-    except Exception as e:
-        print(f"  Error for bbox {s},{w},{n},{e}: {e}")
-        return []
+    
+    print(f"Extracted {len(mosques)} Muslim mosques")
+    return mosques
 
-def fetch_mosques():
-    """Fetch mosques from Overpass API for India in chunks."""
-    print("Fetching mosques from Overpass API...")
-    print(f"Bounding box: {INDIA_S},{INDIA_W},{INDIA_N},{INDIA_E}")
-    
-    # Split India into 5x5 grid (25 chunks)
-    lat_step = (INDIA_N - INDIA_S) / 5
-    lon_step = (INDIA_E - INDIA_W) / 5
-    
-    all_mosques = []
-    chunk_num = 0
-    
-    for i in range(5):
-        for j in range(5):
-            s = INDIA_S + i * lat_step
-            n = INDIA_S + (i + 1) * lat_step
-            w = INDIA_W + j * lon_step
-            e = INDIA_W + (j + 1) * lon_step
-            
-            chunk_num += 1
-            print(f"Fetching chunk {chunk_num}/25: {s:.2f},{w:.2f},{n:.2f},{e:.2f}")
-            
-            mosques = fetch_mosques_for_bbox(s, w, n, e)
-            all_mosques.extend(mosques)
-            
-            # Rate limiting: wait 1 second between chunks
-            if chunk_num < 25:
-                time.sleep(1)
-    
-    print(f"Total mosques fetched: {len(all_mosques)}")
-    return all_mosques
 
-def save_json(mosques, output_file='slideshow/static/india_mosques.json'):
+def save_json(mosques, output_file=OUTPUT_FILE):
     """Save mosques to JSON file."""
     data = {
         'version': '1.0',
-        'fetched_at': None,  # Will be set by the caller
+        'fetched_at': datetime.utcnow().isoformat(),
         'count': len(mosques),
         'mosques': mosques
     }
-    
-    from datetime import datetime
-    data['fetched_at'] = datetime.utcnow().isoformat()
     
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=2)
     
     print(f"Saved {len(mosques)} mosques to {output_file}")
+    print(f"JSON size: {os.path.getsize(output_file)} bytes")
+
 
 if __name__ == '__main__':
-    mosques = fetch_mosques()
+    download_pbf()
+    filter_place_of_worship()
+    export_geojsonseq()
+    mosques = parse_geojsonseq()
     if mosques:
         save_json(mosques)
         print("Done!")
     else:
-        print("No mosques fetched")
+        print("No mosques extracted")
