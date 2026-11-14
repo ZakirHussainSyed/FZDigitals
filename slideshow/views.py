@@ -1905,39 +1905,72 @@ out center;
         return []
 
 
-# Prefetched OSM mosque dataset (scripts/fetch_india_mosques.py →
-# slideshow/static/india_mosques.json). Loaded once per process — the
+# Prefetched OSM mosque datasets (scripts/fetch_*_mosques.py →
+# slideshow/static/*_mosques.json). Loaded once per process — the
 # Overpass API is unreachable from the server, so the map reads the
 # local snapshot instead of querying live.
-_OSM_MOSQUES = None
-_OSM_MOSQUES_LOADED = False
+_OSM_MOSQUES_INDIA = None
+_OSM_MOSQUES_INDIA_LOADED = False
+_OSM_MOSQUES_OMAN = None
+_OSM_MOSQUES_OMAN_LOADED = False
 
 
-def _load_osm_mosques():
-    global _OSM_MOSQUES, _OSM_MOSQUES_LOADED
-    if _OSM_MOSQUES_LOADED:
-        return _OSM_MOSQUES
-    _OSM_MOSQUES_LOADED = True
+def _load_osm_mosques(bbox=None):
+    """Load OSM mosques from the appropriate regional dataset.
+
+    Detects region from bbox: India (6.5-37°N, 68-97°E) or Oman
+    (16.5-26.5°N, 52-60°E). Falls back to India if bbox unknown.
+    """
+    # Determine region from bbox
+    if bbox:
+        s, w, n, e = bbox
+        # Oman bounds check
+        if 16.5 <= s <= 26.5 and 52.0 <= w <= 60.0:
+            return _load_oman_mosques()
+    # Default to India
+    return _load_india_mosques()
+
+
+def _load_india_mosques():
+    global _OSM_MOSQUES_INDIA, _OSM_MOSQUES_INDIA_LOADED
+    if _OSM_MOSQUES_INDIA_LOADED:
+        return _OSM_MOSQUES_INDIA
+    _OSM_MOSQUES_INDIA_LOADED = True
     path = os.path.join(settings.BASE_DIR, 'slideshow', 'static', 'india_mosques.json')
     try:
         with open(path, 'r', encoding='utf-8') as f:
-            _OSM_MOSQUES = json.load(f).get('mosques', [])
+            _OSM_MOSQUES_INDIA = json.load(f).get('mosques', [])
     except Exception:
         logger.warning('india_mosques.json missing or unreadable', exc_info=True)
-        _OSM_MOSQUES = []
-    return _OSM_MOSQUES
+        _OSM_MOSQUES_INDIA = []
+    return _OSM_MOSQUES_INDIA
+
+
+def _load_oman_mosques():
+    global _OSM_MOSQUES_OMAN, _OSM_MOSQUES_OMAN_LOADED
+    if _OSM_MOSQUES_OMAN_LOADED:
+        return _OSM_MOSQUES_OMAN
+    _OSM_MOSQUES_OMAN_LOADED = True
+    path = os.path.join(settings.BASE_DIR, 'slideshow', 'static', 'oman_mosques.json')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            _OSM_MOSQUES_OMAN = json.load(f).get('mosques', [])
+    except Exception:
+        logger.warning('oman_mosques.json missing or unreadable', exc_info=True)
+        _OSM_MOSQUES_OMAN = []
+    return _OSM_MOSQUES_OMAN
 
 
 @require_http_methods(["GET"])
 def api_osm_mosques(request):
-    """OSM mosque pins from the prefetched India snapshot.
+    """OSM mosque pins from prefetched regional snapshots.
 
     ?bbox=<s>,<w>,<n>,<e> filters by viewport, ?limit=N caps rows
-    (default 2000). Returns the same per-mosque shape as the public
-    mosques feed with has_timings=false — the client merges them with
-    the DB entries under osm_* ids.
+    (default 2000). Detects region from bbox: India or Oman.
+    Returns the same per-mosque shape as the public mosques feed
+    with has_timings=false — the client merges them with the DB
+    entries under osm_* ids.
     """
-    data = _load_osm_mosques()
     s = w = n = e = None
     bbox = request.GET.get('bbox', '')
     if bbox:
@@ -1945,6 +1978,8 @@ def api_osm_mosques(request):
             s, w, n, e = (float(v) for v in bbox.split(','))
         except (TypeError, ValueError):
             s = w = n = e = None
+    # Load appropriate regional dataset based on bbox
+    data = _load_osm_mosques(bbox=(s, w, n, e) if s is not None else None)
     try:
         limit = max(1, min(int(request.GET.get('limit', 2000)), 5000))
     except (TypeError, ValueError):
@@ -1963,6 +1998,11 @@ def api_osm_mosques(request):
         data = data[:limit]
     out = []
     for m in data:
+        # Set timezone based on region
+        if s is not None and 16.5 <= s <= 26.5 and 52.0 <= w <= 60.0:
+            tz = 'Asia/Muscat'
+        else:
+            tz = 'Asia/Kolkata'
         out.append({
             'id': m['id'],
             'name': m.get('name') or 'Mosque',
@@ -1972,7 +2012,7 @@ def api_osm_mosques(request):
             'has_timings': False,
             'timings': {},
             'next_salah': None,
-            'timezone': 'Asia/Kolkata',
+            'timezone': tz,
             'website': None,
         })
     return JsonResponse({'success': True, 'mosques': out,
