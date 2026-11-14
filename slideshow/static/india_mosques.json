@@ -2,7 +2,7 @@
   "version": "1.0",
   "fetched_at": "2026-11-09T07:47:45.179828Z",
   "source": "geofabrik india-261108.osm.pbf",
-  "count": 11644,
+  "count": 11527,
   "mosques": [
     {
       "id": "osm_880240da25",
@@ -369,13 +369,6 @@
       "longitude": 73.1691839
     },
     {
-      "id": "osm_f45ee9bef6",
-      "name": "2nd Dargah",
-      "address": "",
-      "latitude": 19.110605,
-      "longitude": 73.170216
-    },
-    {
       "id": "osm_cd691cddc5",
       "name": "Meer Sultan",
       "address": "",
@@ -605,13 +598,6 @@
       "address": "",
       "latitude": 28.5535401,
       "longitude": 77.2070264
-    },
-    {
-      "id": "osm_5da63c4cc2",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 28.5415964,
-      "longitude": 77.2060061
     },
     {
       "id": "osm_d50be01fe8",
@@ -1622,13 +1608,6 @@
       "longitude": 76.2172003
     },
     {
-      "id": "osm_7e806b7a29",
-      "name": "Patrapur Dargah",
-      "address": "Patrapur",
-      "latitude": 20.6047577,
-      "longitude": 86.587161
-    },
-    {
       "id": "osm_aea68d4f84",
       "name": "Masjid Chilkunda",
       "address": "",
@@ -2259,13 +2238,6 @@
       "longitude": 72.9487422
     },
     {
-      "id": "osm_648bf02139",
-      "name": "dargah Shahbaaz",
-      "address": "",
-      "latitude": 25.2499758,
-      "longitude": 86.9759207
-    },
-    {
       "id": "osm_50d4b4c65d",
       "name": "Masjid",
       "address": "",
@@ -2334,13 +2306,6 @@
       "address": "",
       "latitude": 16.8026018,
       "longitude": 76.7753739
-    },
-    {
-      "id": "osm_33f81db805",
-      "name": "Dargah Mir",
-      "address": "",
-      "latitude": 28.5377087,
-      "longitude": 77.1970475
     },
     {
       "id": "osm_c8258c6069",
@@ -2936,13 +2901,6 @@
       "address": "",
       "latitude": 16.5381173,
       "longitude": 80.6403833
-    },
-    {
-      "id": "osm_311e81019e",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 17.4108167,
-      "longitude": 78.4637321
     },
     {
       "id": "osm_8def0d787c",
@@ -4681,13 +4639,6 @@
       "longitude": 74.6485522
     },
     {
-      "id": "osm_f72e6af61a",
-      "name": "Janasahab Dargah",
-      "address": "",
-      "latitude": 16.8144788,
-      "longitude": 74.6500968
-    },
-    {
       "id": "osm_6810391f6f",
       "name": "Masjidul Islam",
       "address": "NH 183 To IOC pump side Road",
@@ -4828,13 +4779,6 @@
       "longitude": 86.8835785
     },
     {
-      "id": "osm_e57f099981",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 12.9532485,
-      "longitude": 77.5873773
-    },
-    {
       "id": "osm_0bfc66c248",
       "name": "Misri Masjid",
       "address": "",
@@ -4870,13 +4814,6 @@
       "longitude": 86.7930287
     },
     {
-      "id": "osm_95ed9e817d",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 18.1722513,
-      "longitude": 76.0397802
-    },
-    {
       "id": "osm_9e85c7332c",
       "name": "Mosque",
       "address": "",
@@ -4903,13 +4840,6 @@
       "address": "",
       "latitude": 19.9498589,
       "longitude": 79.2979294
-    },
-    {
-      "id": "osm_6bad368dfe",
-      "name": "Papamia Dargah",
-      "address": "",
-      "latitude": 19.9721467,
-      "longitude": 79.3272383
     },
     {
       "id": "osm_4ba9ecbdac",
@@ -5423,13 +5353,6 @@
       "longitude": 75.9231534
     },
     {
-      "id": "osm_14d2ca27cd",
-      "name": "Dargah Hussain",
-      "address": "Hussain Shah Wali Dargah",
-      "latitude": 17.4111173,
-      "longitude": 78.3896203
-    },
-    {
       "id": "osm_51e6741dff",
       "name": "Masjid-e-Bilal",
       "address": "Dargah Hussain Shah Wali road",
@@ -5696,13 +5619,6 @@
       "longitude": 76.2229802
     },
     {
-      "id": "osm_0b6e326864",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 17.3156469,
-      "longitude": 78.5889448
-    },
-    {
       "id": "osm_2f58e25b6e",
       "name": "Chinna masjid",
       "address": "",
@@ -5892,13 +5808,6 @@
       "longitude": 79.8557429
     },
     {
-      "id": "osm_1fe9f68a6c",
-      "name": "dargah sarif",
-      "address": "indore",
-      "latitude": 22.7088096,
-      "longitude": 75.8449328
-    },
-    {
       "id": "osm_d267fb9f40",
       "name": "Solahkhambhi Mosque",
       "address": "",
@@ -5939,13 +5848,6 @@
       "address": "",
       "latitude": 9.472139,
       "longitude": 78.8964525
-    },
-    {
-      "id": "osm_dbb235edb8",
-      "name": "Nazarbag Dargah",
-      "address": "",
-      "latitude": 24.7452571,
-      "longitude": 78.8341926
     },
     {
       "id": "osm_09cb3eb91c",
@@ -6044,20 +5946,6 @@
       "address": "Indira Nagar kavali",
       "latitude": 14.9048424,
       "longitude": 79.9822713
-    },
-    {
-      "id": "osm_56f44bf98a",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 21.1706272,
-      "longitude": 79.6504093
-    },
-    {
-      "id": "osm_bc6babac25",
-      "name": "Dargah Baba",
-      "address": "",
-      "latitude": 21.1699055,
-      "longitude": 79.6509102
     },
     {
       "id": "osm_16073fb9dc",
@@ -6282,13 +6170,6 @@
       "address": "",
       "latitude": 20.8678583,
       "longitude": 77.7377166
-    },
-    {
-      "id": "osm_9bfc910866",
-      "name": "Dargah Shariff",
-      "address": "",
-      "latitude": 20.8668838,
-      "longitude": 77.7349794
     },
     {
       "id": "osm_dec34651a1",
@@ -6737,13 +6618,6 @@
       "address": "",
       "latitude": 23.2440948,
       "longitude": 91.3086524
-    },
-    {
-      "id": "osm_e70de2d123",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 23.4568466,
-      "longitude": 73.298677
     },
     {
       "id": "osm_100002c378",
@@ -7248,13 +7122,6 @@
       "address": "",
       "latitude": 8.5746107,
       "longitude": 76.8902358
-    },
-    {
-      "id": "osm_255f1fdf80",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 21.5875812,
-      "longitude": 79.3706685
     },
     {
       "id": "osm_6b5f479f25",
@@ -8146,13 +8013,6 @@
       "longitude": 77.213797
     },
     {
-      "id": "osm_6ba3aee1b3",
-      "name": "Dargah Sharif",
-      "address": "",
-      "latitude": 28.6259543,
-      "longitude": 77.2326032
-    },
-    {
       "id": "osm_40540e85eb",
       "name": "Hazrat Baba",
       "address": "",
@@ -8202,25 +8062,11 @@
       "longitude": 74.6277941
     },
     {
-      "id": "osm_dc5af0018d",
-      "name": "Dargah Hazrath",
-      "address": "",
-      "latitude": 13.0659649,
-      "longitude": 80.2754475
-    },
-    {
       "id": "osm_653846f1c0",
       "name": "Masjid d",
       "address": "",
       "latitude": 13.0645638,
       "longitude": 80.2782359
-    },
-    {
-      "id": "osm_d91de87b91",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 28.5956054,
-      "longitude": 77.2407239
     },
     {
       "id": "osm_d2c63d3c7c",
@@ -8382,13 +8228,6 @@
       "address": "Medical College Rd, Kovoor Bazar, Ummalathoor, Kozhikode, Kerala Calicut - Medical College Road Kozhikode Municipal Corporation",
       "latitude": 11.2709713,
       "longitude": 75.8321753
-    },
-    {
-      "id": "osm_a97910a484",
-      "name": "Dargah Shah",
-      "address": "1563/1564 G Block, Connaught Circus (Indira Chowk), Connaught Place New Delhi",
-      "latitude": 28.6337417,
-      "longitude": 77.2162906
     },
     {
       "id": "osm_92560316ff",
@@ -8930,13 +8769,6 @@
       "longitude": 78.9069924
     },
     {
-      "id": "osm_46d84aece4",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 17.6446673,
-      "longitude": 79.0466454
-    },
-    {
       "id": "osm_3a327d991d",
       "name": "Darga Kolcharam",
       "address": "",
@@ -9089,13 +8921,6 @@
       "address": "",
       "latitude": 16.543178,
       "longitude": 78.14216
-    },
-    {
-      "id": "osm_4ec47dacb7",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 18.6365558,
-      "longitude": 79.4143165
     },
     {
       "id": "osm_efc0dff7ad",
@@ -11058,13 +10883,6 @@
       "longitude": 77.039403
     },
     {
-      "id": "osm_e427db8360",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 17.386534,
-      "longitude": 78.3725207
-    },
-    {
       "id": "osm_7f716c028b",
       "name": "Mosque",
       "address": "",
@@ -11154,13 +10972,6 @@
       "address": "Masjid Rd Mancherial",
       "latitude": 18.8742194,
       "longitude": 79.4877153
-    },
-    {
-      "id": "osm_4feba5aa4b",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 17.3709946,
-      "longitude": 78.4080297
     },
     {
       "id": "osm_489d2fb622",
@@ -16483,13 +16294,6 @@
       "longitude": 75.058453
     },
     {
-      "id": "osm_ec3f921927",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 20.507403,
-      "longitude": 78.9797176
-    },
-    {
       "id": "osm_911b774f09",
       "name": "Usman pet",
       "address": "",
@@ -16502,13 +16306,6 @@
       "address": "Saleem Nagar 1st street",
       "latitude": 12.9131397,
       "longitude": 79.2848943
-    },
-    {
-      "id": "osm_7706d5ead7",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 20.2314808,
-      "longitude": 79.0017475
     },
     {
       "id": "osm_79d33f0c5c",
@@ -16586,13 +16383,6 @@
       "address": "PALLIVASAL STREET TUTICORIN",
       "latitude": 8.6041772,
       "longitude": 77.9468237
-    },
-    {
-      "id": "osm_c1a795cc9e",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 20.7794401,
-      "longitude": 76.5103269
     },
     {
       "id": "osm_a09e123c83",
@@ -17048,13 +16838,6 @@
       "address": "emily Emily Road kalpetta",
       "latitude": 11.6243543,
       "longitude": 76.0808973
-    },
-    {
-      "id": "osm_a0099e02a8",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 17.3597206,
-      "longitude": 78.4571872
     },
     {
       "id": "osm_5e47cc2921",
@@ -17729,13 +17512,6 @@
       "longitude": 77.3244763
     },
     {
-      "id": "osm_651f124ea2",
-      "name": "Dargah Masjid",
-      "address": "Karnataka",
-      "latitude": 18.2542704,
-      "longitude": 77.4144948
-    },
-    {
       "id": "osm_9b17c50c28",
       "name": "Juma Masjid",
       "address": "Karnataka",
@@ -18317,13 +18093,6 @@
       "longitude": 76.9995485
     },
     {
-      "id": "osm_f9bf6efcec",
-      "name": "Lalemashak Dargah",
-      "address": "Karnataka",
-      "latitude": 17.0594777,
-      "longitude": 76.6048225
-    },
-    {
       "id": "osm_e6341e3020",
       "name": "Jama Masjid",
       "address": "Karnataka",
@@ -18840,13 +18609,6 @@
       "address": "Karnataka",
       "latitude": 16.7003984,
       "longitude": 76.8446351
-    },
-    {
-      "id": "osm_234d2fb0f7",
-      "name": "Dargah Hazrat",
-      "address": "Karnataka",
-      "latitude": 16.6994,
-      "longitude": 76.8412522
     },
     {
       "id": "osm_08f9657b4f",
@@ -19493,13 +19255,6 @@
       "longitude": 76.1339423
     },
     {
-      "id": "osm_49f12cdb99",
-      "name": "Dargah Hazrath",
-      "address": "Karnataka",
-      "latitude": 16.3242139,
-      "longitude": 77.2321741
-    },
-    {
       "id": "osm_f07379548c",
       "name": "Jamia Masjid",
       "address": "Karnataka",
@@ -19897,13 +19652,6 @@
       "address": "Karnataka",
       "latitude": 16.0300852,
       "longitude": 77.2966605
-    },
-    {
-      "id": "osm_3639f86079",
-      "name": "Dargah Masjid",
-      "address": "Karnataka",
-      "latitude": 16.0225092,
-      "longitude": 74.6898125
     },
     {
       "id": "osm_7009258a8b",
@@ -20912,13 +20660,6 @@
       "address": "Karnataka",
       "latitude": 15.3484315,
       "longitude": 76.8344579
-    },
-    {
-      "id": "osm_45305213e4",
-      "name": "Dargah",
-      "address": "Karnataka",
-      "latitude": 15.3482741,
-      "longitude": 75.2658172
     },
     {
       "id": "osm_336e23dd34",
@@ -22235,13 +21976,6 @@
       "address": "Karnataka",
       "latitude": 13.1884486,
       "longitude": 77.2218034
-    },
-    {
-      "id": "osm_78c5e33d6e",
-      "name": "Dargah Hazrat",
-      "address": "Karnataka",
-      "latitude": 13.1844005,
-      "longitude": 78.1081953
     },
     {
       "id": "osm_a7077b3e9b",
@@ -25219,13 +24953,6 @@
       "longitude": 76.2753742
     },
     {
-      "id": "osm_328cf34175",
-      "name": "Dargah Sharif",
-      "address": "",
-      "latitude": 25.3013346,
-      "longitude": 82.9685491
-    },
-    {
       "id": "osm_890c9d6f8d",
       "name": "Jenmmikkonm Thakhav",
       "address": "",
@@ -25959,13 +25686,6 @@
       "address": "",
       "latitude": 27.8934028,
       "longitude": 78.0722931
-    },
-    {
-      "id": "osm_ac5abc6237",
-      "name": "DARGAH BABA",
-      "address": "",
-      "latitude": 27.8933013,
-      "longitude": 78.0723652
     },
     {
       "id": "osm_8fc8109123",
@@ -27410,13 +27130,6 @@
       "longitude": 76.3867878
     },
     {
-      "id": "osm_bff1cd3762",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 14.9105913,
-      "longitude": 78.0016883
-    },
-    {
       "id": "osm_f1192cc26c",
       "name": "Iqra the",
       "address": "",
@@ -28621,13 +28334,6 @@
       "longitude": 78.7101857
     },
     {
-      "id": "osm_8e3675b8c1",
-      "name": "Ervadi Dargah",
-      "address": "",
-      "latitude": 9.2084414,
-      "longitude": 78.710024
-    },
-    {
       "id": "osm_514a61597f",
       "name": "Masjid Zin",
       "address": "NH-44, New Colony, Jawbehara,",
@@ -29144,13 +28850,6 @@
       "address": "samaspur inayatpur aligarh",
       "latitude": 28.0402111,
       "longitude": 78.4141884
-    },
-    {
-      "id": "osm_d1de1da4d1",
-      "name": "Dargah Motizira",
-      "address": "",
-      "latitude": 21.131511,
-      "longitude": 78.6735413
     },
     {
       "id": "osm_2b389248c0",
@@ -29853,13 +29552,6 @@
       "longitude": 77.1764884
     },
     {
-      "id": "osm_57a739553f",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 22.3885081,
-      "longitude": 70.7831608
-    },
-    {
       "id": "osm_739ac3c108",
       "name": "Eid Gaah",
       "address": "",
@@ -30469,13 +30161,6 @@
       "longitude": 75.6578936
     },
     {
-      "id": "osm_efebe663f3",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 21.5171441,
-      "longitude": 70.4611176
-    },
-    {
       "id": "osm_8a69f3d41a",
       "name": "Masjid E",
       "address": "MASJID E ABU BAKER STREET KONDAMODU",
@@ -30924,13 +30609,6 @@
       "longitude": 74.7139407
     },
     {
-      "id": "osm_56f7c9e6eb",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 20.9289466,
-      "longitude": 77.7709599
-    },
-    {
       "id": "osm_bd89d6450f",
       "name": "Allana Center",
       "address": "",
@@ -31167,13 +30845,6 @@
       "address": "prayagarj",
       "latitude": 24.9968632,
       "longitude": 82.0732022
-    },
-    {
-      "id": "osm_c6f80f6a09",
-      "name": "dargah hazrat",
-      "address": "",
-      "latitude": 28.1236877,
-      "longitude": 75.3893462
     },
     {
       "id": "osm_b84db4c03d",
@@ -31897,13 +31568,6 @@
       "longitude": 81.8344834
     },
     {
-      "id": "osm_ecd8fe6c29",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 23.021186,
-      "longitude": 72.5798769
-    },
-    {
       "id": "osm_08a27196e2",
       "name": "Masjid E",
       "address": "",
@@ -32049,13 +31713,6 @@
       "address": "Eidgah Road Kawoosa Khalisa",
       "latitude": 34.1025166,
       "longitude": 74.6482517
-    },
-    {
-      "id": "osm_0a2f6b149a",
-      "name": "Dargah Hazrath",
-      "address": "",
-      "latitude": 12.9831549,
-      "longitude": 77.5877358
     },
     {
       "id": "osm_1ffcff0530",
@@ -32280,13 +31937,6 @@
       "address": "Panchayat board road Kayalpattinam",
       "latitude": 8.576096,
       "longitude": 78.1275632
-    },
-    {
-      "id": "osm_7587f92404",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 28.6259209,
-      "longitude": 77.2112242
     },
     {
       "id": "osm_ff697c6425",
@@ -34249,13 +33899,6 @@
       "longitude": 77.1078836
     },
     {
-      "id": "osm_9b0351fd06",
-      "name": "Masjid Dargah",
-      "address": "Rajupadiya Kaithwara",
-      "latitude": 27.5928153,
-      "longitude": 77.1297138
-    },
-    {
       "id": "osm_3a7c54b07c",
       "name": "Masjid Meenar",
       "address": "Ghudiya Kaithwara",
@@ -34317,13 +33960,6 @@
       "address": "Masjid Market Road Kaithwara",
       "latitude": 27.5943899,
       "longitude": 77.13276
-    },
-    {
-      "id": "osm_ba7b8d1ffa",
-      "name": "Dargah Hazrath",
-      "address": "",
-      "latitude": 12.965328,
-      "longitude": 77.5773423
     },
     {
       "id": "osm_476d4c2d78",
@@ -35087,13 +34723,6 @@
       "address": "",
       "latitude": 18.7648499,
       "longitude": 78.0527638
-    },
-    {
-      "id": "osm_8270270bac",
-      "name": "Sorakayalapeta Dargah",
-      "address": "",
-      "latitude": 13.7185083,
-      "longitude": 78.8678536
     },
     {
       "id": "osm_d0136fdb0e",
@@ -36923,13 +36552,6 @@
       "longitude": 80.1470659
     },
     {
-      "id": "osm_9274efaa5f",
-      "name": "Khanga Dargah",
-      "address": "",
-      "latitude": 31.2144262,
-      "longitude": 75.4238189
-    },
-    {
       "id": "osm_cfa7686242",
       "name": "Mosque",
       "address": "",
@@ -37005,13 +36627,6 @@
       "address": "",
       "latitude": 28.5914067,
       "longitude": 77.2417751
-    },
-    {
-      "id": "osm_5f12ccdba0",
-      "name": "Nizamuddin Dargah",
-      "address": "",
-      "latitude": 28.5913878,
-      "longitude": 77.2419658
     },
     {
       "id": "osm_b5dc6a0615",
@@ -37173,13 +36788,6 @@
       "address": "",
       "latitude": 19.0251931,
       "longitude": 72.8651221
-    },
-    {
-      "id": "osm_6feea3c8b4",
-      "name": "Nagore Dargah",
-      "address": "",
-      "latitude": 10.8183807,
-      "longitude": 79.8418677
     },
     {
       "id": "osm_790b21d232",
@@ -37537,13 +37145,6 @@
       "address": "",
       "latitude": 12.9910474,
       "longitude": 77.6055665
-    },
-    {
-      "id": "osm_73b5c36a5a",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 19.9998253,
-      "longitude": 73.7916008
     },
     {
       "id": "osm_b5fbed6c67",
@@ -38267,13 +37868,6 @@
       "longitude": 85.0418489
     },
     {
-      "id": "osm_e6514a4a45",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 28.5813219,
-      "longitude": 77.2608484
-    },
-    {
       "id": "osm_5c6f4b7254",
       "name": "Mosque",
       "address": "",
@@ -38442,13 +38036,6 @@
       "longitude": 72.9162154
     },
     {
-      "id": "osm_44d1b11995",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 17.3276951,
-      "longitude": 78.4796556
-    },
-    {
       "id": "osm_02cfbb5689",
       "name": "gulshane madina",
       "address": "",
@@ -38531,13 +38118,6 @@
       "address": "UC College P.O. Seminary Road Aluva",
       "latitude": 10.1227844,
       "longitude": 76.3387624
-    },
-    {
-      "id": "osm_0d43d8b1f7",
-      "name": "Dargah-e-Khawaja Garib",
-      "address": "Ajmer, Rajasthan Ajmer",
-      "latitude": 26.4560351,
-      "longitude": 74.6279228
     },
     {
       "id": "osm_54d5eb2cd4",
@@ -38678,13 +38258,6 @@
       "address": "Mumbai",
       "latitude": 18.9590519,
       "longitude": 72.8310077
-    },
-    {
-      "id": "osm_5c56b14950",
-      "name": "Khanga Dargah",
-      "address": "",
-      "latitude": 31.2143758,
-      "longitude": 75.4237524
     },
     {
       "id": "osm_325b04a153",
@@ -39077,13 +38650,6 @@
       "address": "",
       "latitude": 12.9910486,
       "longitude": 77.6054978
-    },
-    {
-      "id": "osm_62e63b784c",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 19.9997709,
-      "longitude": 73.7915981
     },
     {
       "id": "osm_b2c8e2313c",
@@ -39560,13 +39126,6 @@
       "address": "",
       "latitude": 23.3659482,
       "longitude": 85.3238419
-    },
-    {
-      "id": "osm_26ae4ff2b8",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 28.5813353,
-      "longitude": 77.2608478
     },
     {
       "id": "osm_c2cc224658",
@@ -40346,13 +39905,6 @@
       "longitude": 72.8425301
     },
     {
-      "id": "osm_7488c7e7cb",
-      "name": "Hasnabad Dargah",
-      "address": "",
-      "latitude": 18.9733785,
-      "longitude": 72.8393197
-    },
-    {
       "id": "osm_afcd26641b",
       "name": "Badi masjid",
       "address": "Vasil Khan Marg (Tank Street) Mumbai",
@@ -40827,20 +40379,6 @@
       "address": "",
       "latitude": 17.3687225,
       "longitude": 78.4773898
-    },
-    {
-      "id": "osm_152f2db7a5",
-      "name": "Dargah Sha",
-      "address": "Hyderabad",
-      "latitude": 17.3123874,
-      "longitude": 78.4761413
-    },
-    {
-      "id": "osm_691e422439",
-      "name": "Dargah Hazrat",
-      "address": "Salalah ,Barkas road Hyderabad",
-      "latitude": 17.313701,
-      "longitude": 78.4785102
     },
     {
       "id": "osm_4988aabcc8",
@@ -42075,13 +41613,6 @@
       "longitude": 72.8425294
     },
     {
-      "id": "osm_68c9797b18",
-      "name": "Hasnabad Dargah",
-      "address": "",
-      "latitude": 18.9733261,
-      "longitude": 72.8393143
-    },
-    {
       "id": "osm_17bbd19cdd",
       "name": "Sangtarash Masjid",
       "address": "Dimtimakar Road Mumbai",
@@ -42430,20 +41961,6 @@
       "address": "",
       "latitude": 17.3686777,
       "longitude": 78.4773841
-    },
-    {
-      "id": "osm_7bd1e74e6d",
-      "name": "Dargah Sha",
-      "address": "Hyderabad",
-      "latitude": 17.3123544,
-      "longitude": 78.4761318
-    },
-    {
-      "id": "osm_7bf8a28f3e",
-      "name": "Dargah Hazrat",
-      "address": "Salalah ,Barkas road Hyderabad",
-      "latitude": 17.3136632,
-      "longitude": 78.4785029
     },
     {
       "id": "osm_ae12d498fc",
@@ -43202,13 +42719,6 @@
       "longitude": 74.6444807
     },
     {
-      "id": "osm_8b2b5e4afb",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 19.0964911,
-      "longitude": 72.9149169
-    },
-    {
       "id": "osm_130972ba48",
       "name": "MASJIDUL ISLAH",
       "address": "",
@@ -43517,20 +43027,6 @@
       "longitude": 78.9136037
     },
     {
-      "id": "osm_3e69c52e9f",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 16.0784757,
-      "longitude": 78.9144067
-    },
-    {
-      "id": "osm_1f959c470d",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 21.0992284,
-      "longitude": 81.0290927
-    },
-    {
       "id": "osm_c484a5d564",
       "name": "Masjid",
       "address": "",
@@ -43713,13 +43209,6 @@
       "longitude": 87.3202273
     },
     {
-      "id": "osm_df63c35f90",
-      "name": "Dargah Mosque",
-      "address": "Purana Balasore Road Balasore",
-      "latitude": 21.4893231,
-      "longitude": 86.9469358
-    },
-    {
       "id": "osm_35bbe69e04",
       "name": "Hazrat Faqir",
       "address": "Fakir Mohan College Road, Mallikashpur Balasore",
@@ -43839,13 +43328,6 @@
       "longitude": 85.3256874
     },
     {
-      "id": "osm_bb5ef69ceb",
-      "name": "Dargah Hazratbal",
-      "address": "",
-      "latitude": 34.1290815,
-      "longitude": 74.8424246
-    },
-    {
       "id": "osm_60200f8e2d",
       "name": "SUNNEJAMIYA MASJID",
       "address": "",
@@ -43858,13 +43340,6 @@
       "address": "",
       "latitude": 19.8574493,
       "longitude": 75.3036552
-    },
-    {
-      "id": "osm_fd7f4ffdde",
-      "name": "Ambavgarh Dargah",
-      "address": "",
-      "latitude": 24.5894137,
-      "longitude": 73.6809102
     },
     {
       "id": "osm_c32a6fb520",
@@ -45099,13 +44574,6 @@
       "longitude": 74.6444515
     },
     {
-      "id": "osm_67cb64d30a",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 19.0964958,
-      "longitude": 72.9149039
-    },
-    {
       "id": "osm_ec227ee2c2",
       "name": "MASJIDUL ISLAH",
       "address": "",
@@ -45337,13 +44805,6 @@
       "longitude": 75.7673287
     },
     {
-      "id": "osm_3c25687405",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 16.0784566,
-      "longitude": 78.9144035
-    },
-    {
       "id": "osm_c298d9d60a",
       "name": "Juma Masjid",
       "address": "",
@@ -45470,13 +44931,6 @@
       "longitude": 87.3202053
     },
     {
-      "id": "osm_71d29b6e74",
-      "name": "Dargah Mosque",
-      "address": "Purana Balasore Road Balasore",
-      "latitude": 21.489299,
-      "longitude": 86.946922
-    },
-    {
       "id": "osm_61d8471aba",
       "name": "Hazrat Faqir",
       "address": "Fakir Mohan College Road, Mallikashpur Balasore",
@@ -45566,13 +45020,6 @@
       "address": "",
       "latitude": 19.8573978,
       "longitude": 75.3036512
-    },
-    {
-      "id": "osm_192edb7aca",
-      "name": "Ambavgarh Dargah",
-      "address": "",
-      "latitude": 24.5893921,
-      "longitude": 73.6809097
     },
     {
       "id": "osm_a57ad8c1f5",
@@ -46413,13 +45860,6 @@
       "address": "",
       "latitude": 19.1663562,
       "longitude": 72.9287968
-    },
-    {
-      "id": "osm_c9e39298da",
-      "name": "Dargah Qutbul-u-Auliya",
-      "address": "",
-      "latitude": 19.1652168,
-      "longitude": 72.9290014
     },
     {
       "id": "osm_25b84bf2ac",
@@ -47274,13 +46714,6 @@
       "address": "Sulaiman Hazrath St, Kajamalai Tiruchirappalli",
       "latitude": 10.7808753,
       "longitude": 78.6916161
-    },
-    {
-      "id": "osm_c19e9026fe",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 21.1549885,
-      "longitude": 79.0173232
     },
     {
       "id": "osm_e41b8f034f",
@@ -48142,13 +47575,6 @@
       "address": "Salem-Kochi-Kanyakumari Road",
       "latitude": 8.7710969,
       "longitude": 76.7885735
-    },
-    {
-      "id": "osm_48adcd6bba",
-      "name": "Waki Dargah",
-      "address": "",
-      "latitude": 21.3733138,
-      "longitude": 79.047417
     },
     {
       "id": "osm_aed85a2f48",
@@ -50732,13 +50158,6 @@
       "address": "",
       "latitude": 9.9883568,
       "longitude": 76.2266325
-    },
-    {
-      "id": "osm_8c2e6a04d2",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 30.1962149,
-      "longitude": 74.9452269
     },
     {
       "id": "osm_5ebc724192",
@@ -53574,13 +52993,6 @@
       "address": "",
       "latitude": 10.9211554,
       "longitude": 76.0595289
-    },
-    {
-      "id": "osm_f2dff1c26f",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 30.1962582,
-      "longitude": 74.9451771
     },
     {
       "id": "osm_fced6e1af0",
@@ -58441,13 +57853,6 @@
       "longitude": 76.8812311
     },
     {
-      "id": "osm_ba67dfeecb",
-      "name": "Seawood Dargah",
-      "address": "",
-      "latitude": 19.0263244,
-      "longitude": 73.0122831
-    },
-    {
       "id": "osm_be40205fcf",
       "name": "Juma Masjid",
       "address": "School Road Karuvarakundu",
@@ -63236,13 +62641,6 @@
       "longitude": 76.8930518
     },
     {
-      "id": "osm_6174875690",
-      "name": "Beemapally Dargah",
-      "address": "",
-      "latitude": 8.4561174,
-      "longitude": 76.9344701
-    },
-    {
       "id": "osm_77b26e5daa",
       "name": "najathul islam",
       "address": "",
@@ -66127,13 +65525,6 @@
       "longitude": 76.8930384
     },
     {
-      "id": "osm_4dd635cc2e",
-      "name": "Beemapally Dargah",
-      "address": "",
-      "latitude": 8.4561088,
-      "longitude": 76.9344176
-    },
-    {
       "id": "osm_cf50cc59b9",
       "name": "najathul islam",
       "address": "",
@@ -67779,20 +67170,6 @@
       "longitude": 78.0725654
     },
     {
-      "id": "osm_e14f11bf4e",
-      "name": "DARGAH HAZRAT",
-      "address": "",
-      "latitude": 27.8974257,
-      "longitude": 78.072013
-    },
-    {
-      "id": "osm_864e6032dc",
-      "name": "MOSQUE DARGAH",
-      "address": "",
-      "latitude": 27.8974003,
-      "longitude": 78.0723574
-    },
-    {
       "id": "osm_3475eaf7d5",
       "name": "Mosque",
       "address": "",
@@ -67868,13 +67245,6 @@
       "address": "Edavanna Wandoor Road Edavanna",
       "latitude": 11.2121172,
       "longitude": 76.1489527
-    },
-    {
-      "id": "osm_5157e1b505",
-      "name": "Dargah hazrath",
-      "address": "",
-      "latitude": 17.0572467,
-      "longitude": 79.2602004
     },
     {
       "id": "osm_1c8d6cea03",
@@ -69382,13 +68752,6 @@
       "longitude": 80.1675659
     },
     {
-      "id": "osm_cb0eb928ba",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 12.9665909,
-      "longitude": 80.1676718
-    },
-    {
       "id": "osm_c60b829101",
       "name": "Masjid",
       "address": "Indian Bank Street Rajahmundry",
@@ -70089,20 +69452,6 @@
       "longitude": 78.0725644
     },
     {
-      "id": "osm_973b879108",
-      "name": "DARGAH HAZRAT",
-      "address": "",
-      "latitude": 27.8974026,
-      "longitude": 78.0720112
-    },
-    {
-      "id": "osm_208b4b2bd2",
-      "name": "MOSQUE DARGAH",
-      "address": "",
-      "latitude": 27.8973866,
-      "longitude": 78.0723539
-    },
-    {
       "id": "osm_85104d8a7f",
       "name": "Cheruthuruthy Juma",
       "address": "",
@@ -70129,13 +69478,6 @@
       "address": "",
       "latitude": 10.8163136,
       "longitude": 76.8234362
-    },
-    {
-      "id": "osm_c869bf0da0",
-      "name": "Dargah hazrath",
-      "address": "",
-      "latitude": 17.0572246,
-      "longitude": 79.2601913
     },
     {
       "id": "osm_04fe716f53",
@@ -71090,13 +70432,6 @@
       "longitude": 80.1675482
     },
     {
-      "id": "osm_b971ca22e4",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 12.9666158,
-      "longitude": 80.1676712
-    },
-    {
       "id": "osm_a16e198a7e",
       "name": "Masjid",
       "address": "Indian Bank Street Rajahmundry",
@@ -71874,13 +71209,6 @@
       "longitude": 77.5053056
     },
     {
-      "id": "osm_b85e06866b",
-      "name": "Dargah of",
-      "address": "",
-      "latitude": 17.3439809,
-      "longitude": 76.8508732
-    },
-    {
       "id": "osm_cbd6c96a5c",
       "name": "Mosque",
       "address": "",
@@ -72075,13 +71403,6 @@
       "address": "",
       "latitude": 9.2467918,
       "longitude": 76.4430177
-    },
-    {
-      "id": "osm_6bb67d6a7a",
-      "name": "Dargah Hazrath",
-      "address": "",
-      "latitude": 12.9898982,
-      "longitude": 77.6010751
     },
     {
       "id": "osm_4219f6e864",
@@ -72348,13 +71669,6 @@
       "address": "Tingre Nagar Pune",
       "latitude": 18.5759716,
       "longitude": 73.8935702
-    },
-    {
-      "id": "osm_6ad8e4f495",
-      "name": "dargah,VMC",
-      "address": "",
-      "latitude": 14.1547425,
-      "longitude": 77.8646554
     },
     {
       "id": "osm_e513ac426f",
@@ -72952,13 +72266,6 @@
       "longitude": 76.9469664
     },
     {
-      "id": "osm_eed13738ef",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 21.1339675,
-      "longitude": 78.2510715
-    },
-    {
       "id": "osm_0d092eb935",
       "name": "Peroorkada Juma",
       "address": "Masjid Road",
@@ -73349,13 +72656,6 @@
       "address": "",
       "latitude": 9.6531543,
       "longitude": 76.3652521
-    },
-    {
-      "id": "osm_084f81f5f0",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 10.830905,
-      "longitude": 78.667127
     },
     {
       "id": "osm_8f238e2f30",
@@ -74154,13 +73454,6 @@
       "address": "",
       "latitude": 9.2467729,
       "longitude": 76.4430089
-    },
-    {
-      "id": "osm_61c2489ec2",
-      "name": "Dargah Hazrath",
-      "address": "",
-      "latitude": 12.9898305,
-      "longitude": 77.6010526
     },
     {
       "id": "osm_13452b2fa5",
@@ -75318,13 +74611,6 @@
       "longitude": 75.5004677
     },
     {
-      "id": "osm_f8da8e7736",
-      "name": "Dargah Kashaniya",
-      "address": "",
-      "latitude": 34.1456164,
-      "longitude": 74.8727326
-    },
-    {
       "id": "osm_fc84d2b279",
       "name": "Mosque",
       "address": "",
@@ -76102,13 +75388,6 @@
       "longitude": 72.8247165
     },
     {
-      "id": "osm_cd7527d94c",
-      "name": "Misapir dargah",
-      "address": "",
-      "latitude": 22.22321,
-      "longitude": 69.0473568
-    },
-    {
       "id": "osm_6ce0a558c8",
       "name": "Mosque",
       "address": "",
@@ -76261,13 +75540,6 @@
       "address": "",
       "latitude": 12.8547046,
       "longitude": 77.5910607
-    },
-    {
-      "id": "osm_bac6ac5457",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 26.77191,
-      "longitude": 80.9123316
     },
     {
       "id": "osm_da751f1d0b",
@@ -76522,13 +75794,6 @@
       "longitude": 74.6035228
     },
     {
-      "id": "osm_c4c7182e19",
-      "name": "Dargah-e-Sharif Hazrath",
-      "address": "",
-      "latitude": 13.1009332,
-      "longitude": 77.6347251
-    },
-    {
       "id": "osm_3227d10af3",
       "name": "Juma masjid",
       "address": "Panathur",
@@ -76550,13 +75815,6 @@
       "longitude": 76.0383355
     },
     {
-      "id": "osm_feee4392ab",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 19.041002,
-      "longitude": 72.8442525
-    },
-    {
       "id": "osm_de5347f1b2",
       "name": "Makhdoom Ali",
       "address": "",
@@ -76576,13 +75834,6 @@
       "address": "",
       "latitude": 17.6905443,
       "longitude": 83.2907481
-    },
-    {
-      "id": "osm_cfad6b8c3e",
-      "name": "Dargah Sharif",
-      "address": "",
-      "latitude": 28.6784221,
-      "longitude": 77.3041163
     },
     {
       "id": "osm_7864d4c449",
@@ -76646,13 +75897,6 @@
       "address": "",
       "latitude": 25.6863996,
       "longitude": 82.2370644
-    },
-    {
-      "id": "osm_57e842ee03",
-      "name": "Dargah Musafir",
-      "address": "",
-      "latitude": 28.5946628,
-      "longitude": 77.2411353
     },
     {
       "id": "osm_0d23ec460e",
@@ -76772,13 +76016,6 @@
       "address": "",
       "latitude": 18.1267848,
       "longitude": 75.5004673
-    },
-    {
-      "id": "osm_d8fd4ecfeb",
-      "name": "Dargah Kashaniya",
-      "address": "",
-      "latitude": 34.1456061,
-      "longitude": 74.8727186
     },
     {
       "id": "osm_657696955b",
@@ -77215,13 +76452,6 @@
       "longitude": 72.8247147
     },
     {
-      "id": "osm_333cdcdfa6",
-      "name": "Misapir dargah",
-      "address": "",
-      "latitude": 22.2231844,
-      "longitude": 69.0473297
-    },
-    {
       "id": "osm_7836a4e64a",
       "name": "Mosque",
       "address": "",
@@ -77332,13 +76562,6 @@
       "address": "",
       "latitude": 12.8547312,
       "longitude": 77.5909905
-    },
-    {
-      "id": "osm_fe7c4ce87d",
-      "name": "Dargah",
-      "address": "",
-      "latitude": 26.7718607,
-      "longitude": 80.9123253
     },
     {
       "id": "osm_cf815a1b76",
@@ -77537,13 +76760,6 @@
       "longitude": 74.6035224
     },
     {
-      "id": "osm_d60c14b8a4",
-      "name": "Dargah-e-Sharif Hazrath",
-      "address": "",
-      "latitude": 13.1009429,
-      "longitude": 77.6346556
-    },
-    {
       "id": "osm_ac050f28fa",
       "name": "Juma masjid",
       "address": "Panathur",
@@ -77579,13 +76795,6 @@
       "longitude": 83.2907409
     },
     {
-      "id": "osm_4f2fa07b03",
-      "name": "Dargah Sharif",
-      "address": "",
-      "latitude": 28.6784304,
-      "longitude": 77.3041097
-    },
-    {
       "id": "osm_798b515493",
       "name": "Mosque",
       "address": "",
@@ -77619,13 +76828,6 @@
       "address": "",
       "latitude": 25.6863992,
       "longitude": 82.2370482
-    },
-    {
-      "id": "osm_6dcaf99998",
-      "name": "Dargah Musafir",
-      "address": "",
-      "latitude": 28.5946532,
-      "longitude": 77.2411348
     },
     {
       "id": "osm_884eeda458",
@@ -77829,20 +77031,6 @@
       "address": "",
       "latitude": 12.5335705,
       "longitude": 75.2070977
-    },
-    {
-      "id": "osm_d26fbeaa58",
-      "name": "Dargah of",
-      "address": "",
-      "latitude": 28.5342087,
-      "longitude": 77.2338134
-    },
-    {
-      "id": "osm_db12cee8c2",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 13.0900998,
-      "longitude": 77.556859
     },
     {
       "id": "osm_bd0d960c14",
@@ -79964,13 +79152,6 @@
       "address": "",
       "latitude": 12.5335743,
       "longitude": 75.2070795
-    },
-    {
-      "id": "osm_cc69b14708",
-      "name": "Dargah Hazrat",
-      "address": "",
-      "latitude": 13.0900625,
-      "longitude": 77.5568301
     },
     {
       "id": "osm_40cd25a810",
