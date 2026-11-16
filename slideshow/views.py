@@ -2,6 +2,7 @@ from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import cache_control
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
@@ -1962,6 +1963,7 @@ def _load_oman_mosques():
 
 
 @require_http_methods(["GET"])
+@cache_control(max_age=3600, public=True)  # Cache for 1 hour (Cloudflare CDN)
 def api_osm_mosques(request):
     """OSM mosque pins from prefetched regional snapshots.
 
