@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 public class SiteWebViewClient extends BridgeWebViewClient {
     private static final String TAG = "SiteWebViewClient";
     private static final String[] APP_HOSTS = {
-        "takbir-al-ula.fzscreens.com", "qama.fzscreens.com",
+        "qama.fzscreens.com",
         "www.fzscreens.com", "fzscreens.com"
     };
     // CDN assets the map shell depends on — cached so offline launches work.

@@ -448,7 +448,7 @@
             let userMarker = null;
 
             const NEAR_ME_ZOOM = 14; // Google-style local view (~3-4 km across)
-            const AUTO_NEAR_ME_HOSTS = ['takbir-al-ula.fzscreens.com', 'qama.fzscreens.com', 'takbir-al-ula.com', 'www.takbir-al-ula.com'];
+            const AUTO_NEAR_ME_HOSTS = ['qama.fzscreens.com', 'takbir-al-ula.com', 'www.takbir-al-ula.com'];
             // Coarse (network) location is plenty for a near-me view and returns
             // fast; without a timeout the promise can hang forever in WebViews.
             const GEO_OPTS = {enableHighAccuracy: false, timeout: 10000, maximumAge: 300000};

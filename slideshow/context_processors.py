@@ -1,4 +1,4 @@
-"""Per-host branding — takbir-al-ula.fzscreens.com serves the Takbir al Ula
+"""Per-host branding — takbir-al-ula.com serves the Takbir al Ula
 mosque brand, everything else stays FZ Screens."""
 
 _TAKBIR = {
