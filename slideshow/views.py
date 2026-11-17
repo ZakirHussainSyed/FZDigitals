@@ -1963,7 +1963,7 @@ def _load_oman_mosques():
 
 
 @require_http_methods(["GET"])
-@cache_control(max_age=3600, public=True)  # Cache for 1 hour (Cloudflare CDN)
+@cache_control(max_age=86400, public=True)  # Cache for 1 day (Cloudflare CDN + browser)
 def api_osm_mosques(request):
     """OSM mosque pins from prefetched regional snapshots.
 
