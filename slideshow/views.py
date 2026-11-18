@@ -1963,7 +1963,7 @@ def _load_oman_mosques():
 
 
 @require_http_methods(["GET"])
-@cache_control(max_age=86400, public=True)  # Cache for 1 day (Cloudflare CDN + browser)
+@cache_control(max_age=604800, public=True)  # Cache for 1 week (Cloudflare CDN + browser)
 def api_osm_mosques(request):
     """OSM mosque pins from prefetched regional snapshots.
 
@@ -2022,6 +2022,7 @@ def api_osm_mosques(request):
 
 
 @require_http_methods(["GET"])
+@cache_control(max_age=86400, public=True)  # Cache for 1 day (Cloudflare CDN + browser)
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah.
 

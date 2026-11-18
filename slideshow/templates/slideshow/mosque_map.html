@@ -413,6 +413,52 @@
 
                 modal.classList.add('open');
                 modal.setAttribute('aria-hidden', 'false');
+
+                // Auto-fetch latest timings for actual mosques (not OSM) when modal opens
+                if (hasTimings && mosque.id && !mosque.id.startsWith('osm_')) {
+                    fetchFreshMosqueTimings(mosque.id);
+                }
+            }
+
+            async function fetchFreshMosqueTimings(mosqueId) {
+                try {
+                    const timestamp = Date.now();
+                    const url = `/api/public/mosques/?_t=${timestamp}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.success && data.mosques) {
+                        const freshMosque = data.mosques.find(m => m.id === mosqueId);
+                        if (freshMosque && freshMosque.has_timings) {
+                            // Update the mosque in allMosques and localStorage
+                            mergeMosques([freshMosque]);
+                            // Update modal with fresh timings
+                            const timings = freshMosque.timings || {};
+                            document.getElementById('t-fajr').textContent = timings.fajr || '-';
+                            document.getElementById('t-sunrise').textContent = timings.sunrise || '-';
+                            document.getElementById('t-dhuhr').textContent = timings.dhuhr || '-';
+                            document.getElementById('t-asr').textContent = timings.asr || '-';
+                            document.getElementById('t-sunset').textContent = timings.sunset || '-';
+                            document.getElementById('t-maghrib').textContent = timings.maghrib || '-';
+                            document.getElementById('t-isha').textContent = timings.isha || '-';
+                            document.getElementById('t-jummah').textContent = timings.jummah || '--';
+                            document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
+                            document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
+                            // Update next salah highlight
+                            if (freshMosque.next_salah && freshMosque.next_salah.name) {
+                                const NEXT_KEY = {"Jumu'ah": 'jummah', "Jumu'ah 2": 'jummah2', "Jumu'ah 3": 'jummah3'};
+                                const nk = NEXT_KEY[freshMosque.next_salah.name]
+                                    || freshMosque.next_salah.name.toLowerCase().replace(/\s+/g, '');
+                                const nextEl = document.getElementById('t-' + nk);
+                                if (nextEl) {
+                                    modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
+                                    nextEl.closest('.timing-row').classList.add('next');
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch fresh timings:', err);
+                }
             }
 
             function haversine(lat1, lon1, lat2, lon2) {
