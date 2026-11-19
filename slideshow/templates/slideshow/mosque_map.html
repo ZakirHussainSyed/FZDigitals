@@ -431,6 +431,12 @@
                         if (freshMosque && freshMosque.has_timings) {
                             // Update the mosque in allMosques and localStorage
                             mergeMosques([freshMosque]);
+                            // Update DB cache with fresh data
+                            const dbCache = loadDBCache();
+                            if (dbCache && dbCache.mosques) {
+                                const updated = dbCache.mosques.map(m => m.id === mosqueId ? freshMosque : m);
+                                saveDBCache(updated, dbCache.viewport);
+                            }
                             // Update modal with fresh timings
                             const timings = freshMosque.timings || {};
                             document.getElementById('t-fajr').textContent = timings.fajr || '-';
@@ -487,7 +493,9 @@
 
             let allMosques = [];
             let openMosque = null;
-            const MAP_CACHE_KEY = 'fz_mosque_map_v1';
+            const MAP_CACHE_KEY = 'fz_mosque_map_v2';
+            const OSM_CACHE_KEY = 'fz_osm_cache_v1';
+            const DB_CACHE_KEY = 'fz_db_cache_v1';
             let markers = L.layerGroup();
             let userLat = null;
             let userLon = null;
@@ -762,22 +770,63 @@
             async function fetchMosques(bboxParam) {
                 try {
                     const qs = bboxParam ? '?bbox=' + bboxParam : '';
-                    // DB mosques (timings) + prefetched OSM snapshot (pins).
-                    // OSM entries carry osm_* ids so mergeMosques dedupes.
-                    const [dbRes, osmRes] = await Promise.all([
-                        fetch('/api/public/mosques/' + qs),
-                        fetch('/api/osm/mosques/' + qs)
-                    ]);
-                    const data = await dbRes.json();
-                    if (data.success && data.mosques) mergeMosques(data.mosques);
-                    const osm = await osmRes.json().catch(() => null);
-                    if (osm && osm.mosques) mergeMosques(osm.mosques);
-                    if (!data.success || !data.mosques) return null;
+                    const currentBbox = bboxParam ? bboxParam.split(',') : null;
+                    
+                    // Parse bbox for viewport distance check
+                    let bboxObj = null;
+                    if (map && bboxParam) {
+                        bboxObj = map.getBounds();
+                    }
+
+                    // OSM mosques: 1 week cache, only fetch if expired or viewport far
+                    const osmCache = loadOSMCache();
+                    const osmWeekMs = 7 * 24 * 3600 * 1000; // 1 week
+                    let osmNeedsFetch = !osmCache || isCacheExpired(osmCache, osmWeekMs);
+                    if (!osmNeedsFetch && bboxObj && osmCache.viewport) {
+                        osmNeedsFetch = isViewportFar(bboxObj, osmCache.viewport);
+                    }
+
+                    // DB mosques: 1 hour cache, only fetch if expired or viewport far
+                    const dbCache = loadDBCache();
+                    const dbHourMs = 3600 * 1000; // 1 hour
+                    let dbNeedsFetch = !dbCache || isCacheExpired(dbCache, dbHourMs);
+                    if (!dbNeedsFetch && bboxObj && dbCache.viewport) {
+                        dbNeedsFetch = isViewportFar(bboxObj, dbCache.viewport);
+                    }
+
+                    // Fetch OSM if needed
+                    if (osmNeedsFetch) {
+                        const osmRes = await fetch('/api/osm/mosques/' + qs);
+                        const osm = await osmRes.json().catch(() => null);
+                        if (osm && osm.mosques) {
+                            mergeMosques(osm.mosques);
+                            saveOSMCache(osm.mosques, currentBbox);
+                        }
+                    } else if (osmCache && osmCache.mosques) {
+                        // Use cached OSM data
+                        mergeMosques(osmCache.mosques);
+                    }
+
+                    // Fetch DB if needed
+                    if (dbNeedsFetch) {
+                        const dbRes = await fetch('/api/public/mosques/' + qs);
+                        const data = await dbRes.json();
+                        if (data.success && data.mosques) {
+                            mergeMosques(data.mosques);
+                            saveDBCache(data.mosques, currentBbox);
+                        }
+                    } else if (dbCache && dbCache.mosques) {
+                        // Use cached DB data
+                        mergeMosques(dbCache.mosques);
+                    }
+
+                    // Save combined cache
                     try {
                         localStorage.setItem(MAP_CACHE_KEY,
                             JSON.stringify({saved: Date.now(), mosques: allMosques}));
                     } catch (e) { /* storage full or blocked */ }
-                    return data.mosques;
+                    
+                    return allMosques;
                 } catch (err) {
                     return null;
                 }
@@ -813,6 +862,67 @@
                 return false;
             }
 
+            // Load OSM cache with timestamp tracking
+            function loadOSMCache() {
+                try {
+                    const c = JSON.parse(localStorage.getItem(OSM_CACHE_KEY));
+                    if (c && Array.isArray(c.mosques) && c.mosques.length) {
+                        return c;
+                    }
+                } catch (e) { /* no usable cache */ }
+                return null;
+            }
+
+            // Save OSM cache with timestamp and viewport
+            function saveOSMCache(mosques, bbox) {
+                try {
+                    localStorage.setItem(OSM_CACHE_KEY, JSON.stringify({
+                        saved: Date.now(),
+                        mosques: mosques,
+                        viewport: bbox
+                    }));
+                } catch (e) { /* storage full or blocked */ }
+            }
+
+            // Load DB cache with timestamp tracking
+            function loadDBCache() {
+                try {
+                    const c = JSON.parse(localStorage.getItem(DB_CACHE_KEY));
+                    if (c && Array.isArray(c.mosques) && c.mosques.length) {
+                        return c;
+                    }
+                } catch (e) { /* no usable cache */ }
+                return null;
+            }
+
+            // Save DB cache with timestamp and viewport
+            function saveDBCache(mosques, bbox) {
+                try {
+                    localStorage.setItem(DB_CACHE_KEY, JSON.stringify({
+                        saved: Date.now(),
+                        mosques: mosques,
+                        viewport: bbox
+                    }));
+                } catch (e) { /* storage full or blocked */ }
+            }
+
+            // Check if viewport is far from cached viewport (> 50km)
+            function isViewportFar(currentBbox, cachedBbox) {
+                if (!cachedBbox) return true;
+                const cachedCenterLat = (parseFloat(cachedBbox[0]) + parseFloat(cachedBbox[2])) / 2;
+                const cachedCenterLon = (parseFloat(cachedBbox[1]) + parseFloat(cachedBbox[3])) / 2;
+                const currentCenterLat = (currentBbox.getSouth() + currentBbox.getNorth()) / 2;
+                const currentCenterLon = (currentBbox.getWest() + currentBbox.getEast()) / 2;
+                const distance = haversine(cachedCenterLat, cachedCenterLon, currentCenterLat, currentCenterLon);
+                return distance > 50; // 50km threshold
+            }
+
+            // Check if cache is expired based on time
+            function isCacheExpired(cache, maxAgeMs) {
+                if (!cache || !cache.saved) return true;
+                return (Date.now() - cache.saved) > maxAgeMs;
+            }
+
             // Recompute next-salah everywhere: pin labels + open modal row.
             function refreshSalahLabels() {
                 allMosques.forEach(function (m) { m.next_salah = computeNextSalah(m); });
@@ -830,25 +940,6 @@
                 }
             }
             setInterval(refreshSalahLabels, 60000);
-
-            // Daily resync at ~1:30 AM — pull fresh timings so website-side
-            // changes reach clients; a failed fetch keeps the cached list.
-            (function scheduleResync() {
-                const now = new Date();
-                const nxt = new Date(now);
-                nxt.setHours(1, 30, 0, 0);
-                if (nxt <= now) nxt.setDate(nxt.getDate() + 1);
-                setTimeout(async function tick() {
-                    // Refresh just the current viewport — not the world feed.
-                    const ok = map ? await fetchMosquesInBounds(map.getBounds())
-                                   : await fetchMosques();
-                    if (ok) {
-                        refreshSalahLabels();
-                        renderMosques(allMosques, false);
-                    }
-                    setTimeout(tick, 24 * 3600 * 1000);
-                }, nxt - now);
-            })();
 
             const SPLASH_MIN_MS = {% if brand.key == 'takbir' %}5000{% else %}0{% endif %};
             let map;
