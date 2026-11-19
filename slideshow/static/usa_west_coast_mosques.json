@@ -1,0 +1,1155 @@
+{
+  "version": "1.0",
+  "fetched_at": "2026-11-19T21:31:06.117518",
+  "count": 164,
+  "mosques": [
+    {
+      "id": "osm_c9de488442",
+      "name": "As-Salam Mosque",
+      "address": "",
+      "latitude": 37.8030002,
+      "longitude": -122.2852014
+    },
+    {
+      "id": "osm_5afa4ac6e1",
+      "name": "Bay Area",
+      "address": "Richmond",
+      "latitude": 37.9326784,
+      "longitude": -122.3210499
+    },
+    {
+      "id": "osm_fb500f67fc",
+      "name": "Muhammad Mosque",
+      "address": "",
+      "latitude": 37.93548,
+      "longitude": -122.365249
+    },
+    {
+      "id": "osm_06dd56afa1",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 38.5694664,
+      "longitude": -121.5066257
+    },
+    {
+      "id": "osm_c61b13b7f3",
+      "name": "Masjid Annur",
+      "address": "",
+      "latitude": 38.5393509,
+      "longitude": -121.4174531
+    },
+    {
+      "id": "osm_32a034d64c",
+      "name": "Masjid Ya",
+      "address": "lodi",
+      "latitude": 38.1238081,
+      "longitude": -121.2655027
+    },
+    {
+      "id": "osm_a073019f61",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 37.9765903,
+      "longitude": -121.2180006
+    },
+    {
+      "id": "osm_823239e356",
+      "name": "Islamic Society",
+      "address": "",
+      "latitude": 36.5938242,
+      "longitude": -121.8799762
+    },
+    {
+      "id": "osm_5a11d48ed5",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 36.9677011,
+      "longitude": -121.984814
+    },
+    {
+      "id": "osm_a7c4b5267d",
+      "name": "Islamic Center",
+      "address": "Mill Valley",
+      "latitude": 37.9064825,
+      "longitude": -122.5221382
+    },
+    {
+      "id": "osm_0987df7748",
+      "name": "Taha Services",
+      "address": "",
+      "latitude": 37.4096064,
+      "longitude": -121.9906328
+    },
+    {
+      "id": "osm_9903863e5c",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 38.6801449,
+      "longitude": -121.7670635
+    },
+    {
+      "id": "osm_b1d4c70985",
+      "name": "Masjid Abu",
+      "address": "Hayward",
+      "latitude": 37.6321251,
+      "longitude": -122.0485436
+    },
+    {
+      "id": "osm_088f30fee9",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 36.7681875,
+      "longitude": -121.76037
+    },
+    {
+      "id": "osm_20f6eba373",
+      "name": "South Bay",
+      "address": "San Jose",
+      "latitude": 37.4029072,
+      "longitude": -121.9053011
+    },
+    {
+      "id": "osm_d91d00b5bc",
+      "name": "Milpitas Musallah",
+      "address": "Milpitas",
+      "latitude": 37.4335176,
+      "longitude": -121.8855331
+    },
+    {
+      "id": "osm_8ac523b151",
+      "name": "Masjid Darus",
+      "address": "Milpitas",
+      "latitude": 37.4266066,
+      "longitude": -121.8962479
+    },
+    {
+      "id": "osm_f05fe63eca",
+      "name": "San Ramon",
+      "address": "",
+      "latitude": 37.7767909,
+      "longitude": -121.9692118
+    },
+    {
+      "id": "osm_6d8fd3fd75",
+      "name": "Saba",
+      "address": "San Jose",
+      "latitude": 37.4212243,
+      "longitude": -121.9585473
+    },
+    {
+      "id": "osm_04da28ba3b",
+      "name": "Islamic Society",
+      "address": "Goleta",
+      "latitude": 34.4404737,
+      "longitude": -119.852525
+    },
+    {
+      "id": "osm_cd031bdb79",
+      "name": "Muslim Community",
+      "address": "Santa Clara",
+      "latitude": 37.3772184,
+      "longitude": -121.9594714
+    },
+    {
+      "id": "osm_6df72c3032",
+      "name": "Badr Islamic",
+      "address": "Fresno",
+      "latitude": 36.8391824,
+      "longitude": -119.8783759
+    },
+    {
+      "id": "osm_68414f1a70",
+      "name": "Mosque",
+      "address": "Lodi",
+      "latitude": 38.125926,
+      "longitude": -121.2795343
+    },
+    {
+      "id": "osm_fe3a3db23b",
+      "name": "Ibrahim Khalilullah",
+      "address": "",
+      "latitude": 37.5205277,
+      "longitude": -121.9446839
+    },
+    {
+      "id": "osm_b53df087ac",
+      "name": "Masjid Zakariya",
+      "address": "",
+      "latitude": 37.5094493,
+      "longitude": -121.972374
+    },
+    {
+      "id": "osm_13aa00581d",
+      "name": "Peninsula Muslim",
+      "address": "",
+      "latitude": 37.3908284,
+      "longitude": -122.0736819
+    },
+    {
+      "id": "osm_02099bbc4a",
+      "name": "Centerville Islamic",
+      "address": "",
+      "latitude": 37.562718,
+      "longitude": -122.0104817
+    },
+    {
+      "id": "osm_7262ef49c8",
+      "name": "Santa Clara",
+      "address": "Milpitas",
+      "latitude": 37.4206581,
+      "longitude": -121.893027
+    },
+    {
+      "id": "osm_9bb60a8c59",
+      "name": "Mountain House",
+      "address": "Mountain House",
+      "latitude": 37.7723405,
+      "longitude": -121.5521921
+    },
+    {
+      "id": "osm_c498ca3e60",
+      "name": "Tracy Islamic",
+      "address": "Tracy",
+      "latitude": 37.7647985,
+      "longitude": -121.4525643
+    },
+    {
+      "id": "osm_11f9405ca2",
+      "name": "Zaytech Academy",
+      "address": "Mountain House",
+      "latitude": 37.7762566,
+      "longitude": -121.5322589
+    },
+    {
+      "id": "osm_53387d769c",
+      "name": "Mountain House",
+      "address": "Mountain House",
+      "latitude": 37.778635,
+      "longitude": -121.5405236
+    },
+    {
+      "id": "osm_ae24fd906c",
+      "name": "Islamic Cultural",
+      "address": "",
+      "latitude": 37.8023404,
+      "longitude": -122.2640805
+    },
+    {
+      "id": "osm_5d37d14989",
+      "name": "Islamic Society",
+      "address": "",
+      "latitude": 37.7814413,
+      "longitude": -122.4118068
+    },
+    {
+      "id": "osm_3b750cbe99",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 36.9676442,
+      "longitude": -121.9847181
+    },
+    {
+      "id": "osm_18a761843d",
+      "name": "Masjid Fresno",
+      "address": "",
+      "latitude": 36.8082712,
+      "longitude": -119.7516539
+    },
+    {
+      "id": "osm_97ddbae91b",
+      "name": "Yaseen Foundation",
+      "address": "Belmont",
+      "latitude": 37.5226739,
+      "longitude": -122.2745003
+    },
+    {
+      "id": "osm_17484f0574",
+      "name": "Al Masjid",
+      "address": "Fremont",
+      "latitude": 37.5808102,
+      "longitude": -122.0547439
+    },
+    {
+      "id": "osm_9ab9d77d5a",
+      "name": "Al Tawheed",
+      "address": "",
+      "latitude": 37.7874343,
+      "longitude": -122.4206115
+    },
+    {
+      "id": "osm_8fee007e68",
+      "name": "Masjid Al-Noor",
+      "address": "",
+      "latitude": 37.3504818,
+      "longitude": -121.9554364
+    },
+    {
+      "id": "osm_85ab247166",
+      "name": "Mosque of",
+      "address": "1136 Walnut",
+      "latitude": 35.2865496,
+      "longitude": -120.6623532
+    },
+    {
+      "id": "osm_5d0b9c6b1e",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 38.5465108,
+      "longitude": -121.756333
+    },
+    {
+      "id": "osm_97cbc4568b",
+      "name": "Berkeley Masjid",
+      "address": "",
+      "latitude": 37.8619319,
+      "longitude": -122.2526933
+    },
+    {
+      "id": "osm_f2a751d3d7",
+      "name": "Islamic Center",
+      "address": "San Francisco",
+      "latitude": 37.7347308,
+      "longitude": -122.4166813
+    },
+    {
+      "id": "osm_af6d7f8265",
+      "name": "Islamic Center",
+      "address": "Chico",
+      "latitude": 39.734023,
+      "longitude": -121.8626478
+    },
+    {
+      "id": "osm_c5bceb0213",
+      "name": "Masjid Al",
+      "address": "Stockton",
+      "latitude": 37.9630214,
+      "longitude": -121.3389365
+    },
+    {
+      "id": "osm_4453c9ac6e",
+      "name": "Lighthouse Mosque",
+      "address": "Oakland",
+      "latitude": 37.831622,
+      "longitude": -122.267671
+    },
+    {
+      "id": "osm_20f4a2c24e",
+      "name": "Islamic Center",
+      "address": "Merced",
+      "latitude": 37.3218197,
+      "longitude": -120.5395375
+    },
+    {
+      "id": "osm_b5bc872d85",
+      "name": "South Valley",
+      "address": "San Martin",
+      "latitude": 37.1099885,
+      "longitude": -121.6018155
+    },
+    {
+      "id": "osm_81b86f044c",
+      "name": "West Valley",
+      "address": "Los Gatos",
+      "latitude": 37.2406589,
+      "longitude": -121.9634745
+    },
+    {
+      "id": "osm_d772ee7f09",
+      "name": "Islamic Center",
+      "address": "Fremont",
+      "latitude": 37.5313801,
+      "longitude": -121.9598216
+    },
+    {
+      "id": "osm_26f82613a7",
+      "name": "Ibrahim Khalilullah",
+      "address": "",
+      "latitude": 37.5205325,
+      "longitude": -121.9446906
+    },
+    {
+      "id": "osm_7dc999a45e",
+      "name": "SALAM",
+      "address": "",
+      "latitude": 38.6473448,
+      "longitude": -121.351168
+    },
+    {
+      "id": "osm_c822ee398e",
+      "name": "Oakland Islamic",
+      "address": "Oakland",
+      "latitude": 37.8198018,
+      "longitude": -122.2677563
+    },
+    {
+      "id": "osm_1c857c425d",
+      "name": "Muslim Community",
+      "address": "",
+      "latitude": 37.6855217,
+      "longitude": -121.8911404
+    },
+    {
+      "id": "osm_474f1b245f",
+      "name": "Baitus Salaam",
+      "address": "Bay Point",
+      "latitude": 38.0346267,
+      "longitude": -121.9758185
+    },
+    {
+      "id": "osm_a42d7c446d",
+      "name": "Islamic Center",
+      "address": "Alameda",
+      "latitude": 37.7733761,
+      "longitude": -122.270209
+    },
+    {
+      "id": "osm_88ba9190d1",
+      "name": "Masjid Abu",
+      "address": "CA",
+      "latitude": 37.8463325,
+      "longitude": -122.2771532
+    },
+    {
+      "id": "osm_c0d2fd1330",
+      "name": "Masjid Al-Rahman",
+      "address": "Richmond",
+      "latitude": 37.9495512,
+      "longitude": -122.3326262
+    },
+    {
+      "id": "osm_b235c16fef",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 37.7886673,
+      "longitude": -121.2334839
+    },
+    {
+      "id": "osm_0d8d6a633a",
+      "name": "Islamic Society",
+      "address": "",
+      "latitude": 38.4430969,
+      "longitude": -122.7165293
+    },
+    {
+      "id": "osm_f337013526",
+      "name": "Masjid As-Sabur",
+      "address": "",
+      "latitude": 38.5383705,
+      "longitude": -121.4480767
+    },
+    {
+      "id": "osm_7454ddd83f",
+      "name": "Islamic Center",
+      "address": "Vacaville",
+      "latitude": 38.3579466,
+      "longitude": -121.9821471
+    },
+    {
+      "id": "osm_4f6e856a52",
+      "name": "Dawoodi Bohra",
+      "address": "Fremont",
+      "latitude": 37.582303,
+      "longitude": -121.9634699
+    },
+    {
+      "id": "osm_f524b5f853",
+      "name": "Evergreen Islamic",
+      "address": "San Jose",
+      "latitude": 37.3403783,
+      "longitude": -121.7852242
+    },
+    {
+      "id": "osm_f90f50cf2f",
+      "name": "Alsabeel Masjid",
+      "address": "",
+      "latitude": 37.7824382,
+      "longitude": -122.4120676
+    },
+    {
+      "id": "osm_7668d1143c",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 37.680156,
+      "longitude": -121.7548274
+    },
+    {
+      "id": "osm_2daf36fdf8",
+      "name": "Al-Mumtaz Institute",
+      "address": "Fair Oaks",
+      "latitude": 38.6586027,
+      "longitude": -121.271873
+    },
+    {
+      "id": "osm_d3d7c5c691",
+      "name": "Lodi Mosque",
+      "address": "lodi",
+      "latitude": 38.119147,
+      "longitude": -121.2690746
+    },
+    {
+      "id": "osm_31570eae67",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 37.6566234,
+      "longitude": -121.0330427
+    },
+    {
+      "id": "osm_272f035a96",
+      "name": "Islamic Center",
+      "address": "Bakersfield",
+      "latitude": 35.3392272,
+      "longitude": -119.0101237
+    },
+    {
+      "id": "osm_ce668e6812",
+      "name": "Islamic Development",
+      "address": "",
+      "latitude": 33.937517,
+      "longitude": -117.2355947
+    },
+    {
+      "id": "osm_bb1eab29db",
+      "name": "Shia Ithnaasheri",
+      "address": "",
+      "latitude": 33.9683333,
+      "longitude": -118.1022222
+    },
+    {
+      "id": "osm_521ede7edc",
+      "name": "Ahmadiyya Muslim",
+      "address": "",
+      "latitude": 33.9125,
+      "longitude": -118.3441667
+    },
+    {
+      "id": "osm_33a7ed8099",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 33.9213889,
+      "longitude": -118.3538889
+    },
+    {
+      "id": "osm_2e4c82235d",
+      "name": "Masjid of",
+      "address": "",
+      "latitude": 34.5797222,
+      "longitude": -118.1086111
+    },
+    {
+      "id": "osm_1802680b7e",
+      "name": "Al Rribat",
+      "address": "",
+      "latitude": 32.7708073,
+      "longitude": -117.043655
+    },
+    {
+      "id": "osm_a8ddc854b7",
+      "name": "Muhammad Mosque",
+      "address": "",
+      "latitude": 32.7066577,
+      "longitude": -117.1288173
+    },
+    {
+      "id": "osm_a267ee27c6",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 32.865053,
+      "longitude": -116.956789
+    },
+    {
+      "id": "osm_802b0936f3",
+      "name": "Masjid Al-Fatiha",
+      "address": "",
+      "latitude": 34.1242029,
+      "longitude": -117.8896045
+    },
+    {
+      "id": "osm_8d90e35cab",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 36.1299338,
+      "longitude": -115.071606
+    },
+    {
+      "id": "osm_671322d000",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 33.978857,
+      "longitude": -117.33443
+    },
+    {
+      "id": "osm_c9eb74e709",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 33.9530392,
+      "longitude": -118.3509708
+    },
+    {
+      "id": "osm_04686f5e24",
+      "name": "Logia mas\u00f3nica",
+      "address": "Tijuana",
+      "latitude": 32.5266961,
+      "longitude": -117.0364753
+    },
+    {
+      "id": "osm_29cfce8012",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 34.1398669,
+      "longitude": -117.9810568
+    },
+    {
+      "id": "osm_fe872cae05",
+      "name": "Ar-Rahman Islamic",
+      "address": "Fontana",
+      "latitude": 34.1150035,
+      "longitude": -117.434793
+    },
+    {
+      "id": "osm_06823e82a8",
+      "name": "King Fahad",
+      "address": "",
+      "latitude": 34.0115344,
+      "longitude": -118.4102487
+    },
+    {
+      "id": "osm_361fa29b16",
+      "name": "Masjidul Taqwa",
+      "address": "San Diego",
+      "latitude": 32.7061023,
+      "longitude": -117.138477
+    },
+    {
+      "id": "osm_1ea0682b3a",
+      "name": "Masjid Bilal",
+      "address": "",
+      "latitude": 34.0109468,
+      "longitude": -118.2562323
+    },
+    {
+      "id": "osm_1fa0ca6c07",
+      "name": "Maryam Masjid",
+      "address": "",
+      "latitude": 33.8753012,
+      "longitude": -117.5242568
+    },
+    {
+      "id": "osm_59bf32f3c0",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 33.9959902,
+      "longitude": -117.5214227
+    },
+    {
+      "id": "osm_b842246335",
+      "name": "Chino Valley",
+      "address": "Chino",
+      "latitude": 34.0110309,
+      "longitude": -117.701811
+    },
+    {
+      "id": "osm_c5ddd425db",
+      "name": "Dawoodi Bohra",
+      "address": "",
+      "latitude": 34.1736493,
+      "longitude": -118.6436906
+    },
+    {
+      "id": "osm_ce8c1a72f6",
+      "name": "Masjid Omar",
+      "address": "",
+      "latitude": 34.0185669,
+      "longitude": -118.2924402
+    },
+    {
+      "id": "osm_dee2269372",
+      "name": "Masjid Al-Falah",
+      "address": "CA",
+      "latitude": 34.068638,
+      "longitude": -118.3069725
+    },
+    {
+      "id": "osm_332b8d44fd",
+      "name": "MTO Shahmaghsoudi",
+      "address": "",
+      "latitude": 34.2018552,
+      "longitude": -118.5257954
+    },
+    {
+      "id": "osm_60e0d49768",
+      "name": "Granada Hills",
+      "address": "",
+      "latitude": 34.2785755,
+      "longitude": -118.5165247
+    },
+    {
+      "id": "osm_c9ee131baf",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 34.223597,
+      "longitude": -118.5531562
+    },
+    {
+      "id": "osm_39d170f640",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 34.1862886,
+      "longitude": -118.5297164
+    },
+    {
+      "id": "osm_71b228d9e9",
+      "name": "Imam Bukhari",
+      "address": "North Hills",
+      "latitude": 34.2280031,
+      "longitude": -118.474704
+    },
+    {
+      "id": "osm_6b0d8ce0f6",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 34.2136945,
+      "longitude": -118.3597473
+    },
+    {
+      "id": "osm_5d7e99b686",
+      "name": "La Mirada",
+      "address": "La Mirada",
+      "latitude": 33.9174639,
+      "longitude": -118.0283588
+    },
+    {
+      "id": "osm_e7d74eb755",
+      "name": "Islamic Society",
+      "address": "Downey",
+      "latitude": 33.9490006,
+      "longitude": -118.1470618
+    },
+    {
+      "id": "osm_f9ca7ef2cb",
+      "name": "Bab-Ul-Ilm Islamic",
+      "address": "Maywood",
+      "latitude": 33.9852914,
+      "longitude": -118.1794611
+    },
+    {
+      "id": "osm_0927a01e9d",
+      "name": "Islamic Center",
+      "address": "Downey",
+      "latitude": 33.917978,
+      "longitude": -118.1186732
+    },
+    {
+      "id": "osm_423092fe8a",
+      "name": "Masroor Mosque",
+      "address": "Pico Rivera",
+      "latitude": 33.9728578,
+      "longitude": -118.0947939
+    },
+    {
+      "id": "osm_5859e7b668",
+      "name": "Islamic Center",
+      "address": "Glendale",
+      "latitude": 34.1387408,
+      "longitude": -118.2414103
+    },
+    {
+      "id": "osm_ff65036599",
+      "name": "Islamic Center",
+      "address": "Santa Clarita",
+      "latitude": 34.4620873,
+      "longitude": -118.4837913
+    },
+    {
+      "id": "osm_9a5ae93afd",
+      "name": "Al-Noor Foundation",
+      "address": "Westminster",
+      "latitude": 33.7512827,
+      "longitude": -118.0064907
+    },
+    {
+      "id": "osm_59c965f5de",
+      "name": "Jafaria Islamic",
+      "address": "Anaheim",
+      "latitude": 33.8469003,
+      "longitude": -117.8956131
+    },
+    {
+      "id": "osm_01aeca41c3",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 33.978936,
+      "longitude": -117.3344796
+    },
+    {
+      "id": "osm_f57cb07b86",
+      "name": "Islamic Information",
+      "address": "Las Vegas",
+      "latitude": 36.0894609,
+      "longitude": -115.130642
+    },
+    {
+      "id": "osm_c44901d628",
+      "name": "Masjid Al-Ansar",
+      "address": "San Diego",
+      "latitude": 32.7498311,
+      "longitude": -117.0883013
+    },
+    {
+      "id": "osm_c626bc58d5",
+      "name": "Masjid Al-Ansar",
+      "address": "Anaheim",
+      "latitude": 33.805618,
+      "longitude": -117.9595158
+    },
+    {
+      "id": "osm_991979dcf7",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 34.1150046,
+      "longitude": -117.4347528
+    },
+    {
+      "id": "osm_33f68de1a9",
+      "name": "Masjid Dar",
+      "address": "Fontana",
+      "latitude": 34.1349899,
+      "longitude": -117.4757273
+    },
+    {
+      "id": "osm_0d870285ed",
+      "name": "Bell Islamic",
+      "address": "Bell",
+      "latitude": 33.9759458,
+      "longitude": -118.1712145
+    },
+    {
+      "id": "osm_43900fd34e",
+      "name": "Baitul Hameed",
+      "address": "Chino",
+      "latitude": 34.0367423,
+      "longitude": -117.7059005
+    },
+    {
+      "id": "osm_a2d32545cc",
+      "name": "Baitul Tauheed",
+      "address": "Las Vegas",
+      "latitude": 36.2181669,
+      "longitude": -115.2373845
+    },
+    {
+      "id": "osm_31e65e267d",
+      "name": "Masjid Ibrahim",
+      "address": "Kingman",
+      "latitude": 35.2252213,
+      "longitude": -114.0295594
+    },
+    {
+      "id": "osm_46b1188f64",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 34.1785103,
+      "longitude": -118.9334178
+    },
+    {
+      "id": "osm_9ae0823d2b",
+      "name": "Islamic Center",
+      "address": "Victorville",
+      "latitude": 34.5256215,
+      "longitude": -117.3001628
+    },
+    {
+      "id": "osm_8c6fb1207e",
+      "name": "Islamic Center",
+      "address": "San Diego",
+      "latitude": 32.8205876,
+      "longitude": -117.1654603
+    },
+    {
+      "id": "osm_25bc48f71c",
+      "name": "Masjid An-Nur",
+      "address": "",
+      "latitude": 32.7486932,
+      "longitude": -117.087312
+    },
+    {
+      "id": "osm_8ffb1989d7",
+      "name": "Islamic Society",
+      "address": "",
+      "latitude": 33.6933467,
+      "longitude": -116.1875924
+    },
+    {
+      "id": "osm_e6d322b1f4",
+      "name": "Islamic Center",
+      "address": "Los Angeles",
+      "latitude": 34.0664084,
+      "longitude": -118.291235
+    },
+    {
+      "id": "osm_93aface120",
+      "name": "Islamic Community",
+      "address": "Redlands",
+      "latitude": 34.0385329,
+      "longitude": -117.2177651
+    },
+    {
+      "id": "osm_60f148cca6",
+      "name": "Masjid Omar",
+      "address": "",
+      "latitude": 47.7831272,
+      "longitude": -122.3079334
+    },
+    {
+      "id": "osm_84cf53083f",
+      "name": "Masjid Al-Huda",
+      "address": "Portland",
+      "latitude": 45.5263363,
+      "longitude": -122.589646
+    },
+    {
+      "id": "osm_8bd2d0275f",
+      "name": "ICMV",
+      "address": "Maple Valley",
+      "latitude": 47.388221,
+      "longitude": -122.0424436
+    },
+    {
+      "id": "osm_e0dcdf23d3",
+      "name": "Islamic Society",
+      "address": "",
+      "latitude": 48.7440991,
+      "longitude": -122.4595707
+    },
+    {
+      "id": "osm_962a2a5e82",
+      "name": "Abu-Bakr Mosque",
+      "address": "",
+      "latitude": 47.5521354,
+      "longitude": -122.289007
+    },
+    {
+      "id": "osm_127c0bf6e6",
+      "name": "Masjid Ibrahim",
+      "address": "Portland",
+      "latitude": 45.5543042,
+      "longitude": -122.833187
+    },
+    {
+      "id": "osm_7c9e91e7b6",
+      "name": "Mayf Center",
+      "address": "",
+      "latitude": 47.462567,
+      "longitude": -122.3320988
+    },
+    {
+      "id": "osm_b69d05e880",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 47.6291396,
+      "longitude": -122.151019
+    },
+    {
+      "id": "osm_0fb9ee73bd",
+      "name": "Islamic Center",
+      "address": "Seattle",
+      "latitude": 47.720093,
+      "longitude": -122.2941588
+    },
+    {
+      "id": "osm_e4a27005cc",
+      "name": "Mosque",
+      "address": "",
+      "latitude": 45.5441627,
+      "longitude": -122.3942658
+    },
+    {
+      "id": "osm_f00e4257a7",
+      "name": "Masjid Madeena",
+      "address": "Bellevue",
+      "latitude": 47.6178515,
+      "longitude": -122.1222275
+    },
+    {
+      "id": "osm_a949e57def",
+      "name": "Qiyam Foundation",
+      "address": "Tacoma",
+      "latitude": 47.2244855,
+      "longitude": -122.4697211
+    },
+    {
+      "id": "osm_ac283a4d3c",
+      "name": "Muslim Association",
+      "address": "",
+      "latitude": 47.6657948,
+      "longitude": -122.1065921
+    },
+    {
+      "id": "osm_c8fe9fa0e4",
+      "name": "The BC",
+      "address": "",
+      "latitude": 48.4336253,
+      "longitude": -123.3585823
+    },
+    {
+      "id": "osm_70544f723a",
+      "name": "Islamic Center",
+      "address": "",
+      "latitude": 47.6678274,
+      "longitude": -122.098031
+    },
+    {
+      "id": "osm_04637d6d5b",
+      "name": "Islamic House",
+      "address": "Seattle",
+      "latitude": 47.6625959,
+      "longitude": -122.3047038
+    },
+    {
+      "id": "osm_8215c6ab91",
+      "name": "Islamic School",
+      "address": "Seattle",
+      "latitude": 47.6087105,
+      "longitude": -122.2998208
+    },
+    {
+      "id": "osm_32ba15b7f7",
+      "name": "Idris Mosque",
+      "address": "Seattle",
+      "latitude": 47.7087226,
+      "longitude": -122.3128315
+    },
+    {
+      "id": "osm_07d5547497",
+      "name": "Masjid Al-Nur",
+      "address": "Olympia",
+      "latitude": 47.0634813,
+      "longitude": -122.8283456
+    },
+    {
+      "id": "osm_db16512e96",
+      "name": "Bilal Masjid",
+      "address": "Beaverton",
+      "latitude": 45.4901263,
+      "longitude": -122.8426823
+    },
+    {
+      "id": "osm_d8736d1997",
+      "name": "The Porltand",
+      "address": "Portland",
+      "latitude": 45.453359,
+      "longitude": -122.7131332
+    },
+    {
+      "id": "osm_e0a3cdc2a5",
+      "name": "Imam Mahdi",
+      "address": "Beaverton",
+      "latitude": 45.4696122,
+      "longitude": -122.8035442
+    },
+    {
+      "id": "osm_1fd70375b9",
+      "name": "Islamic Center",
+      "address": "Portland",
+      "latitude": 45.450822,
+      "longitude": -122.7218963
+    },
+    {
+      "id": "osm_1b8caf9b58",
+      "name": "Islamic Community",
+      "address": "Hillsboro",
+      "latitude": 45.5722085,
+      "longitude": -122.9231279
+    },
+    {
+      "id": "osm_2dc13ab2fc",
+      "name": "Islamic Center",
+      "address": "West Richland",
+      "latitude": 46.2748502,
+      "longitude": -119.3456786
+    },
+    {
+      "id": "osm_316584b63f",
+      "name": "Salman Alfarisi",
+      "address": "Corvallis",
+      "latitude": 44.5739151,
+      "longitude": -123.2754802
+    },
+    {
+      "id": "osm_2fad59a313",
+      "name": "Abu-Bakr",
+      "address": "",
+      "latitude": 47.4768623,
+      "longitude": -122.2843697
+    },
+    {
+      "id": "osm_bfb08ade4a",
+      "name": "Islamic Center",
+      "address": "Yakima",
+      "latitude": 46.5938673,
+      "longitude": -120.5201842
+    },
+    {
+      "id": "osm_d8167cf52d",
+      "name": "Islamic Community",
+      "address": "Shoreline",
+      "latitude": 47.7739943,
+      "longitude": -122.3037482
+    },
+    {
+      "id": "osm_69608becef",
+      "name": "Islamic Center",
+      "address": "Bremerton",
+      "latitude": 47.5734109,
+      "longitude": -122.6662584
+    },
+    {
+      "id": "osm_43239fc6cb",
+      "name": "Islamic Center",
+      "address": "Bellevue",
+      "latitude": 47.6101893,
+      "longitude": -122.1440816
+    },
+    {
+      "id": "osm_6366fe3bbc",
+      "name": "Baitul Ehsan",
+      "address": "Monroe",
+      "latitude": 47.8640029,
+      "longitude": -121.915767
+    },
+    {
+      "id": "osm_d1595ad38e",
+      "name": "Masjid Salama",
+      "address": "",
+      "latitude": 45.4865708,
+      "longitude": -122.8667444
+    },
+    {
+      "id": "osm_c3c01bd868",
+      "name": "Ithna-asheri Muslim",
+      "address": "Kirkland",
+      "latitude": 47.671582,
+      "longitude": -122.2026671
+    },
+    {
+      "id": "osm_ca88e719ce",
+      "name": "Pullman Islamic",
+      "address": "",
+      "latitude": 46.7370238,
+      "longitude": -117.1656086
+    },
+    {
+      "id": "osm_9463c15f96",
+      "name": "Islamic Center",
+      "address": "Boise",
+      "latitude": 43.6327943,
+      "longitude": -116.2874583
+    },
+    {
+      "id": "osm_2f828ba712",
+      "name": "Spokane Islamic",
+      "address": "",
+      "latitude": 47.6556193,
+      "longitude": -117.3180182
+    }
+  ]
+}

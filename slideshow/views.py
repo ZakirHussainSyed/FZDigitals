@@ -1914,17 +1914,23 @@ _OSM_MOSQUES_INDIA = None
 _OSM_MOSQUES_INDIA_LOADED = False
 _OSM_MOSQUES_OMAN = None
 _OSM_MOSQUES_OMAN_LOADED = False
+_OSM_MOSQUES_USA_WEST_COAST = None
+_OSM_MOSQUES_USA_WEST_COAST_LOADED = False
 
 
 def _load_osm_mosques(bbox=None):
     """Load OSM mosques from the appropriate regional dataset.
 
-    Detects region from bbox: India (6.5-37°N, 68-97°E) or Oman
-    (16.5-26.5°N, 52-60°E). Falls back to India if bbox unknown.
+    Detects region from bbox: India (6.5-37°N, 68-97°E), Oman
+    (16.5-26.5°N, 52-60°E), or USA West Coast (32-49°N, -124 to -114°E).
+    Falls back to India if bbox unknown.
     """
     # Determine region from bbox
     if bbox:
         s, w, n, e = bbox
+        # USA West Coast bounds check (WA, OR, CA)
+        if 32.0 <= s <= 49.0 and -124.0 <= w <= -114.0:
+            return _load_usa_west_coast_mosques()
         # Oman bounds check
         if 16.5 <= s <= 26.5 and 52.0 <= w <= 60.0:
             return _load_oman_mosques()
@@ -1960,6 +1966,21 @@ def _load_oman_mosques():
         logger.warning('oman_mosques.json missing or unreadable', exc_info=True)
         _OSM_MOSQUES_OMAN = []
     return _OSM_MOSQUES_OMAN
+
+
+def _load_usa_west_coast_mosques():
+    global _OSM_MOSQUES_USA_WEST_COAST, _OSM_MOSQUES_USA_WEST_COAST_LOADED
+    if _OSM_MOSQUES_USA_WEST_COAST_LOADED:
+        return _OSM_MOSQUES_USA_WEST_COAST
+    _OSM_MOSQUES_USA_WEST_COAST_LOADED = True
+    path = os.path.join(settings.BASE_DIR, 'slideshow', 'static', 'usa_west_coast_mosques.json')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            _OSM_MOSQUES_USA_WEST_COAST = json.load(f).get('mosques', [])
+    except Exception:
+        logger.warning('usa_west_coast_mosques.json missing or unreadable', exc_info=True)
+        _OSM_MOSQUES_USA_WEST_COAST = []
+    return _OSM_MOSQUES_USA_WEST_COAST
 
 
 @require_http_methods(["GET"])
