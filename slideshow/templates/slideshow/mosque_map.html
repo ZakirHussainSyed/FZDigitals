@@ -782,42 +782,70 @@
                     const osmCache = loadOSMCache();
                     const osmWeekMs = 7 * 24 * 3600 * 1000; // 1 week
                     let osmNeedsFetch = !osmCache || isCacheExpired(osmCache, osmWeekMs);
-                    if (!osmNeedsFetch && bboxObj && osmCache.viewport) {
-                        osmNeedsFetch = isViewportFar(bboxObj, osmCache.viewport);
+                    let osmReason = 'no cache';
+                    if (osmCache) {
+                        const cacheAge = Date.now() - osmCache.saved;
+                        const daysOld = Math.floor(cacheAge / (24 * 3600 * 1000));
+                        if (isCacheExpired(osmCache, osmWeekMs)) {
+                            osmReason = `cache expired (${daysOld} days old)`;
+                        } else if (bboxObj && osmCache.viewport && isViewportFar(bboxObj, osmCache.viewport)) {
+                            osmReason = 'viewport far (>50km)';
+                            osmNeedsFetch = true;
+                        } else {
+                            osmReason = `cache fresh (${daysOld} days old)`;
+                        }
                     }
+                    console.log('[Cache] OSM:', osmNeedsFetch ? 'FETCHING' : 'USING CACHE', `(${osmReason})`);
 
                     // DB mosques: 1 hour cache, only fetch if expired or viewport far
                     const dbCache = loadDBCache();
                     const dbHourMs = 3600 * 1000; // 1 hour
                     let dbNeedsFetch = !dbCache || isCacheExpired(dbCache, dbHourMs);
-                    if (!dbNeedsFetch && bboxObj && dbCache.viewport) {
-                        dbNeedsFetch = isViewportFar(bboxObj, dbCache.viewport);
+                    let dbReason = 'no cache';
+                    if (dbCache) {
+                        const cacheAge = Date.now() - dbCache.saved;
+                        const hoursOld = Math.floor(cacheAge / (3600 * 1000));
+                        if (isCacheExpired(dbCache, dbHourMs)) {
+                            dbReason = `cache expired (${hoursOld} hours old)`;
+                        } else if (bboxObj && dbCache.viewport && isViewportFar(bboxObj, dbCache.viewport)) {
+                            dbReason = 'viewport far (>50km)';
+                            dbNeedsFetch = true;
+                        } else {
+                            dbReason = `cache fresh (${hoursOld} hours old)`;
+                        }
                     }
+                    console.log('[Cache] DB:', dbNeedsFetch ? 'FETCHING' : 'USING CACHE', `(${dbReason})`);
 
                     // Fetch OSM if needed
                     if (osmNeedsFetch) {
+                        console.log('[Network] Fetching OSM mosques from server...');
                         const osmRes = await fetch('/api/osm/mosques/' + qs);
                         const osm = await osmRes.json().catch(() => null);
                         if (osm && osm.mosques) {
                             mergeMosques(osm.mosques);
                             saveOSMCache(osm.mosques, currentBbox);
+                            console.log('[Cache] OSM cache updated with', osm.mosques.length, 'mosques');
                         }
                     } else if (osmCache && osmCache.mosques) {
                         // Use cached OSM data
                         mergeMosques(osmCache.mosques);
+                        console.log('[Cache] Using cached OSM mosques:', osmCache.mosques.length);
                     }
 
                     // Fetch DB if needed
                     if (dbNeedsFetch) {
+                        console.log('[Network] Fetching DB mosques from server...');
                         const dbRes = await fetch('/api/public/mosques/' + qs);
                         const data = await dbRes.json();
                         if (data.success && data.mosques) {
                             mergeMosques(data.mosques);
                             saveDBCache(data.mosques, currentBbox);
+                            console.log('[Cache] DB cache updated with', data.mosques.length, 'mosques');
                         }
                     } else if (dbCache && dbCache.mosques) {
                         // Use cached DB data
                         mergeMosques(dbCache.mosques);
+                        console.log('[Cache] Using cached DB mosques:', dbCache.mosques.length);
                     }
 
                     // Save combined cache
@@ -828,6 +856,7 @@
                     
                     return allMosques;
                 } catch (err) {
+                    console.error('[Cache] Fetch error:', err);
                     return null;
                 }
             }
