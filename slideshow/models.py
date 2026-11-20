@@ -362,3 +362,11 @@ def mosque_slide_changed_push(sender, instance, **kwargs):
     mosque = getattr(instance, 'mosque', None)
     if mosque:
         transaction.on_commit(lambda: _fcm_push_for_devices(mosque.devices.all()))
+
+
+@receiver(post_delete, sender=DevicePairing)
+def pairing_deleted_push(sender, instance, **kwargs):
+    """A screen pairing was deleted → push to all user's devices to refresh/redirect."""
+    if instance.user_id:
+        transaction.on_commit(lambda: _fcm_push_for_devices(
+            Device.objects.filter(user=instance.user)))

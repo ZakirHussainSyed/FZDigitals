@@ -111,7 +111,7 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
             + "height:100vh;text-align:center}h1{font-size:28px;margin-bottom:12px}"
             + "p{color:rgba(255,255,255,.6);font-size:16px;line-height:1.6}</style>"
             + "</head><body><h1>Mosque TV</h1>"
-            + "<p>No internet connection.<br>Retrying automatically&hellip;</p>"
+            + "<p>Please Connect to internet</p>"
             + "</body></html>",
             "text/html", "utf-8", null);
     }
