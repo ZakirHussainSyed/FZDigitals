@@ -38,6 +38,26 @@
         }
         .mosque-pin strong { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
         .mosque-pin .next-salah { display: block; font-size: 17px; font-weight: 700; color: #ffd54f; }
+        .osm-mosque-pin {
+            position: relative;
+            width: 12px;
+            height: 12px;
+            background: #78909c;
+            border: 2px solid #fff;
+            border-radius: 50% 50% 50% 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+            transform: rotate(-45deg);
+        }
+        .osm-mosque-pin::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            left: 2px;
+            top: 2px;
+            background: #fff;
+            border-radius: 50%;
+        }
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -478,7 +498,15 @@
             }
 
             function createIcon(m) {
-                // For OSM mosques (no timings), show only the name. For DB mosques, show next salah.
+                if (m.id && m.id.startsWith('osm_')) {
+                    return L.divIcon({
+                        className: '',
+                        html: '<div class="osm-mosque-pin"></div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 12]
+                    });
+                }
+                // DB mosques show their next salah and name.
                 const nextLabel = m.has_timings && m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
                     : '';
