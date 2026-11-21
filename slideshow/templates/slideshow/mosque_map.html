@@ -40,10 +40,10 @@
         .mosque-pin .next-salah { display: block; font-size: 17px; font-weight: 700; color: #ffd54f; }
         .osm-mosque-pin {
             position: relative;
-            width: 18px;
-            height: 18px;
+            width: 36px;
+            height: 36px;
             background: #2e7d32;
-            border: 2px solid #fff;
+            border: 3px solid #fff;
             border-radius: 50% 50% 50% 0;
             box-shadow: 0 1px 4px rgba(0,0,0,0.45);
             transform: rotate(-45deg);
@@ -51,10 +51,10 @@
         .osm-mosque-pin::after {
             content: '';
             position: absolute;
-            width: 6px;
-            height: 6px;
-            left: 4px;
-            top: 4px;
+            width: 12px;
+            height: 12px;
+            left: 9px;
+            top: 9px;
             background: #fff;
             border-radius: 50%;
         }
@@ -502,8 +502,8 @@
                     return L.divIcon({
                         className: '',
                         html: '<div class="osm-mosque-pin"></div>',
-                        iconSize: [18, 18],
-                        iconAnchor: [9, 18]
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 36]
                     });
                 }
                 // DB mosques show their next salah and name.
