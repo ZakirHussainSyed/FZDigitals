@@ -2,7 +2,7 @@
   "version": "1.0",
   "fetched_at": "2026-11-09T07:47:45.179828Z",
   "source": "geofabrik india-261108.osm.pbf",
-  "count": 11527,
+  "count": 11525,
   "mosques": [
     {
       "id": "osm_880240da25",
@@ -42523,13 +42523,6 @@
       "longitude": 78.3296539
     },
     {
-      "id": "osm_2aa9f903a6",
-      "name": "Jamia Masjid",
-      "address": "",
-      "latitude": 16.7426426,
-      "longitude": 77.9890976
-    },
-    {
       "id": "osm_d11f8b2bd2",
       "name": "Hazrat Hamid",
       "address": "",
@@ -44446,13 +44439,6 @@
       "address": "",
       "latitude": 17.4947414,
       "longitude": 78.329653
-    },
-    {
-      "id": "osm_4f609a1cbf",
-      "name": "Jamia Masjid",
-      "address": "",
-      "latitude": 16.7425942,
-      "longitude": 77.9890967
     },
     {
       "id": "osm_5796e342fe",
