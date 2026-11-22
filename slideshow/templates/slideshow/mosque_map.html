@@ -435,7 +435,8 @@
                 modal.setAttribute('aria-hidden', 'false');
 
                 // Auto-fetch latest timings for actual mosques (not OSM) when modal opens
-                if (hasTimings && mosque.id && !mosque.id.startsWith('osm_')) {
+                if (hasTimings && mosque.id &&
+                    !(typeof mosque.id === 'string' && mosque.id.startsWith('osm_'))) {
                     fetchFreshMosqueTimings(mosque.id);
                 }
             }
@@ -498,7 +499,7 @@
             }
 
             function createIcon(m) {
-                if (m.id && m.id.startsWith('osm_')) {
+                if (typeof m.id === 'string' && m.id.startsWith('osm_')) {
                     return L.divIcon({
                         className: '',
                         html: '<div class="osm-mosque-pin"></div>',
