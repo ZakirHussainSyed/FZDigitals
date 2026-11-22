@@ -383,7 +383,7 @@ def user_management(request):
                 if manual_times:
                     PrayerTimeOverride.objects.create(
                         mosque=mosque,
-                        date=timezone.now().date(),
+                        date=_mosque_local_date(mosque),
                         **manual_times,
                     )
                 if mosque.sync_enabled:
@@ -957,9 +957,9 @@ def api_mosques(request):
     """Return active mosques for the current user with today's prayer times"""
     try:
         mosques = Mosque.objects.filter(user=request.user, is_active=True)
-        today = timezone.now().date()
         data = []
         for m in mosques:
+            today = _mosque_local_date(m)
             pt = resolve_prayer_time(m, today)
             prayer_times = {
                 'fajr': pt.fajr.strftime('%H:%M') if pt.fajr else None,
@@ -1673,6 +1673,12 @@ def api_qr_svg(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+def _mosque_local_date(mosque, at=None):
+    """Return a timestamp's calendar date in this mosque's timezone."""
+    tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
+    return (at or timezone.now()).astimezone(tz).date()
+
+
 def _latest_prayer_time(mosque, on_date):
     """Today's PrayerTime, falling back to the most recent prior row.
 
@@ -2175,8 +2181,8 @@ def prayer_times(request):
         messages.error(request, 'No mosque is associated with your account.')
         return redirect(f'/{request.user.id}/')
 
-    today = timezone.now().date()
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'Asia/Kolkata'))
+    today = _mosque_local_date(mosque)
     prayer_time, _ = PrayerTime.objects.get_or_create(
         mosque=mosque,
         date=today,
@@ -2328,7 +2334,7 @@ def _mosque_timings(mosque, for_date=None):
     the TV panel picks up dashboard edits on the hourly refresh instead of
     waiting for the 1:30 AM page reload. Returns (prayer_time, timings, tz).
     """
-    today = for_date or timezone.now().date()
+    today = for_date or _mosque_local_date(mosque)
     tz = ZoneInfo(mosque.timezone or getattr(settings, 'MOSQUE_TIMEZONE', 'UTC'))
     # Resolved = synced base + manual overrides; only seed placeholder
     # defaults when the mosque has never had any times at all — and never
@@ -2383,7 +2389,7 @@ def mosque_tv(request):
         messages.error(request, 'No mosque is associated with your account.')
         return redirect('prayer-times')
 
-    today = timezone.now().date()
+    today = _mosque_local_date(mosque)
     prayer_time, timings, tz = _mosque_timings(mosque, today)
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)
@@ -2440,7 +2446,7 @@ def mosque_tv_device(request):
     if not mosque:
         return HttpResponse('No mosque assigned to this device', status=400)
     
-    today = timezone.now().date()
+    today = _mosque_local_date(mosque)
     prayer_time, timings, tz = _mosque_timings(mosque, today)
     now = timezone.now().astimezone(tz)
     next_salah = _next_salah(prayer_time, now, tz)

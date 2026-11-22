@@ -1,8 +1,12 @@
+from datetime import date, datetime
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
+
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from .models import Device, DevicePairing, MediaFile
+from .models import Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride
 
 
 def image(name='pic.png'):
@@ -97,3 +101,44 @@ class DeviceRegistrationTests(TestCase):
         )
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Device.objects.filter(device_id='BR-11112222').exists())
+
+
+class MosquePrayerDateTests(TestCase):
+    def test_prayer_times_save_uses_mosque_local_date(self):
+        user = User.objects.create_user('mosque', password='pw')
+        mosque = Mosque.objects.create(
+            user=user,
+            name='ICOE Main',
+            latitude='47.6101201',
+            longitude='-122.1441715',
+            timezone='America/Los_Angeles',
+        )
+        self.client.force_login(user)
+        pst_evening_utc_next_day = datetime(2026, 11, 22, 1, 15, tzinfo=ZoneInfo('UTC'))
+        form_data = {'website_url': ''}
+        for field, hour, minute, ampm in (
+            ('fajr', '5', '15', 'AM'),
+            ('dhuhr', '1', '00', 'PM'),
+            ('asr', '4', '00', 'PM'),
+            ('maghrib', '6', '00', 'PM'),
+            ('isha', '8', '00', 'PM'),
+        ):
+            form_data.update({
+                f'{field}_hour': hour,
+                f'{field}_minute': minute,
+                f'{field}_ampm': ampm,
+            })
+
+        with patch('slideshow.views.timezone.now', return_value=pst_evening_utc_next_day):
+            response = self.client.post('/prayer-times/', form_data)
+            api_response = self.client.get('/api/public/mosques/', {
+                'bbox': '47.60,-122.15,47.62,-122.13',
+            })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(PrayerTime.objects.filter(mosque=mosque, date=date(2026, 11, 21)).exists())
+        self.assertTrue(
+            PrayerTimeOverride.objects.filter(mosque=mosque, date=date(2026, 11, 21)).exists()
+        )
+        mosque_data = api_response.json()['mosques'][0]
+        self.assertEqual(mosque_data['timings']['fajr'], '5:15 am')
