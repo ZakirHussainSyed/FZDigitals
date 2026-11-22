@@ -524,7 +524,7 @@
             let openMosque = null;
             const MAP_CACHE_KEY = 'fz_mosque_map_v2';
             const OSM_CACHE_KEY = 'fz_osm_cache_v1';
-            const DB_CACHE_KEY = 'fz_db_cache_v1';
+            const DB_CACHE_KEY = 'fz_db_cache_v2';
             let markers = L.layerGroup();
             let userLat = null;
             let userLon = null;
@@ -864,7 +864,9 @@
                     // Fetch DB if needed
                     if (dbNeedsFetch) {
                         console.log('[Network] Fetching DB mosques from server...');
-                        const dbRes = await fetch('/api/public/mosques/' + qs);
+                        const dbUrl = '/api/public/mosques/' + qs
+                            + (qs ? '&' : '?') + '_t=' + Date.now();
+                        const dbRes = await fetch(dbUrl, {cache: 'no-store'});
                         const data = await dbRes.json();
                         if (data.success && data.mosques) {
                             mergeMosques(data.mosques);

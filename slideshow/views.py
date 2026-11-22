@@ -2049,7 +2049,7 @@ def api_osm_mosques(request):
 
 
 @require_http_methods(["GET"])
-@cache_control(max_age=86400, public=True)  # Cache for 1 day (Cloudflare CDN + browser)
+@cache_control(max_age=3600, public=True)  # Match the map's one-hour client cache
 def api_public_mosques(request):
     """Public list of mosques with today's prayer times, sunrise, and next salah.
 
