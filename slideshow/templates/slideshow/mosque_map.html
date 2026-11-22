@@ -1001,7 +1001,7 @@
             }
             setInterval(refreshSalahLabels, 60000);
 
-            const SPLASH_MIN_MS = {% if brand.key == 'takbir' %}5000{% else %}0{% endif %};
+            const SPLASH_MIN_MS = {% if brand.key == 'takbir' %}2000{% else %}0{% endif %};
             let map;
             try {
                 // Cold-start retry: on app launch the network may not be up yet —
