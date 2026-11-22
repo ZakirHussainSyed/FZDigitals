@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 public class MosqueWebViewClient extends BridgeWebViewClient {
     private static final String TAG = "MosqueWebViewClient";
     private static final String[] APP_HOSTS = {
+        "takbir-al-ula.com", "www.takbir-al-ula.com",
         "qama.fzscreens.com",
         "www.fzscreens.com", "fzscreens.com"
     };
