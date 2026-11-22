@@ -508,7 +508,7 @@
                     });
                 }
                 // DB mosques show their next salah and name.
-                const nextLabel = m.has_timings && m.next_salah && m.next_salah.name
+                const nextLabel = m.next_salah && m.next_salah.name
                     ? `<span class="next-salah">${m.next_salah.name}: ${m.next_salah.time}</span>`
                     : '';
                 const html = `${nextLabel}<strong>${m.name}</strong>`;
