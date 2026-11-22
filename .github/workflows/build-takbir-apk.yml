@@ -26,6 +26,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Gradle dependency cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
@@ -88,7 +91,18 @@ jobs:
 
       - name: Build debug APK
         working-directory: mobile-takbir/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          for attempt in 1 2 3; do
+            echo "Gradle debug build attempt $attempt"
+            if ./gradlew assembleDebug --no-daemon --refresh-dependencies=false; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Maven dependency request failed; waiting before retry..."
+              sleep $((attempt * 30))
+            fi
+          done
+          exit 1
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
