@@ -208,6 +208,7 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
 
     // Matches Whitenoise's cache-control: public, max-age=14400 on /static/.
     private static final long STATIC_TTL_MS = 4L * 60 * 60 * 1000;
+    private static final long SPLASH_TTL_MS = 7L * 24 * 60 * 60 * 1000;
 
     /**
      * /static/ assets: serve the disk copy while it's fresher than the
@@ -217,8 +218,11 @@ public class MosqueWebViewClient extends BridgeWebViewClient {
     private WebResourceResponse staticThroughCache(WebResourceRequest request, Uri url) {
         File cacheFile = cacheFileFor(url);
         long age = System.currentTimeMillis() - cacheFile.lastModified();
-        if (cacheFile.exists() && cacheFile.length() > 0 && age < STATIC_TTL_MS) {
-            WebResourceResponse res = serveFile(cacheFile, url, "public, max-age=14400");
+        boolean splashAsset = "/static/takbir_flash_New.jpg".equals(url.getPath());
+        long ttl = splashAsset ? SPLASH_TTL_MS : STATIC_TTL_MS;
+        String cacheControl = splashAsset ? "public, max-age=604800" : "public, max-age=14400";
+        if (cacheFile.exists() && cacheFile.length() > 0 && age < ttl) {
+            WebResourceResponse res = serveFile(cacheFile, url, cacheControl);
             if (res != null) return res;
         }
         return fetchThroughCache(request, url);
