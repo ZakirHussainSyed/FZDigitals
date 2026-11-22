@@ -140,5 +140,6 @@ class MosquePrayerDateTests(TestCase):
         self.assertTrue(
             PrayerTimeOverride.objects.filter(mosque=mosque, date=date(2026, 11, 21)).exists()
         )
+        self.assertIn('max-age=3600', api_response['Cache-Control'])
         mosque_data = api_response.json()['mosques'][0]
         self.assertEqual(mosque_data['timings']['fajr'], '5:15 am')
