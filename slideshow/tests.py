@@ -6,7 +6,10 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from .models import Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride
+from .models import (
+    Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride,
+    TakbirAnnouncement,
+)
 
 
 def image(name='pic.png'):
@@ -143,3 +146,67 @@ class MosquePrayerDateTests(TestCase):
         self.assertIn('max-age=3600', api_response['Cache-Control'])
         mosque_data = api_response.json()['mosques'][0]
         self.assertEqual(mosque_data['timings']['fajr'], '5:15 am')
+
+
+class TakbirAnnouncementTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            'admin', 'admin@example.com', 'password')
+
+    def test_public_feed_only_returns_published_announcements_without_http_cache(self):
+        published = TakbirAnnouncement.objects.create(
+            title='Hadith', body='Message', source='Reference',
+            is_published=True, created_by=self.admin, published_at=datetime.now(ZoneInfo('UTC')),
+        )
+        TakbirAnnouncement.objects.create(title='Draft', body='Not public')
+
+        response = self.client.get('/api/public/announcements/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('no-store', response['Cache-Control'])
+        self.assertEqual([item['id'] for item in response.json()['announcements']], [published.id])
+
+    def test_only_superusers_can_manage_announcements(self):
+        regular_user = User.objects.create_user('regular', password='password')
+        self.client.force_login(regular_user)
+        response = self.client.get('/takbir/announcements/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_can_publish_announcement(self):
+        self.client.force_login(self.admin)
+        response = self.client.post('/takbir/announcements/', {
+            'action': 'create',
+            'title': 'Community update',
+            'body': 'Message',
+            'source': 'Takbir',
+            'publish': '1',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/takbir/announcements/')
+        announcement = TakbirAnnouncement.objects.get()
+        self.assertTrue(announcement.is_published)
+        self.assertEqual(announcement.created_by, self.admin)
+        self.assertIsNotNone(announcement.published_at)
+
+
+class TakbirAppShellTests(TestCase):
+    def test_takbir_map_renders_persistent_four_tab_navigation(self):
+        response = self.client.get('/mosque-map/', HTTP_HOST='takbir-al-ula.com')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-tab="prayer"')
+        self.assertContains(response, 'data-tab="mosques"')
+        self.assertContains(response, 'data-tab="notifications"')
+        self.assertContains(response, 'data-tab="website"')
+        self.assertContains(response, 'takbir_prayer_core.js')
+        self.assertNotContains(response, 'class="login-btn"')
+
+    def test_announcement_admin_page_can_be_embedded_same_origin(self):
+        admin = User.objects.create_superuser('takbir-admin', 'admin@example.com', 'password')
+        self.client.force_login(admin)
+
+        response = self.client.get('/takbir/announcements/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Frame-Options'], 'SAMEORIGIN')

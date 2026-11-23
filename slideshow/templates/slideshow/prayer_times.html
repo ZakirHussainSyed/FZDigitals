@@ -214,6 +214,9 @@
         </form>
 
         <a href="/{{ request.user.id }}/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;">Dashboard</a>
+        {% if request.user.is_superuser and brand.key == 'takbir' %}
+        <a href="/takbir/announcements/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Manage Notifications</a>
+        {% endif %}
     </div>
     <script>
         const syncBox = document.getElementById('id_sync_enabled');

@@ -277,6 +277,26 @@ class PrayerTimeOverride(models.Model):
         return f"{self.mosque.name} - {self.date} (override)"
 
 
+class TakbirAnnouncement(models.Model):
+    title = models.CharField(max_length=180)
+    body = models.TextField()
+    source = models.CharField(max_length=500, blank=True, default='')
+    is_published = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='takbir_announcements',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-published_at', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
 class MosqueSlide(models.Model):
     mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='slides')
     title = models.CharField(max_length=255)
