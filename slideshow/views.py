@@ -1875,6 +1875,47 @@ def _next_salah(prayer_time, now, tz):
 
 
 @require_http_methods(["GET"])
+@cache_control(max_age=86400, public=True)
+def api_location_name(request):
+    try:
+        latitude = float(request.GET.get('latitude', ''))
+        longitude = float(request.GET.get('longitude', ''))
+    except (TypeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid coordinates'}, status=400)
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({'success': False, 'error': 'Invalid coordinates'}, status=400)
+
+    address = ''
+    try:
+        resp = requests.get(
+            'https://nominatim.openstreetmap.org/reverse',
+            params={'format': 'jsonv2', 'lat': latitude, 'lon': longitude, 'zoom': 10},
+            headers={'User-Agent': 'FZDigitals/1.0'},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        place = resp.json()
+        address_data = place.get('address') or {}
+        area = (
+            address_data.get('city')
+            or address_data.get('town')
+            or address_data.get('village')
+            or address_data.get('county')
+            or address_data.get('state_district')
+            or address_data.get('state')
+            or ''
+        )
+        country = address_data.get('country') or ''
+        address = ', '.join(part for part in (area, country) if part)
+        if not address:
+            address = place.get('display_name') or ''
+    except Exception:
+        pass
+
+    return JsonResponse({'success': True, 'name': address})
+
+
+@require_http_methods(["GET"])
 def api_approx_location(request):
     """Approximate client location from their IP — fallback for when the
     browser's geolocation is denied, unavailable, or times out.

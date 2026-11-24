@@ -179,9 +179,9 @@
         const date = new Date(Date.UTC(year, month - 1, day + (adjustment || 0), 12));
         const options = {day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'};
         try {
-            return new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', options).format(date);
+            return new Intl.DateTimeFormat('ar-u-ca-islamic-umalqura-nu-latn', options).format(date);
         } catch (error) {
-            return new Intl.DateTimeFormat('en-u-ca-islamic', options).format(date);
+            return new Intl.DateTimeFormat('ar-u-ca-islamic-nu-latn', options).format(date);
         }
     }
 
