@@ -280,7 +280,7 @@
 
     function prayerRows(day) {
         return [
-            ['Fajr / Sehri ends', 'فجر / سحری', day.fajr, 'fajr'],
+            ['Fajr', 'فجر', day.fajr, 'fajr'],
             ['Sunrise', 'طلوع آفتاب', day.sunrise, 'sunrise'],
             ['Ishraq', 'اشراق', day.ishraq, 'ishraq'],
             ['Dhuhr', 'ظہر', day.dhuhr, 'dhuhr'],
@@ -329,8 +329,7 @@
                 : rows[0];
         }
         nextLabel.textContent = isToday ? 'Next prayer' : 'First prayer';
-        nextName.textContent = nextPrayer[0].replace(' / Sehri ends', '')
-            + ' · ' + nextPrayer[1];
+        nextName.textContent = nextPrayer[0] + ' · ' + nextPrayer[1];
         nextTime.textContent = 'At ' + Core.formatTime(nextPrayer[2]);
         prayerList.replaceChildren();
         rows.forEach(function (row) {
