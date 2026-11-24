@@ -94,11 +94,11 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "Gradle debug build attempt $attempt"
-            if ./gradlew assembleDebug --no-daemon --refresh-dependencies=false; then
+            if ./gradlew assembleDebug --no-daemon; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
-              echo "Maven dependency request failed; waiting before retry..."
+              echo "Gradle build failed; waiting before retry..."
               sleep $((attempt * 30))
             fi
           done
