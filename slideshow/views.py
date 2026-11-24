@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import cache_control
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
@@ -25,7 +26,10 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from .models import MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide
+from .models import (
+    MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime,
+    PrayerTimeOverride, MosqueSlide, TakbirAnnouncement,
+)
 from .prayer_sync import (
     sunrise_time,
     sunset_time,
@@ -89,6 +93,7 @@ def browser_label(user_agent):
     return f'{browser} on {platform}'
 
 
+@xframe_options_sameorigin
 def index(request):
     """Root URL - shows landing page or redirects to user dashboard"""
     if request.user.is_authenticated:
@@ -99,6 +104,7 @@ def index(request):
     return render(request, 'slideshow/home.html')
 
 
+@xframe_options_sameorigin
 def django_login(request):
     """Django traditional login"""
     if request.user.is_authenticated:
@@ -244,6 +250,7 @@ def forget_password_verify(request):
 
 
 @login_required
+@xframe_options_sameorigin
 def user_management(request):
     """User management page - only for superusers"""
     if not request.user.is_superuser:
@@ -408,6 +415,66 @@ def user_management(request):
 
 
 @login_required
+@xframe_options_sameorigin
+def takbir_announcements_admin(request):
+    if not request.user.is_superuser:
+        return HttpResponse(status=403)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            title = request.POST.get('title', '').strip()
+            body = request.POST.get('body', '').strip()
+            source = request.POST.get('source', '').strip()
+            if not title or not body:
+                messages.error(request, 'Title and message are required.')
+            elif len(title) > 180 or len(source) > 500:
+                messages.error(request, 'Title or source is too long.')
+            else:
+                is_published = request.POST.get('publish') == '1'
+                TakbirAnnouncement.objects.create(
+                    title=title,
+                    body=body,
+                    source=source,
+                    is_published=is_published,
+                    published_at=timezone.now() if is_published else None,
+                    created_by=request.user,
+                )
+                messages.success(
+                    request,
+                    'Announcement published.' if is_published else 'Draft saved.',
+                )
+        elif action == 'toggle':
+            announcement_id = request.POST.get('announcement_id', '')
+            if not announcement_id.isdecimal():
+                return HttpResponse(status=400)
+            announcement = get_object_or_404(
+                TakbirAnnouncement, pk=announcement_id)
+            announcement.is_published = not announcement.is_published
+            announcement.published_at = timezone.now() if announcement.is_published else None
+            announcement.save(update_fields=['is_published', 'published_at', 'updated_at'])
+            messages.success(
+                request,
+                'Announcement published.' if announcement.is_published else 'Announcement unpublished.',
+            )
+        elif action == 'delete':
+            announcement_id = request.POST.get('announcement_id', '')
+            if not announcement_id.isdecimal():
+                return HttpResponse(status=400)
+            announcement = get_object_or_404(
+                TakbirAnnouncement, pk=announcement_id)
+            announcement.delete()
+            messages.success(request, 'Announcement deleted.')
+        else:
+            return HttpResponse(status=400)
+        return redirect('takbir-announcements-admin')
+
+    return render(request, 'slideshow/takbir_announcements_admin.html', {
+        'announcements': TakbirAnnouncement.objects.all(),
+    })
+
+
+@login_required
 def edit_user(request, user_id):
     """Superuser edits a user's email, plan limits, and mosque details."""
     if not request.user.is_superuser:
@@ -497,6 +564,7 @@ def admin_reset_password(request, user_id):
 
 
 @login_required
+@xframe_options_sameorigin
 def user_dashboard(request, user_id):
     """User-specific upload page with device pairing"""
     if request.user.id != user_id:
@@ -2154,6 +2222,25 @@ def api_public_mosques(request):
     except Exception as e:
         logger.error(f"Error in api_public_mosques: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@cache_control(no_store=True)
+def api_public_announcements(request):
+    announcements = TakbirAnnouncement.objects.filter(
+        is_published=True,
+        published_at__isnull=False,
+    ).order_by('-published_at', '-created_at')[:100]
+    return JsonResponse({
+        'success': True,
+        'announcements': [{
+            'id': item.id,
+            'title': item.title,
+            'body': item.body,
+            'source': item.source,
+            'published_at': item.published_at.isoformat(),
+        } for item in announcements],
+    })
 
 
 def mosque_map(request):

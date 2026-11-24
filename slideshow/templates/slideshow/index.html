@@ -451,6 +451,7 @@
             <a href="/accounts/logout/">Logout</a>
             {% if user.is_superuser %}
                 <a href="/user-management/">User Management</a>
+                {% if brand.key == 'takbir' %}<a href="/takbir/announcements/">Notifications</a>{% endif %}
             {% endif %}
         </div>
         {% else %}

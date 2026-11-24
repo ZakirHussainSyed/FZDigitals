@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Takbir Notifications</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 28px 16px; background: #f5f7f5; color: #202820; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+        main { width: min(760px, 100%); margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+        h1 { font-size: 24px; margin: 0; }
+        a { color: #176b3a; }
+        .card { background: #fff; border: 1px solid #dfe7df; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+        h2 { font-size: 18px; margin: 0 0 14px; }
+        label { display: block; font-size: 14px; font-weight: 650; margin: 12px 0 6px; }
+        input, textarea { width: 100%; padding: 11px 12px; border: 1px solid #c8d3c8; border-radius: 8px; font: inherit; }
+        textarea { min-height: 120px; resize: vertical; }
+        .hint, .meta { color: #667166; font-size: 13px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        button { border: 0; border-radius: 8px; padding: 10px 14px; font: inherit; font-weight: 650; cursor: pointer; }
+        .publish { color: #fff; background: #187342; }
+        .draft, .secondary { color: #263126; background: #e8eee8; }
+        .danger { color: #a32121; background: #fff0f0; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; background: #e7f4e9; }
+        .alert.error { background: #fff0f0; color: #a32121; }
+        .announcement-title { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .announcement-title h2 { margin: 0; }
+        .body-copy { white-space: pre-wrap; line-height: 1.5; margin: 14px 0; }
+        @media (max-width: 500px) { header { align-items: flex-start; flex-direction: column; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <h1>Takbir Notifications</h1>
+        <nav>
+            <a href="/{{ request.user.id }}/">Dashboard</a>
+            &nbsp;·&nbsp;
+            <a href="/user-management/">Admin portal</a>
+        </nav>
+    </header>
+
+    {% for message in messages %}
+    <div class="alert{% if message.tags == 'error' %} error{% endif %}">{{ message }}</div>
+    {% endfor %}
+
+    <section class="card">
+        <h2>Compose announcement</h2>
+        <p class="hint">Published messages appear in the app’s Notifications tab. No push alert is sent.</p>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <label for="title">Title</label>
+            <input id="title" name="title" maxlength="180" required>
+            <label for="body">Message</label>
+            <textarea id="body" name="body" required></textarea>
+            <label for="source">Source or reference (optional)</label>
+            <input id="source" name="source" maxlength="500" placeholder="Hadith reference, article source, or URL">
+            <div class="actions">
+                <button class="draft" type="submit" name="publish" value="0">Save draft</button>
+                <button class="publish" type="submit" name="publish" value="1">Publish</button>
+            </div>
+        </form>
+    </section>
+
+    <h2>Announcements</h2>
+    {% for item in announcements %}
+    <article class="card">
+        <div class="announcement-title">
+            <h2>{{ item.title }}</h2>
+            <span class="meta">{% if item.is_published %}Published {{ item.published_at|date:"M j, Y g:i a" }}{% else %}Draft{% endif %}</span>
+        </div>
+        <p class="body-copy">{{ item.body }}</p>
+        {% if item.source %}<p class="meta">Source: {{ item.source }}</p>{% endif %}
+        <div class="actions">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="announcement_id" value="{{ item.id }}">
+                <button class="secondary" type="submit">{% if item.is_published %}Unpublish{% else %}Publish{% endif %}</button>
+            </form>
+            <form method="post" onsubmit="return confirm('Delete this announcement?')">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="announcement_id" value="{{ item.id }}">
+                <button class="danger" type="submit">Delete</button>
+            </form>
+        </div>
+    </article>
+    {% empty %}
+    <p class="hint">No announcements yet.</p>
+    {% endfor %}
+</main>
+</body>
+</html>

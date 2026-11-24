@@ -76,6 +76,9 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
+# Keep Takbir's embedded Website tab usable while refusing cross-origin frames.
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [

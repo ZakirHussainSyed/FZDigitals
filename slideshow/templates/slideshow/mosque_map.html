@@ -266,12 +266,103 @@
             text-decoration: none;
         }
         .brand-footer a:hover { text-decoration: underline; }
+        body.takbir-app { background: #f5f8f5; }
+        body.takbir-app .app-screen {
+            position: absolute;
+            inset: 0 0 calc(68px + env(safe-area-inset-bottom, 0px)) 0;
+            display: none;
+            background: #f5f8f5;
+        }
+        body.takbir-app .app-screen.active { display: block; }
+        body.takbir-app #mosques-screen { background: #fff; }
+        body.takbir-app #map { height: 100%; }
+        .takbir-tabs {
+            position: fixed;
+            z-index: 4500;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            min-height: calc(64px + env(safe-area-inset-bottom, 0px));
+            padding: 6px 6px env(safe-area-inset-bottom, 0px);
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            background: #fff;
+            border-top: 1px solid #e3e9e3;
+            box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+        }
+        .takbir-tab {
+            border: 0;
+            background: transparent;
+            color: #67736a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            min-width: 0;
+            font: inherit;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .takbir-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+        .takbir-tab[aria-selected="true"] { color: #087b56; }
+        .takbir-tab[aria-selected="true"] svg { stroke-width: 2.4; }
+        .prayer-panel, .notifications-panel {
+            height: 100%;
+            overflow-y: auto;
+            padding: max(24px, env(safe-area-inset-top, 0px)) 18px 24px;
+            color: #203229;
+            -webkit-overflow-scrolling: touch;
+        }
+        .prayer-content, .notifications-content { width: min(620px, 100%); margin: 0 auto; }
+        .prayer-heading { font-size: 24px; margin: 8px 0 18px; }
+        .prayer-location-card, .next-prayer-card, .prayer-list-card, .prayer-settings, .announcement-card {
+            background: #fff;
+            border: 1px solid #e1e9e2;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(16,54,34,.04);
+        }
+        .prayer-location-card { padding: 14px 16px; margin-bottom: 14px; }
+        #prayer-location { font-size: 16px; font-weight: 700; }
+        #prayer-date { margin-top: 4px; color: #607066; font-size: 13px; }
+        #prayer-hijri { margin-top: 3px; color: #087b56; font-size: 14px; font-weight: 600; }
+        #prayer-day-picker { margin-top: 10px; padding: 8px; border: 1px solid #ccd8ce; border-radius: 8px; background: #fff; font: inherit; }
+        .next-prayer-card { padding: 18px; margin-bottom: 14px; background: #0c6c47; color: #fff; }
+        .next-prayer-label { font-size: 12px; letter-spacing: .08em; opacity: .8; text-transform: uppercase; }
+        #next-prayer-name { font-size: 24px; font-weight: 750; margin-top: 4px; }
+        #next-prayer-time { margin-top: 4px; font-size: 15px; }
+        .prayer-list-card { padding: 6px 16px; }
+        .prayer-time-row { display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #edf1ed; }
+        .prayer-time-row:last-child { border-bottom: 0; }
+        .prayer-time-row strong { font-weight: 650; }
+        .prayer-time-row time { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .prayer-time-row.is-next { color: #087b56; }
+        .prayer-note, .notification-updated { margin: 12px 2px; color: #68776c; font-size: 12px; line-height: 1.45; }
+        .prayer-settings { padding: 14px 16px; margin-top: 14px; }
+        .prayer-settings summary { cursor: pointer; font-weight: 650; }
+        .prayer-settings label { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; }
+        .prayer-settings select { width: 100%; margin-top: 5px; padding: 10px; border: 1px solid #ccd8ce; border-radius: 8px; background: #fff; font: inherit; }
+        .notifications-heading { font-size: 24px; margin: 8px 0 16px; }
+        .announcement-card { padding: 16px; margin-bottom: 12px; }
+        .announcement-card h2 { font-size: 18px; margin: 0 0 8px; }
+        .announcement-card p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .announcement-card .announcement-meta { color: #728076; font-size: 12px; margin-bottom: 8px; }
+        .announcement-card .announcement-source { color: #45634e; font-size: 13px; margin-top: 10px; }
+        .notification-empty { padding: 24px 16px; text-align: center; color: #67736a; background: #fff; border-radius: 14px; }
+        #website-frame { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+        @media (min-width: 700px) {
+            .prayer-panel, .notifications-panel { padding-top: 32px; }
+            .takbir-tab { font-size: 11px; }
+        }
     </style>
 </head>
-<body>
+<body{% if brand.key == 'takbir' %} class="takbir-app"{% endif %}>
     <div id="loader" class="loader{% if brand.key == 'takbir' %} splash{% endif %}">
         {% if brand.key == 'takbir' %}<img src="/static/takbir_flash_New.jpg" alt="Takbir-al-Ula">{% else %}Loading mosques...{% endif %}
     </div>
+    {% if brand.key == 'takbir' %}<div id="mosques-screen" class="app-screen active">{% endif %}
     <div class="search-bar">
         <div class="search-box">
             <input type="text" id="search-input" class="search-input" placeholder="Zipcode, city, or address" autocomplete="off">
@@ -280,16 +371,96 @@
                 <div id="dd-results"></div>
             </div>
         </div>
+        {% if brand.key != 'takbir' %}
         {% if request.user.is_authenticated %}
         <a href="{% url 'user-dashboard' request.user.id %}" class="login-btn">Dashboard</a>
         {% else %}
         <a href="{% url 'django_login' %}" class="login-btn">Log In</a>
+        {% endif %}
         {% endif %}
     </div>
     <div id="status-msg" class="status-msg"></div>
     <button id="search-area-btn" class="area-btn">Search this area</button>
     <div id="map"></div>
     <div class="brand-footer">Powered by <a href="https://fzscreens.com" target="_blank" rel="noopener">fzscreens.com</a></div>
+    {% if brand.key == 'takbir' %}</div>
+
+    <section id="prayer-screen" class="app-screen" aria-label="Prayer Times">
+        <div class="prayer-panel">
+            <div class="prayer-content">
+                <h1 class="prayer-heading">Prayer Times</h1>
+                <div class="prayer-location-card">
+                    <div id="prayer-location">Tap Prayer Times to detect your location</div>
+                    <div id="prayer-date">--</div>
+                    <div id="prayer-hijri">--</div>
+                    <label class="prayer-note" for="prayer-day-picker">View another day this year</label>
+                    <input id="prayer-day-picker" type="date">
+                </div>
+                <div class="next-prayer-card" aria-live="polite">
+                    <div id="next-prayer-label" class="next-prayer-label">Next prayer</div>
+                    <div id="next-prayer-name">--</div>
+                    <div id="next-prayer-time">--</div>
+                </div>
+                <div id="prayer-times-list" class="prayer-list-card">
+                    <div class="notification-empty">Prayer times will appear when you open this tab.</div>
+                </div>
+                <p class="prayer-note">Calculated locally for your location · <span id="prayer-method-summary">Regional default</span>. Fajr is the Sehri cutoff; Ishraq is shown 15 minutes after sunrise. Times are estimates and may differ from your local mosque timetable.</p>
+                <details class="prayer-settings">
+                    <summary>Calculation settings</summary>
+                    <label for="prayer-method">Fajr and Isha method</label>
+                    <select id="prayer-method">
+                        <option value="auto">Regional default</option>
+                        <option value="karachi">Karachi</option>
+                        <option value="isna">ISNA</option>
+                        <option value="mwl">Muslim World League</option>
+                        <option value="ummalqura">Umm al-Qura</option>
+                        <option value="egyptian">Egyptian</option>
+                    </select>
+                    <p class="prayer-note">Both Standard and Hanafi Asr times are displayed.</p>
+                    <label for="hijri-adjustment">Hijri date adjustment</label>
+                    <select id="hijri-adjustment">
+                        <option value="0">No adjustment</option>
+                        <option value="-1">One day earlier</option>
+                        <option value="1">One day later</option>
+                    </select>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <section id="notifications-screen" class="app-screen" aria-label="Notifications">
+        <div class="notifications-panel">
+            <div class="notifications-content">
+                <h1 class="notifications-heading">Notifications</h1>
+                <div id="notifications-list"><div class="notification-empty">Announcements will appear when you open this tab.</div></div>
+                <div id="notifications-updated" class="notification-updated" aria-live="polite"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="website-screen" class="app-screen" aria-label="Takbir Website">
+        <iframe id="website-frame" data-src="/" title="Takbir-al-Ula website" loading="lazy"></iframe>
+    </section>
+
+    <nav class="takbir-tabs" aria-label="Main navigation">
+        <button class="takbir-tab" type="button" data-tab="prayer" aria-selected="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.8 1.8M7 2 4.5 4.5M17 2l2.5 2.5"></path></svg>
+            <span>Prayer Times</span>
+        </button>
+        <button class="takbir-tab" type="button" data-tab="mosques" aria-selected="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.2 8-13a8 8 0 1 0-16 0c0 5.8 8 13 8 13Z"></path><path d="M8 13V9l4-3 4 3v4M7 15h10M10 15v-3h4v3"></path></svg>
+            <span>Mosques</span>
+        </button>
+        <button class="takbir-tab" type="button" data-tab="notifications" aria-selected="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 12-5v12L3 13v-2ZM15 9l4-2v10l-4-2M5 14l2 6h4l-3-7M20 9l2-1v8l-2-1"></path></svg>
+            <span>Notifications</span>
+        </button>
+        <button class="takbir-tab" type="button" data-tab="website" aria-selected="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
+            <span>Website</span>
+        </button>
+    </nav>
+    {% endif %}
 
     <div id="modal" class="modal-overlay" aria-hidden="true">
         <div class="modal">
@@ -1043,6 +1214,7 @@
                 loader.style.display = 'none';
 
                 map = L.map('map').setView([20, 0], 2);
+                window.takbirLeafletMap = map;
                 markers.addTo(map);
 
                 L.tileLayer('{{ tile_url }}', {
@@ -1161,9 +1333,13 @@
             } catch (err) {
                 console.error('Map load error:', err);
                 loader.textContent = 'Error loading map.';
-                loader.style.display = 'flex';
+                loader.style.display = window.takbirActiveTab === 'mosques' ? 'flex' : 'none';
             }
         })();
     </script>
+    {% if brand.key == 'takbir' %}
+    <script src="/static/slideshow/takbir_prayer_core.js"></script>
+    <script src="/static/slideshow/takbir_app.js"></script>
+    {% endif %}
 </body>
 </html>
