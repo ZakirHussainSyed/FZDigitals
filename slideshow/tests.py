@@ -190,6 +190,27 @@ class TakbirAnnouncementTests(TestCase):
         self.assertIsNotNone(announcement.published_at)
 
 
+class ApproximateLocationTests(TestCase):
+    @patch('slideshow.views.requests.get')
+    @patch('slideshow.views.timezone_for_coords', return_value='America/Los_Angeles')
+    def test_approximate_location_includes_timezone(self, _timezone_for_coords, mock_get):
+        mock_get.return_value.json.return_value = {
+            'status': 'success',
+            'lat': 47.6101,
+            'lon': -122.1442,
+        }
+
+        response = self.client.get(
+            '/api/approx-location/',
+            HTTP_X_FORWARDED_FOR='203.0.113.10',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['latitude'], 47.6101)
+        self.assertEqual(response.json()['longitude'], -122.1442)
+        self.assertEqual(response.json()['timezone'], 'America/Los_Angeles')
+
+
 class TakbirAppShellTests(TestCase):
     def test_takbir_map_renders_persistent_four_tab_navigation(self):
         response = self.client.get('/mosque-map/', HTTP_HOST='takbir-al-ula.com')
