@@ -287,6 +287,7 @@
             ['Asr', 'عصر', day.asrStandard, 'asrStandard'],
             ['Asr (Hanafi)', 'عصر (حنفی)', day.asrHanafi, 'asrHanafi'],
             ['Maghrib', 'مغرب', day.maghrib, 'maghrib'],
+            ['Sunset', 'غروب آفتاب', day.maghrib, 'sunset'],
             ['Isha', 'عشاء', day.isha, 'isha']
         ];
     }
@@ -314,7 +315,7 @@
         const currentMinute = Core.minuteOfDay(now, prayerCache.timeZone);
         const rows = prayerRows(day);
         let nextPrayer = rows.find(function (row) {
-            return !['sunrise', 'ishraq'].includes(row[3])
+            return !['sunrise', 'sunset', 'ishraq'].includes(row[3])
                 && row[2] !== null && (!isToday || row[2] > currentMinute);
         });
         if (!nextPrayer) {
@@ -335,20 +336,17 @@
         rows.forEach(function (row) {
             const element = document.createElement('div');
             element.className = 'prayer-time-row' + (row === nextPrayer ? ' is-next' : '');
+            if (row[3] === 'sunrise' || row[3] === 'sunset') {
+                element.classList.add('blue');
+            }
             const label = document.createElement('strong');
-            label.innerHTML = '';
-            label.append(document.createTextNode(row[0]));
+            label.textContent = row[0];
             const urdu = document.createElement('span');
             urdu.className = 'prayer-urdu';
-            urdu.style.display = 'block';
-            urdu.style.fontSize = '13px';
-            urdu.style.fontWeight = '700';
-            urdu.style.marginTop = '2px';
             urdu.textContent = row[1];
-            label.appendChild(urdu);
             const value = document.createElement('time');
             value.textContent = Core.formatTime(row[2]);
-            element.append(label, value);
+            element.append(label, value, urdu);
             prayerList.appendChild(element);
         });
     }

@@ -120,8 +120,10 @@
             color: #000099;
         }
         .timing-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: minmax(90px, 1fr) minmax(90px, auto) minmax(70px, 1fr);
+            align-items: center;
+            gap: 8px;
             padding: 12px 0;
             border-bottom: 1px solid rgba(27,94,32,0.15);
             font-size: 16px;
@@ -136,8 +138,15 @@
             margin-right: -8px;
         }
         .timing-label { color: #333; font-weight: 600; }
-        .timing-icon { flex: 1; text-align: center; font-size: 18px; }
-        .timing-value { color: #333; font-weight: 700; }
+        .timing-urdu {
+            color: #333;
+            direction: rtl;
+            font-weight: 700;
+            text-align: right;
+            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
+                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
+        }
+        .timing-value { color: #333; font-weight: 700; text-align: center; }
         .timing-row.sunrise span, .timing-row.sunset span { color: #1e90ff; }
         .loader {
             position: fixed;
@@ -334,11 +343,30 @@
         #next-prayer-name { font-size: 24px; font-weight: 750; margin-top: 4px; }
         #next-prayer-time { margin-top: 4px; font-size: 15px; }
         .prayer-list-card { padding: 6px 16px; }
-        .prayer-time-row { display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #edf1ed; }
+        .prayer-time-row {
+            display: grid;
+            grid-template-columns: minmax(90px, 1fr) minmax(90px, auto) minmax(70px, 1fr);
+            align-items: center;
+            gap: 8px;
+            padding: 13px 0;
+            border-bottom: 1px solid #edf1ed;
+        }
         .prayer-time-row:last-child { border-bottom: 0; }
         .prayer-time-row strong { font-weight: 650; }
+        .prayer-urdu {
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
+                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
+        }
         .prayer-time-row time { font-weight: 700; font-variant-numeric: tabular-nums; }
         .prayer-time-row.is-next { color: #087b56; }
+        .prayer-time-row.blue { color: #1e90ff; }
+        .prayer-time-row.blue strong,
+        .prayer-time-row.blue .prayer-urdu,
+        .prayer-time-row.blue time { color: #1e90ff; }
         .prayer-note, .notification-updated { margin: 12px 2px; color: #68776c; font-size: 12px; line-height: 1.45; }
         .prayer-settings { padding: 14px 16px; margin-top: 14px; }
         .prayer-settings summary { cursor: pointer; font-weight: 650; }
@@ -472,16 +500,16 @@
             <div class="modal-body">
                 <div id="modal-address" class="modal-address"></div>
                 <div id="modal-website" class="modal-address"></div>
-                <div class="timing-row"><span class="timing-label">Fajr</span><span class="timing-value" id="t-fajr">-</span></div>
-                <div class="timing-row sunrise"><span class="timing-label">Sunrise</span><span class="timing-value" id="t-sunrise">-</span></div>
-                <div class="timing-row"><span class="timing-label">Dhuhr</span><span class="timing-value" id="t-dhuhr">-</span></div>
-                <div class="timing-row"><span class="timing-label">Asr</span><span class="timing-value" id="t-asr">-</span></div>
-                <div class="timing-row sunset"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span></div>
-                <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span></div>
-                <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span></div>
-                <div class="timing-row"><span class="timing-label">Jumu'ah 1</span><span class="timing-value" id="t-jummah">--</span></div>
-                <div class="timing-row"><span class="timing-label">Jumu'ah 2</span><span class="timing-value" id="t-jummah2">--</span></div>
-                <div class="timing-row"><span class="timing-label">Jumu'ah 3</span><span class="timing-value" id="t-jummah3">--</span></div>
+                <div class="timing-row"><span class="timing-label">Fajr</span><span class="timing-value" id="t-fajr">-</span><span class="timing-urdu">فجر</span></div>
+                <div class="timing-row sunrise"><span class="timing-label">Sunrise</span><span class="timing-value" id="t-sunrise">-</span><span class="timing-urdu">طلوع آفتاب</span></div>
+                <div class="timing-row"><span class="timing-label">Dhuhr</span><span class="timing-value" id="t-dhuhr">-</span><span class="timing-urdu">ظہر</span></div>
+                <div class="timing-row"><span class="timing-label">Asr</span><span class="timing-value" id="t-asr">-</span><span class="timing-urdu">عصر</span></div>
+                <div class="timing-row sunset"><span class="timing-label">Sunset</span><span class="timing-value" id="t-sunset">-</span><span class="timing-urdu">غروب آفتاب</span></div>
+                <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span><span class="timing-urdu">مغرب</span></div>
+                <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span><span class="timing-urdu">عشاء</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 1</span><span class="timing-value" id="t-jummah">--</span><span class="timing-urdu">جمعہ ۱</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 2</span><span class="timing-value" id="t-jummah2">--</span><span class="timing-urdu">جمعہ ۲</span></div>
+                <div class="timing-row"><span class="timing-label">Jumu'ah 3</span><span class="timing-value" id="t-jummah3">--</span><span class="timing-urdu">جمعہ ۳</span></div>
             </div>
         </div>
     </div>
