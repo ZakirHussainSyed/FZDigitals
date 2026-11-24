@@ -70,12 +70,15 @@
         }
         .modal-overlay.open { display: flex; }
         .modal {
-            background: #e8f5e9;
+            background: #fff;
             border-radius: 16px;
             width: 100%;
             max-width: 420px;
-            max-height: 90vh;
+            max-height: calc(100vh - 32px);
+            max-height: calc(100dvh - 32px);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
             position: relative;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
@@ -104,7 +107,12 @@
             cursor: pointer;
         }
         .modal-body {
+            background: #fff;
             padding: 20px;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
         .modal-address {
             color: #333;
@@ -128,6 +136,7 @@
             border-bottom: 1px solid rgba(27,94,32,0.15);
             font-size: 16px;
         }
+        .timing-row[hidden] { display: none; }
         .timing-row:last-child { border-bottom: 0; }
         .timing-row.next {
             background: rgba(27,94,32,0.12);
@@ -510,8 +519,8 @@
                 <div class="timing-row"><span class="timing-label">Maghrib</span><span class="timing-value" id="t-maghrib">-</span><span class="timing-urdu">مغرب</span></div>
                 <div class="timing-row"><span class="timing-label">Isha</span><span class="timing-value" id="t-isha">-</span><span class="timing-urdu">عشاء</span></div>
                 <div class="timing-row"><span class="timing-label">Jumu'ah 1</span><span class="timing-value" id="t-jummah">--</span><span class="timing-urdu">جمعہ ۱</span></div>
-                <div class="timing-row"><span class="timing-label">Jumu'ah 2</span><span class="timing-value" id="t-jummah2">--</span><span class="timing-urdu">جمعہ ۲</span></div>
-                <div class="timing-row"><span class="timing-label">Jumu'ah 3</span><span class="timing-value" id="t-jummah3">--</span><span class="timing-urdu">جمعہ ۳</span></div>
+                <div class="timing-row" hidden><span class="timing-label">Jumu'ah 2</span><span class="timing-value" id="t-jummah2">--</span><span class="timing-urdu">جمعہ ۲</span></div>
+                <div class="timing-row" hidden><span class="timing-label">Jumu'ah 3</span><span class="timing-value" id="t-jummah3">--</span><span class="timing-urdu">جمعہ ۳</span></div>
             </div>
         </div>
     </div>
@@ -568,6 +577,12 @@
                 });
             }
 
+            function updateOptionalJummahRow(id, value) {
+                const time = String(value || '').trim();
+                document.getElementById(id).closest('.timing-row').hidden =
+                    !time || time === '-' || time === '--';
+            }
+
             function openModal(mosque) {
                 openMosque = mosque;
                 document.getElementById('modal-title').textContent = mosque.name;
@@ -610,6 +625,8 @@
                 document.getElementById('t-jummah').textContent = timings.jummah || '--';
                 document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
                 document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
+                updateOptionalJummahRow('t-jummah2', timings.jummah2);
+                updateOptionalJummahRow('t-jummah3', timings.jummah3);
 
                 modal.querySelectorAll('.timing-row').forEach(function(r) { r.classList.remove('next'); });
                 // Only highlight next salah if mosque has timings
@@ -671,6 +688,9 @@
                             document.getElementById('t-jummah').textContent = timings.jummah || '--';
                             document.getElementById('t-jummah2').textContent = timings.jummah2 || '--';
                             document.getElementById('t-jummah3').textContent = timings.jummah3 || '--';
+                            ['jummah2', 'jummah3'].forEach(function(key) {
+                                updateOptionalJummahRow('t-' + key, timings[key]);
+                            });
                             // Update next salah highlight
                             if (freshMosque.next_salah && freshMosque.next_salah.name) {
                                 const NEXT_KEY = {"Jumu'ah": 'jummah', "Jumu'ah 2": 'jummah2', "Jumu'ah 3": 'jummah3'};
