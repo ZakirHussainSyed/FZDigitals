@@ -341,6 +341,7 @@
             }
             const label = document.createElement('strong');
             label.textContent = row[0];
+            label.style.whiteSpace = 'nowrap';
             const urdu = document.createElement('span');
             urdu.className = 'prayer-urdu';
             urdu.textContent = row[1];

@@ -345,19 +345,21 @@
         .prayer-list-card { padding: 6px 16px; }
         .prayer-time-row {
             display: grid;
-            grid-template-columns: minmax(90px, 1fr) minmax(90px, auto) minmax(70px, 1fr);
+            grid-template-columns: minmax(82px, 1fr) minmax(78px, auto) minmax(75px, 1fr);
             align-items: center;
             gap: 8px;
             padding: 13px 0;
             border-bottom: 1px solid #edf1ed;
+            white-space: nowrap;
         }
         .prayer-time-row:last-child { border-bottom: 0; }
-        .prayer-time-row strong { font-weight: 650; }
+        .prayer-time-row strong { font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
         .prayer-urdu {
             direction: rtl;
             text-align: right;
             font-size: 14px;
             font-weight: 700;
+            white-space: nowrap;
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
                 'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
         }
