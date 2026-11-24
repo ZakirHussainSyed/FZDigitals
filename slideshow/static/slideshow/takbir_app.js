@@ -346,7 +346,7 @@
             urdu.textContent = row[1];
             const value = document.createElement('time');
             value.textContent = Core.formatTime(row[2]);
-            element.append(label, urdu, value);
+            element.append(label, value, urdu);
             prayerList.appendChild(element);
         });
     }
