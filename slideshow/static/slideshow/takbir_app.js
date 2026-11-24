@@ -116,6 +116,25 @@
         });
     }
 
+    async function getLocationName(location) {
+        if (location.name) return location.name;
+        try {
+            const params = new URLSearchParams({
+                latitude: location.latitude,
+                longitude: location.longitude
+            });
+            const response = await fetch('/api/location-name/?' + params.toString(), {
+                credentials: 'same-origin',
+                cache: 'force-cache'
+            });
+            if (!response.ok) return '';
+            const data = await response.json();
+            return data.success && data.name ? data.name : '';
+        } catch (error) {
+            return '';
+        }
+    }
+
     function distanceMeters(a, b) {
         const toRad = function (degrees) { return degrees * Math.PI / 180; };
         const lat1 = toRad(a.latitude);
@@ -159,7 +178,11 @@
             methodPreference: methodPreference,
             method: method,
             timeZone: location.timeZone,
-            location: {latitude: location.latitude, longitude: location.longitude},
+            location: {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                name: location.name || prayerCache?.location?.name || ''
+            },
             savedAt: Date.now(),
             days: Core.calculateYear(
                 year, location.latitude, location.longitude, location.timeZone, method
@@ -207,9 +230,16 @@
             prayerDayPicker.max = date.year + '-12-31';
             prayerDayPicker.value = date.year + '-' + String(date.month).padStart(2, '0')
                 + '-' + String(date.day).padStart(2, '0');
+            const locationName = await getLocationName(location);
+            if (locationName) {
+                prayerCache.location.name = locationName;
+                location.name = locationName;
+                storePrayerCache(prayerCache);
+            }
             prayerLocation.textContent = (location.approximate ? 'Approximate location · ' : 'Your location · ')
-                + prayerCache.location.latitude.toFixed(2) + ', '
-                + prayerCache.location.longitude.toFixed(2);
+                + (locationName || prayerCache.location.name
+                    || prayerCache.location.latitude.toFixed(2) + ', '
+                        + prayerCache.location.longitude.toFixed(2));
             renderPrayerDay(date);
         } catch (error) {
             if (prayerCache && prayerCache.days) {
@@ -217,8 +247,9 @@
                 prayerDayPicker.min = date.year + '-01-01';
                 prayerDayPicker.max = date.year + '-12-31';
                 prayerLocation.textContent = 'Saved location · '
-                    + prayerCache.location.latitude.toFixed(2) + ', '
-                    + prayerCache.location.longitude.toFixed(2);
+                    + (prayerCache.location.name
+                        || prayerCache.location.latitude.toFixed(2) + ', '
+                            + prayerCache.location.longitude.toFixed(2));
                 renderPrayerDay(date);
             } else {
                 prayerLocation.textContent = error.message;
@@ -249,14 +280,14 @@
 
     function prayerRows(day) {
         return [
-            ['Fajr / Sehri ends', day.fajr, 'fajr'],
-            ['Sunrise', day.sunrise, 'sunrise'],
-            ['Ishraq', day.ishraq, 'ishraq'],
-            ['Dhuhr', day.dhuhr, 'dhuhr'],
-            ['Asr (Standard)', day.asrStandard, 'asrStandard'],
-            ['Asr (Hanafi)', day.asrHanafi, 'asrHanafi'],
-            ['Maghrib', day.maghrib, 'maghrib'],
-            ['Isha', day.isha, 'isha']
+            ['Fajr / Sehri ends', 'فجر / سحری', day.fajr, 'fajr'],
+            ['Sunrise', 'طلوع آفتاب', day.sunrise, 'sunrise'],
+            ['Ishraq', 'اشراق', day.ishraq, 'ishraq'],
+            ['Dhuhr', 'ظہر', day.dhuhr, 'dhuhr'],
+            ['Asr', 'عصر', day.asrStandard, 'asrStandard'],
+            ['Asr (Hanafi)', 'عصر (حنفی)', day.asrHanafi, 'asrHanafi'],
+            ['Maghrib', 'مغرب', day.maghrib, 'maghrib'],
+            ['Isha', 'عشاء', day.isha, 'isha']
         ];
     }
 
@@ -283,8 +314,8 @@
         const currentMinute = Core.minuteOfDay(now, prayerCache.timeZone);
         const rows = prayerRows(day);
         let nextPrayer = rows.find(function (row) {
-            return !['sunrise', 'ishraq'].includes(row[2])
-                && row[1] !== null && (!isToday || row[1] > currentMinute);
+            return !['sunrise', 'ishraq'].includes(row[3])
+                && row[2] !== null && (!isToday || row[2] > currentMinute);
         });
         if (!nextPrayer) {
             const tomorrow = new Date(Date.UTC(date.year, date.month - 1, date.day + 1, 12));
@@ -294,20 +325,30 @@
                 day: tomorrow.getUTCDate()
             });
             nextPrayer = tomorrowDay
-                ? ['Fajr', tomorrowDay.fajr, 'fajr']
+                ? ['Fajr', 'فجر', tomorrowDay.fajr, 'fajr']
                 : rows[0];
         }
         nextLabel.textContent = isToday ? 'Next prayer' : 'First prayer';
-        nextName.textContent = nextPrayer[0].replace(' / Sehri ends', '');
-        nextTime.textContent = 'At ' + Core.formatTime(nextPrayer[1]);
+        nextName.textContent = nextPrayer[0].replace(' / Sehri ends', '')
+            + ' · ' + nextPrayer[1];
+        nextTime.textContent = 'At ' + Core.formatTime(nextPrayer[2]);
         prayerList.replaceChildren();
         rows.forEach(function (row) {
             const element = document.createElement('div');
             element.className = 'prayer-time-row' + (row === nextPrayer ? ' is-next' : '');
             const label = document.createElement('strong');
-            label.textContent = row[0];
+            label.innerHTML = '';
+            label.append(document.createTextNode(row[0]));
+            const urdu = document.createElement('span');
+            urdu.className = 'prayer-urdu';
+            urdu.style.display = 'block';
+            urdu.style.fontSize = '13px';
+            urdu.style.fontWeight = '700';
+            urdu.style.marginTop = '2px';
+            urdu.textContent = row[1];
+            label.appendChild(urdu);
             const value = document.createElement('time');
-            value.textContent = Core.formatTime(row[1]);
+            value.textContent = Core.formatTime(row[2]);
             element.append(label, value);
             prayerList.appendChild(element);
         });

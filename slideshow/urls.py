@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/public/announcements/', views.api_public_announcements, name='api-public-announcements'),
     path('api/osm/mosques/', views.api_osm_mosques, name='api-osm-mosques'),
     path('api/approx-location/', views.api_approx_location, name='api-approx-location'),
+    path('api/location-name/', views.api_location_name, name='api-location-name'),
     path('mosque-map/', views.mosque_map, name='mosque-map'),
     path('prayer-times/', views.prayer_times, name='prayer-times'),
     path('mosque-tv/', views.mosque_tv, name='mosque-tv'),

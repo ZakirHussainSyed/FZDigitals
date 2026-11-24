@@ -210,6 +210,26 @@ class ApproximateLocationTests(TestCase):
         self.assertEqual(response.json()['longitude'], -122.1442)
         self.assertEqual(response.json()['timezone'], 'America/Los_Angeles')
 
+    @patch('slideshow.views.requests.get')
+    def test_location_name_returns_area_and_country(self, mock_get):
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = {
+            'address': {
+                'city': 'Bellevue',
+                'state': 'Washington',
+                'country': 'United States',
+            },
+        }
+
+        response = self.client.get(
+            '/api/location-name/',
+            {'latitude': '47.6101', 'longitude': '-122.1442'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(response.json()['name'], 'Bellevue, United States')
+
 
 class TakbirAppShellTests(TestCase):
     def test_takbir_map_renders_persistent_four_tab_navigation(self):
