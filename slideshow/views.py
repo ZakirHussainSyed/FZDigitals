@@ -1890,10 +1890,12 @@ def api_approx_location(request):
         )
         data = resp.json()
         if data.get('status') == 'success':
+            tz_name = timezone_for_coords(data['lat'], data['lon']) or ''
             return JsonResponse({
                 'success': True,
                 'latitude': data['lat'],
                 'longitude': data['lon'],
+                'timezone': tz_name,
             })
     except Exception:
         logger.exception('IP geolocation failed for %s', client_ip)

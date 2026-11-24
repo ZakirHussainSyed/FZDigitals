@@ -35,7 +35,6 @@
     if (!Array.isArray(prayerCaches)) prayerCaches = [];
     let prayerCache = null;
     let prayerPrefs = readJson(PRAYER_PREFS_KEY) || {method: 'auto', hijriAdjustment: 0};
-    let lastPrayerRequest = 0;
     let prayerBusy = false;
     let notificationBusy = false;
     window.takbirActiveTab = activeTab;
@@ -170,12 +169,34 @@
     }
 
     async function refreshPrayerTimes() {
-        if (prayerBusy || Date.now() - lastPrayerRequest < 1500) return;
+        if (prayerBusy) return;
         prayerBusy = true;
-        lastPrayerRequest = Date.now();
         prayerLocation.textContent = 'Checking your location…';
         try {
-            const location = await getCurrentLocation();
+            let location;
+            try {
+                location = await getCurrentLocation();
+            } catch (preciseLocationError) {
+                const response = await fetch('/api/approx-location/', {
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                });
+                if (!response.ok) throw preciseLocationError;
+                const approximate = await response.json();
+                if (!approximate || !approximate.success
+                    || !Number.isFinite(approximate.latitude)
+                    || !Number.isFinite(approximate.longitude)) {
+                    throw preciseLocationError;
+                }
+                location = {
+                    latitude: approximate.latitude,
+                    longitude: approximate.longitude,
+                    timeZone: approximate.timezone
+                        || Intl.DateTimeFormat().resolvedOptions().timeZone
+                        || 'UTC',
+                    approximate: true
+                };
+            }
             const date = Core.dateParts(new Date(), location.timeZone);
             const methodPreference = methodSelect.value || 'auto';
             prayerCache = findPrayerCache(location, date.year, methodPreference);
@@ -186,7 +207,7 @@
             prayerDayPicker.max = date.year + '-12-31';
             prayerDayPicker.value = date.year + '-' + String(date.month).padStart(2, '0')
                 + '-' + String(date.day).padStart(2, '0');
-            prayerLocation.textContent = 'Your location · '
+            prayerLocation.textContent = (location.approximate ? 'Approximate location · ' : 'Your location · ')
                 + prayerCache.location.latitude.toFixed(2) + ', '
                 + prayerCache.location.longitude.toFixed(2);
             renderPrayerDay(date);
