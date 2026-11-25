@@ -419,6 +419,8 @@
             const card = document.createElement('article');
             card.className = 'announcement-card';
             const title = document.createElement('h2');
+            title.className = 'announcement-text';
+            title.dir = 'auto';
             title.textContent = item.title;
             const meta = document.createElement('div');
             meta.className = 'announcement-meta';
@@ -426,6 +428,8 @@
             meta.textContent = Number.isNaN(published.getTime())
                 ? '' : published.toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
             const body = document.createElement('p');
+            body.className = 'announcement-text';
+            body.dir = 'auto';
             appendLinkedText(body, item.body);
             card.append(title, meta, body);
             if (item.source) {
