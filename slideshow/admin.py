@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide, Device
+from .models import (
+    UserProfile, Mosque, PrayerTime, PrayerTimeOverride, MosqueSlide,
+    MosqueAnnouncement, Device,
+)
 
 
 class UserProfileInline(admin.StackedInline):
@@ -15,7 +18,7 @@ class MosqueInline(admin.StackedInline):
     model = Mosque
     extra = 1
     verbose_name_plural = 'Mosque Details'
-    fields = ('name', 'address', 'latitude', 'longitude', 'is_active')
+    fields = ('name', 'address', 'latitude', 'longitude', 'regional_language', 'is_active')
 
 
 class UserAdmin(BaseUserAdmin):
@@ -41,7 +44,7 @@ class PrayerTimeOverrideInline(admin.TabularInline):
 
 @admin.register(Mosque)
 class MosqueAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'is_active', 'created_at')
+    list_display = ('name', 'user', 'regional_language', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'address')
     inlines = [PrayerTimeInline, PrayerTimeOverrideInline]
@@ -66,6 +69,13 @@ class MosqueSlideAdmin(admin.ModelAdmin):
     list_display = ('title', 'mosque', 'order', 'is_active', 'created_at')
     list_filter = ('mosque', 'is_active')
     search_fields = ('title',)
+
+
+@admin.register(MosqueAnnouncement)
+class MosqueAnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'mosque', 'content_type', 'created_at')
+    list_filter = ('content_type', 'mosque')
+    search_fields = ('title', 'body', 'mosque__name')
 
 
 @admin.register(Device)

@@ -1,0 +1,139 @@
+{
+  "version": 2,
+  "language_scope": "22 Scheduled Languages",
+  "arabic_source": {
+    "provider": "Tanzil Project",
+    "edition": "Uthmani text, version 1.1",
+    "url": "https://tanzil.net/",
+    "copyright_notice": "Tanzil Quran Text Copyright (C) 2007-2021 Tanzil Project. License: Creative Commons Attribution 3.0.",
+    "license": "Verbatim copying and distribution permitted with clear Tanzil attribution and a link to tanzil.net; the Quran text must not be changed.",
+    "download_options": "Uthmani; pause marks, sajdah signs, and superscript-alef tatweel enabled; rub-el-hizb signs disabled."
+  },
+  "translations": {
+    "en": {
+      "label": "English meaning — sample",
+      "source": "Original paraphrased meanings; not copied from or attributed to a published translation.",
+      "review_status": "draft"
+    },
+    "ur": {
+      "label": "اردو مفہوم — نمونہ",
+      "source": "Original paraphrased meanings; not copied from or attributed to a published translation.",
+      "review_status": "draft",
+      "review_note": "Have the Arabic text and Urdu meanings reviewed by a qualified Quran scholar before publishing on mosque displays."
+    }
+  },
+  "entries": [
+    {
+      "id": "2:43",
+      "reference": "Al-Baqarah 2:43",
+      "topic": "Prayer",
+      "arabic": "وَأَقِيمُوا۟ ٱلصَّلَوٰةَ وَءَاتُوا۟ ٱلزَّكَوٰةَ وَٱرْكَعُوا۟ مَعَ ٱلرَّٰكِعِينَ",
+      "translations": {
+        "en": "Be steadfast in prayer, give zakah, and bow with those who bow.",
+        "ur": "نماز کی پابندی کرو، زکوٰۃ دو، اور اللہ کے حضور جھکنے والوں کے ساتھ جھکو۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "2:153",
+      "reference": "Al-Baqarah 2:153",
+      "topic": "Prayer and patience",
+      "arabic": "يَـٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ ٱسْتَعِينُوا۟ بِٱلصَّبْرِ وَٱلصَّلَوٰةِ ۚ إِنَّ ٱللَّهَ مَعَ ٱلصَّـٰبِرِينَ",
+      "translations": {
+        "en": "Believers, seek help through patience and prayer; Allah is with those who are patient.",
+        "ur": "اے ایمان والو، صبر اور نماز سے مدد چاہو؛ بے شک اللہ صبر کرنے والوں کے ساتھ ہے۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "4:103",
+      "reference": "An-Nisa 4:103",
+      "topic": "Prayer",
+      "arabic": "فَإِذَا قَضَيْتُمُ ٱلصَّلَوٰةَ فَٱذْكُرُوا۟ ٱللَّهَ قِيَـٰمًا وَقُعُودًا وَعَلَىٰ جُنُوبِكُمْ ۚ فَإِذَا ٱطْمَأْنَنتُمْ فَأَقِيمُوا۟ ٱلصَّلَوٰةَ ۚ إِنَّ ٱلصَّلَوٰةَ كَانَتْ عَلَى ٱلْمُؤْمِنِينَ كِتَـٰبًا مَّوْقُوتًا",
+      "translations": {
+        "en": "When prayer is finished, remember Allah standing, sitting, or lying down; when secure, establish prayer. Prayer is prescribed for believers at appointed times.",
+        "ur": "نماز پوری کرنے کے بعد کھڑے، بیٹھے یا لیٹے اللہ کو یاد کرو؛ اطمینان ہو تو نماز قائم کرو۔ بے شک نماز اہلِ ایمان پر مقررہ اوقات میں فرض ہے۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "29:45",
+      "reference": "Al-Ankabut 29:45",
+      "topic": "Prayer and character",
+      "arabic": "ٱتْلُ مَآ أُوحِىَ إِلَيْكَ مِنَ ٱلْكِتَـٰبِ وَأَقِمِ ٱلصَّلَوٰةَ ۖ إِنَّ ٱلصَّلَوٰةَ تَنْهَىٰ عَنِ ٱلْفَحْشَآءِ وَٱلْمُنكَرِ ۗ وَلَذِكْرُ ٱللَّهِ أَكْبَرُ ۗ وَٱللَّهُ يَعْلَمُ مَا تَصْنَعُونَ",
+      "translations": {
+        "en": "Recite what has been revealed to you and establish prayer. Prayer restrains from indecency and wrongdoing, and remembering Allah is greater.",
+        "ur": "جو کتاب تمہاری طرف وحی کی گئی ہے اسے پڑھو اور نماز قائم کرو؛ یقیناً نماز بے حیائی اور برے کاموں سے روکتی ہے، اور اللہ کا ذکر سب سے بڑھ کر ہے۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "107:4",
+      "reference": "Al-Ma'un 107:4",
+      "topic": "Prayer and character",
+      "arabic": "فَوَيْلٌ لِّلْمُصَلِّينَ",
+      "translations": {
+        "en": "So woe to those who pray—",
+        "ur": "پس ایسے نمازیوں کے لیے تباہی ہے—"
+      },
+      "review_status": "draft",
+      "context_note": "Display with the following verse; this verse must not be presented as a standalone condemnation of prayer."
+    },
+    {
+      "id": "107:5",
+      "reference": "Al-Ma'un 107:5",
+      "topic": "Prayer and character",
+      "arabic": "ٱلَّذِينَ هُمْ عَن صَلَاتِهِمْ سَاهُونَ",
+      "translations": {
+        "en": "Those who are heedless of their prayers.",
+        "ur": "جو اپنی نمازوں سے غافل رہتے ہیں۔"
+      },
+      "review_status": "draft",
+      "context_note": "Keep paired with Al-Ma'un 107:4 and its surrounding passage."
+    },
+    {
+      "id": "17:23",
+      "reference": "Al-Isra 17:23",
+      "topic": "Good character",
+      "arabic": "وَقَضَىٰ رَبُّكَ أَلَّا تَعْبُدُوٓا۟ إِلَّآ إِيَّاهُ وَبِٱلْوَٰلِدَيْنِ إِحْسَـٰنًا ۚ إِمَّا يَبْلُغَنَّ عِندَكَ ٱلْكِبَرَ أَحَدُهُمَآ أَوْ كِلَاهُمَا فَلَا تَقُل لَّهُمَآ أُفٍّ وَلَا تَنْهَرْهُمَا وَقُل لَّهُمَا قَوْلًا كَرِيمًا",
+      "translations": {
+        "en": "Worship none but Allah and show kindness to parents. If one or both reach old age with you, do not speak harshly to them; address them with honor.",
+        "ur": "اللہ کے سوا کسی کی عبادت نہ کرو اور والدین کے ساتھ نیکی کرو۔ اگر ان میں سے ایک یا دونوں تمہارے پاس بڑھاپے کو پہنچیں تو انہیں اُف تک نہ کہو، نہ جھڑکو، بلکہ عزت سے بات کرو۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "16:90",
+      "reference": "An-Nahl 16:90",
+      "topic": "Good character",
+      "arabic": "إِنَّ ٱللَّهَ يَأْمُرُ بِٱلْعَدْلِ وَٱلْإِحْسَـٰنِ وَإِيتَآئِ ذِى ٱلْقُرْبَىٰ وَيَنْهَىٰ عَنِ ٱلْفَحْشَآءِ وَٱلْمُنكَرِ وَٱلْبَغْىِ ۚ يَعِظُكُمْ لَعَلَّكُمْ تَذَكَّرُونَ",
+      "translations": {
+        "en": "Allah commands justice, excellence, and generosity to relatives, and forbids indecency, wrongdoing, and oppression.",
+        "ur": "اللہ انصاف، نیکی اور رشتہ داروں کو دینے کا حکم دیتا ہے، اور بے حیائی، برائی اور زیادتی سے روکتا ہے۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "49:13",
+      "reference": "Al-Hujurat 49:13",
+      "topic": "Good character",
+      "arabic": "يَـٰٓأَيُّهَا ٱلنَّاسُ إِنَّا خَلَقْنَـٰكُم مِّن ذَكَرٍ وَأُنثَىٰ وَجَعَلْنَـٰكُمْ شُعُوبًا وَقَبَآئِلَ لِتَعَارَفُوٓا۟ ۚ إِنَّ أَكْرَمَكُمْ عِندَ ٱللَّهِ أَتْقَىٰكُمْ ۚ إِنَّ ٱللَّهَ عَلِيمٌ خَبِيرٌ",
+      "translations": {
+        "en": "People, We created you from a man and a woman and made you peoples and tribes so you may know one another. The most honored before Allah is the most mindful of Him.",
+        "ur": "اے لوگو، ہم نے تمہیں ایک مرد اور ایک عورت سے پیدا کیا اور قومیں اور قبیلے بنائے تاکہ تم ایک دوسرے کو پہچانو۔ اللہ کے نزدیک زیادہ عزت والا وہ ہے جو زیادہ پرہیزگار ہے۔"
+      },
+      "review_status": "draft"
+    },
+    {
+      "id": "2:83",
+      "reference": "Al-Baqarah 2:83",
+      "topic": "Prayer and good character",
+      "arabic": "وَإِذْ أَخَذْنَا مِيثَـٰقَ بَنِىٓ إِسْرَٰٓءِيلَ لَا تَعْبُدُونَ إِلَّا ٱللَّهَ وَبِٱلْوَٰلِدَيْنِ إِحْسَانًا وَذِى ٱلْقُرْبَىٰ وَٱلْيَتَـٰمَىٰ وَٱلْمَسَـٰكِينِ وَقُولُوا۟ لِلنَّاسِ حُسْنًا وَأَقِيمُوا۟ ٱلصَّلَوٰةَ وَءَاتُوا۟ ٱلزَّكَوٰةَ ثُمَّ تَوَلَّيْتُمْ إِلَّا قَلِيلًا مِّنكُمْ وَأَنتُم مُّعْرِضُونَ",
+      "translations": {
+        "en": "Worship Allah alone, treat parents, relatives, orphans, and the needy well, speak kindly to people, establish prayer, and give zakah.",
+        "ur": "اللہ کے سوا کسی کی عبادت نہ کرو، والدین، رشتہ داروں، یتیموں اور محتاجوں کے ساتھ بھلائی کرو، لوگوں سے اچھی بات کہو، نماز قائم کرو اور زکوٰۃ دو۔"
+      },
+      "review_status": "draft"
+    }
+  ]
+}
