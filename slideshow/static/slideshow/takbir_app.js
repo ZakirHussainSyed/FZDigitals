@@ -393,6 +393,28 @@
             notificationsList.appendChild(empty);
             return;
         }
+        function appendLinkedText(element, text) {
+            const urlPattern = /https?:\/\/[^\s<>"']+/gi;
+            let lastIndex = 0;
+            let match;
+            while ((match = urlPattern.exec(text)) !== null) {
+                let url = match[0];
+                while (/[.,!?;:]$/.test(url)) url = url.slice(0, -1);
+                if (!url) continue;
+
+                element.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = url;
+                element.appendChild(link);
+                lastIndex = match.index + url.length;
+                urlPattern.lastIndex = lastIndex;
+            }
+            element.appendChild(document.createTextNode(text.slice(lastIndex)));
+        }
+
         items.forEach(function (item) {
             const card = document.createElement('article');
             card.className = 'announcement-card';
@@ -404,7 +426,7 @@
             meta.textContent = Number.isNaN(published.getTime())
                 ? '' : published.toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
             const body = document.createElement('p');
-            body.textContent = item.body;
+            appendLinkedText(body, item.body);
             card.append(title, meta, body);
             if (item.source) {
                 const source = document.createElement('p');
