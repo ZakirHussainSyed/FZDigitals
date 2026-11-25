@@ -145,8 +145,7 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
-        .next-prayer .urdu {
-            direction: rtl;
+        .next-prayer .regional[dir="rtl"] {
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
                 'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
             font-weight: 700;
@@ -178,15 +177,16 @@
             letter-spacing: 0.5px;
             color: rgba(255,255,255,0.95);
         }
-        .prayer-row .urdu {
+        .prayer-row .regional {
             flex: 1;
             text-align: right;
-            direction: rtl;
-            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
-                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
             font-size: clamp(11px, 1.7vw, 25px);
             font-weight: 700;
             color: rgba(255,255,255,0.85);
+        }
+        .prayer-row .regional[dir="rtl"] {
+            font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
+                'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
         }
         .prayer-row .value {
             flex: 1;
@@ -196,10 +196,10 @@
             color: #fff;
         }
         .prayer-row.sunrise .name,
-        .prayer-row.sunrise .urdu,
+        .prayer-row.sunrise .regional,
         .prayer-row.sunrise .value,
         .prayer-row.sunset .name,
-        .prayer-row.sunset .urdu,
+        .prayer-row.sunset .regional,
         .prayer-row.sunset .value {
             color: #000;
         }
@@ -248,6 +248,52 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+        .announcement-slide {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5vh;
+            padding: 8%;
+            text-align: center;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #3b241b;
+            border: 8px solid #d4af37;
+            color: #fff;
+        }
+        .announcement-slide h2 {
+            margin: 0;
+            color: #ffd54f;
+            font-size: clamp(26px, 5vw, 72px);
+        }
+        .announcement-slide .message {
+            font-size: clamp(20px, 3vw, 46px);
+            line-height: 1.5;
+        }
+        .announcement-slide .source {
+            font-size: clamp(14px, 1.4vw, 22px);
+            color: rgba(255,255,255,0.7);
+        }
+        .quran-slide {
+            background: #125b3b;
+            border: 8px solid #d4af37;
+        }
+        .quran-slide .arabic {
+            direction: rtl;
+            font-size: clamp(28px, 4vw, 58px);
+            line-height: 1.8;
+        }
+        .quran-slide .translation {
+            font-size: clamp(18px, 2.2vw, 34px);
+            line-height: 1.45;
+        }
+        .quran-slide .regional {
+            font-size: clamp(18px, 2vw, 30px);
+            line-height: 1.45;
         }
         .empty {
             position: absolute;
@@ -320,7 +366,7 @@
             .info-bar { font-size: 15px; }
             .info-bar .center { font-size: 20px; }
             .next-prayer .time { font-size: 28px; }
-            .prayer-row .name, .prayer-row .value, .prayer-row .urdu { font-size: 18px; }
+            .prayer-row .name, .prayer-row .value, .prayer-row .regional { font-size: 18px; }
         }
     </style>
 </head>
@@ -346,22 +392,22 @@
             <div class="next-prayer">
                 <div class="label">Next Prayer</div>
                 {% if next_salah and next_salah.name %}
-                    <div class="time"><span>{{ next_salah.name }}</span><span>{{ next_salah.time }}</span>{% if next_salah.urdu %}<span class="urdu">{{ next_salah.urdu }}</span>{% endif %}</div>
+                    <div class="time"><span>{{ next_salah.name }}</span><span>{{ next_salah.time }}</span>{% if next_salah.regional %}<span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ next_salah.regional }}</span>{% endif %}</div>
                 {% else %}
                     <div class="time">Today's Prayer Timings</div>
                 {% endif %}
             </div>
             <div class="prayer-list">
-                <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span><span class="urdu">فجر</span></div>
-                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span><span class="urdu">طلوع آفتاب</span></div>
-                <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span><span class="urdu">ظہر</span></div>
-                <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span><span class="urdu">عصر</span></div>
-                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span><span class="urdu">غروب آفتاب</span></div>
-                <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span><span class="urdu">مغرب</span></div>
-                <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span><span class="urdu">عشاء</span></div>
-                <div class="prayer-row"><span class="name">Jumu'ah</span><span class="value">{{ timings.jummah }}</span><span class="urdu">جمعہ</span></div>
-                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jumu'ah 2</span><span class="value">{{ timings.jummah2 }}</span><span class="urdu">جمعہ ۲</span></div>{% endif %}
-                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jumu'ah 3</span><span class="value">{{ timings.jummah3 }}</span><span class="urdu">جمعہ ۳</span></div>{% endif %}
+                <div class="prayer-row"><span class="name">Fajr</span><span class="value">{{ timings.fajr }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.fajr }}</span></div>
+                <div class="prayer-row sunrise"><span class="name">Sunrise</span><span class="value">{{ timings.sunrise }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.sunrise }}</span></div>
+                <div class="prayer-row"><span class="name">Dhuhr</span><span class="value">{{ timings.dhuhr }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.dhuhr }}</span></div>
+                <div class="prayer-row"><span class="name">Asr</span><span class="value">{{ timings.asr }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.asr }}</span></div>
+                <div class="prayer-row sunset"><span class="name">Sunset</span><span class="value">{{ timings.sunset }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.sunset }}</span></div>
+                <div class="prayer-row"><span class="name">Maghrib</span><span class="value">{{ timings.maghrib }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.maghrib }}</span></div>
+                <div class="prayer-row"><span class="name">Isha</span><span class="value">{{ timings.isha }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.isha }}</span></div>
+                <div class="prayer-row"><span class="name">Jumu'ah</span><span class="value">{{ timings.jummah }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.jummah }}</span></div>
+                {% if timings.jummah2 %}<div class="prayer-row"><span class="name">Jumu'ah 2</span><span class="value">{{ timings.jummah2 }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.jummah2 }}</span></div>{% endif %}
+                {% if timings.jummah3 %}<div class="prayer-row"><span class="name">Jumu'ah 3</span><span class="value">{{ timings.jummah3 }}</span><span class="regional" dir="{% if regional_language_rtl %}rtl{% else %}ltr{% endif %}">{{ regional_labels.jummah3 }}</span></div>{% endif %}
             </div>
             <div class="brand-footer-wrap">
                 <img class="brand-logo" src="/static/slideshow/logo_takbir.png" alt="Takbir al Ula" />
@@ -395,6 +441,7 @@
         window.DEVICE_ID = "{{ device_id|default:''|escapejs }}";
         window.DEVICE_TOKEN = "{{ token|default:''|escapejs }}";
         const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
+        const QURAN_PACKAGE_KEY = 'fz_mosque_tv_quran_{{ mosque.id }}_{{ mosque.regional_language }}';
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
 
         const rawLog = console.log;
@@ -508,9 +555,11 @@
         // localUrl per file. No-op outside the native app — slides keep remote.
         async function syncMediaToLocal(files) {
             if (!MediaDownloader) return files;
+            const downloadable = files.filter(f => f.url && ['image', 'video'].includes(f.type));
+            if (!downloadable.length) return files;
             try {
-                dlog('sync: start', files.length, 'files');
-                const res = await MediaDownloader.sync({ files: files });
+                dlog('sync: start', downloadable.length, 'files');
+                const res = await MediaDownloader.sync({ files: downloadable });
                 dlog('sync: done', res && res.files ? res.files.map(i => `${i.id}:${i.status}`).join(' ') : 'no result');
                 if (res && res.files) {
                     const map = {};
@@ -579,18 +628,25 @@
            snapshot). Fresh timings are cached to localStorage on every
            successful render and reused if a snapshot has none. */
         const TIMES_KEY = 'fz_mosque_tv_times_{{ mosque.id }}';
-        const URDU_NEXT = {Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء',
-                           "Jumu'ah": 'جمعہ', "Jumu'ah 2": 'جمعہ ۲', "Jumu'ah 3": 'جمعہ ۳'};
         const NEXT_PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'],
                               ['maghrib', 'Maghrib'], ['isha', 'Isha']];
         let tvTz = null;
         let tvTimings = null;
+        let regionalLanguage = 'ur';
+        let regionalPrayerLabels = {};
         try {
             const payload = JSON.parse(document.getElementById('timings-data').textContent) || {};
             if (payload.timings && payload.timings.fajr) {
                 tvTz = payload.tz || null;
                 tvTimings = payload.timings;
-                localStorage.setItem(TIMES_KEY, JSON.stringify({tz: tvTz, timings: tvTimings}));
+                regionalLanguage = payload.regional_language || 'ur';
+                regionalPrayerLabels = payload.prayer_labels || {};
+                localStorage.setItem(TIMES_KEY, JSON.stringify({
+                    tz: tvTz,
+                    timings: tvTimings,
+                    regional_language: regionalLanguage,
+                    prayer_labels: regionalPrayerLabels
+                }));
             }
         } catch (e) { /* malformed timings payload */ }
         if (!tvTimings) {
@@ -599,6 +655,8 @@
                 if (cached && cached.timings) {
                     tvTz = cached.tz || null;
                     tvTimings = cached.timings;
+                    regionalLanguage = cached.regional_language || 'ur';
+                    regionalPrayerLabels = cached.prayer_labels || {};
                 }
             } catch (e) { /* no usable cache */ }
         }
@@ -639,6 +697,15 @@
             const n = new Date();
             return {mins: n.getHours() * 60 + n.getMinutes(), dow: n.getDay()};
         }
+        function regionalPrayerLabel(name) {
+            const key = {
+                "Jumu'ah": 'jummah',
+                "Jumu'ah 2": 'jummah2',
+                "Jumu'ah 3": 'jummah3'
+            }[name] || name.toLowerCase();
+            return regionalPrayerLabels[key] || '';
+        }
+
         function updateNextPrayer() {
             if (!tvTimings) return;
             const mn = mosqueNow();
@@ -669,8 +736,17 @@
             nx.time = (nx.time || '').replace(/\s*[ap]m$/i, '');
             const banner = document.querySelector('.next-prayer .time');
             if (banner) {
-                banner.innerHTML = '<span>' + nx.name + '</span><span>' + nx.time + '</span>' +
-                    '<span class="urdu">' + (URDU_NEXT[nx.name] || '') + '</span>';
+                banner.replaceChildren();
+                [nx.name, nx.time, regionalPrayerLabel(nx.name)].forEach(function (value, index) {
+                    if (!value) return;
+                    const span = document.createElement('span');
+                    span.textContent = value;
+                    if (index === 2) {
+                        span.className = 'regional';
+                        span.dir = ['ks', 'sd', 'ur'].includes(regionalLanguage) ? 'rtl' : 'ltr';
+                    }
+                    banner.appendChild(span);
+                });
                 fitBanner();
             }
             document.querySelectorAll('.prayer-row').forEach(function (row) {
@@ -680,6 +756,75 @@
         }
         setInterval(updateNextPrayer, 30000);
         updateNextPrayer();
+
+        async function cacheQuranicPackage() {
+            try {
+                const response = await fetch('/api/public/quranic-content/');
+                if (!response.ok) throw new Error('Quranic content request failed.');
+                const packageData = await response.json();
+                if (!packageData.success || !Array.isArray(packageData.entries)) {
+                    throw new Error('Quranic content package is invalid.');
+                }
+                let cached = null;
+                try {
+                    cached = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null');
+                } catch (cacheError) {
+                    dwarn('Quranic offline cache is invalid:', cacheError.message);
+                }
+                if (!cached || cached.version !== packageData.version) {
+                    localStorage.setItem(QURAN_PACKAGE_KEY, JSON.stringify(packageData));
+                    dlog('quran package cached:', packageData.version);
+                }
+                addDailyQuranSlide(packageData);
+            } catch (error) {
+                let cached = null;
+                try { cached = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null'); }
+                catch (cacheError) { dwarn('Quranic offline cache is invalid:', cacheError.message); }
+                if (cached && Array.isArray(cached.entries)) {
+                    addDailyQuranSlide(cached);
+                } else {
+                    dwarn('Quranic package unavailable and no offline copy exists:', error.message);
+                }
+            }
+        }
+        cacheQuranicPackage();
+
+        function addDailyQuranSlide(packageData) {
+            const approved = packageData.entries.filter(entry =>
+                entry.review_status === 'approved' && entry.translations);
+            if (!approved.length) return;
+
+            const dateText = tvTz
+                ? new Date().toLocaleDateString('en-CA', {timeZone: tvTz})
+                : new Date().toLocaleDateString('en-CA');
+            const [year, month, day] = dateText.split('-').map(Number);
+            const today = Date.UTC(year, month - 1, day);
+            const firstDay = Date.UTC(year, 0, 1);
+            const dayOfYear = Math.floor((today - firstDay) / 86400000);
+            const entry = approved[dayOfYear % approved.length];
+            const slide = {
+                id: `quran-${dateText}`,
+                version: `${packageData.version}-${entry.id}`,
+                type: 'quran',
+                reference: entry.reference,
+                arabic: entry.arabic,
+                english: entry.translations.en || '',
+                regional: entry.translations[regionalLanguage] || '',
+                arabicSource: packageData.arabic_source && packageData.arabic_source.provider,
+                arabicSourceUrl: packageData.arabic_source && packageData.arabic_source.url,
+                arabicCopyright: packageData.arabic_source && packageData.arabic_source.copyright_notice,
+            };
+            const existing = media.find(item => item.id === slide.id);
+            if (existing && existing.version === slide.version) return;
+            media = media.filter(item => item.type !== 'quran');
+            media.push(slide);
+            saveMediaCache();
+            if (slidesEl.children.length) {
+                current = 0;
+                renderSlides();
+                playCurrent();
+            }
+        }
 
         (function scheduleDailyReload() {
             const now = new Date();
@@ -709,7 +854,7 @@
                     img.alt = f.title || '';
                     img.onerror = () => { dwarn('img error:', f.title, getMediaSrc(f)); setTimeout(() => show(current + 1), 500); };
                     wrap.appendChild(img);
-                } else {
+                } else if (f.type === 'video') {
                     const vid = document.createElement('video');
                     vid.src = getMediaSrc(f);
                     vid.controls = false;
@@ -720,6 +865,63 @@
                     vid.setAttribute('muted', '');
                     vid.setAttribute('preload', 'auto');
                     wrap.appendChild(vid);
+                } else if (f.type === 'text') {
+                    const card = document.createElement('div');
+                    card.className = 'announcement-slide ' + (f.theme || 'central');
+                    if (f.title) {
+                        const title = document.createElement('h2');
+                        title.textContent = f.title;
+                        card.appendChild(title);
+                    }
+                    const body = document.createElement('div');
+                    body.className = 'message';
+                    body.textContent = f.body || '';
+                    card.appendChild(body);
+                    if (f.source) {
+                        const source = document.createElement('div');
+                        source.className = 'source';
+                        source.textContent = f.source;
+                        card.appendChild(source);
+                    }
+                    wrap.appendChild(card);
+                } else if (f.type === 'quran') {
+                    const card = document.createElement('div');
+                    card.className = 'announcement-slide quran-slide';
+                    const arabic = document.createElement('div');
+                    arabic.className = 'arabic';
+                    arabic.textContent = f.arabic || '';
+                    card.appendChild(arabic);
+                    const english = document.createElement('div');
+                    english.className = 'translation';
+                    english.textContent = f.english || '';
+                    card.appendChild(english);
+                    if (f.regional) {
+                        const regional = document.createElement('div');
+                        regional.className = 'regional';
+                        regional.dir = ['ks', 'sd', 'ur'].includes(regionalLanguage) ? 'rtl' : 'ltr';
+                        regional.textContent = f.regional;
+                        card.appendChild(regional);
+                    }
+                    const reference = document.createElement('div');
+                    reference.className = 'source';
+                    reference.textContent = f.reference || '';
+                    card.appendChild(reference);
+                    if (f.arabicCopyright) {
+                        const copyright = document.createElement('div');
+                        copyright.className = 'source';
+                        copyright.textContent = f.arabicCopyright;
+                        card.appendChild(copyright);
+                    }
+                    if (f.arabicSource && f.arabicSourceUrl) {
+                        const attribution = document.createElement('a');
+                        attribution.className = 'source';
+                        attribution.href = f.arabicSourceUrl;
+                        attribution.target = '_blank';
+                        attribution.rel = 'noopener';
+                        attribution.textContent = 'Arabic text: ' + f.arabicSource;
+                        card.appendChild(attribution);
+                    }
+                    wrap.appendChild(card);
                 }
 
                 slidesEl.appendChild(wrap);
@@ -765,8 +967,11 @@
             const node = nodes[current];
             const img = node?.querySelector('img');
             const video = node?.querySelector('video');
+            const text = node?.querySelector('.announcement-slide');
 
-            if (img) {
+            if (text) {
+                autoplayTimer = setTimeout(() => show(current + 1), 10000);
+            } else if (img) {
                 if (img.complete && img.naturalHeight > 0) {
                     fitMedia(img);
                     autoplayTimer = setTimeout(() => show(current + 1), 10000);
@@ -811,6 +1016,10 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
+                if (data.regional_language && data.regional_language !== regionalLanguage) {
+                    location.reload();
+                    return;
+                }
                 // Dashboard prayer-time edit reached the poll — a single
                 // reload repaints every row and the banner correctly.
                 if (data.timings && JSON.stringify(data.timings) !== JSON.stringify(tvTimings)) {
@@ -821,7 +1030,8 @@
                 devlogOn = !!data.debug;  // server-opt-in remote diagnostics
                 const newFiles = data.files || [];
                 const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));
-                const curIds = JSON.stringify(media.map(f => f.id + '|' + (f.version || '')));
+                const curIds = JSON.stringify(
+                    media.filter(f => f.type !== 'quran').map(f => f.id + '|' + (f.version || '')));
                 if (newIds === curIds && newFiles.length === media.length) {
                     // Playlist unchanged, but a restored list can be missing
                     // localUrls — re-resolve so the next render plays local.
@@ -834,6 +1044,8 @@
                 dlog('refresh: playlist changed', newFiles.length, 'files');
                 const currentId = media.length && media[current] ? media[current].id : null;
                 media = await syncMediaToLocal(newFiles);
+                const cachedQuran = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null');
+                if (cachedQuran) addDailyQuranSlide(cachedQuran);
                 saveMediaCache();
                 const kept = currentId == null ? -1 : media.findIndex(f => f.id === currentId);
                 current = kept >= 0 ? kept : 0;

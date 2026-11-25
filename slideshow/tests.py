@@ -3,13 +3,16 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.template.loader import get_template
 from django.test import TestCase
 
 from .models import (
     Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride,
-    TakbirAnnouncement,
+    TakbirAnnouncement, MosqueAnnouncement, UserProfile,
 )
+from .languages import INDIAN_LANGUAGES, prayer_labels_for
 
 
 def image(name='pic.png'):
@@ -165,6 +168,132 @@ class TakbirAnnouncementTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('no-store', response['Cache-Control'])
         self.assertEqual([item['id'] for item in response.json()['announcements']], [published.id])
+
+
+class MultilingualQuranContentTests(TestCase):
+    def test_scheduled_language_catalog_and_regional_prayer_labels(self):
+        self.assertEqual(len(INDIAN_LANGUAGES), 22)
+        self.assertEqual(prayer_labels_for('mr')['fajr'], 'फज्र')
+        self.assertEqual(prayer_labels_for('gu')['jummah2'], 'જુમા 2')
+        self.assertEqual(prayer_labels_for('ur')['jummah2'], 'جمعہ ۲')
+
+    def test_quranic_package_is_public_versioned_and_review_marked(self):
+        response = self.client.get('/api/public/quranic-content/')
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['version'], 2)
+        self.assertEqual(len(payload['entries']), 10)
+        self.assertEqual(payload['available_translation_languages'], ['en', 'ur'])
+        self.assertEqual(payload['arabic_source']['provider'], 'Tanzil Project')
+        self.assertTrue(all(entry['review_status'] == 'draft' for entry in payload['entries']))
+        self.assertIn('max-age=86400', response['Cache-Control'])
+
+    def test_device_feed_includes_selected_language_prayer_labels(self):
+        user = User.objects.create_user('gujarati-mosque', password='pw')
+        mosque = Mosque.objects.create(
+            user=user,
+            name='Gujarati Mosque',
+            regional_language='gu',
+            timezone='Asia/Kolkata',
+        )
+        device = Device.objects.create(
+            device_id='TV-GUJARATI',
+            token='a' * 64,
+            user=user,
+            mosque=mosque,
+        )
+        central = TakbirAnnouncement.objects.create(
+            title='Central notice', body='Central message', is_published=True,
+            created_by=user, published_at=datetime.now(ZoneInfo('UTC')),
+        )
+        local = MosqueAnnouncement.objects.create(
+            mosque=mosque, content_type='text', title='Local notice', body='Local message')
+
+        response = self.client.get(
+            f'/api/device/{device.device_id}/slideshow/?token={device.token}')
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['regional_language'], 'gu')
+        self.assertEqual(payload['prayer_labels']['fajr'], 'ફજર')
+        slides = {slide['id']: slide for slide in payload['files']}
+        self.assertEqual(slides[f'central-{central.id}']['body'], 'Central message')
+        self.assertEqual(slides[f'mosque-{local.id}']['body'], 'Local message')
+
+
+class MosqueAnnouncementTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('mosque-admin', password='pw')
+        self.mosque = Mosque.objects.create(user=self.user, name='Test Mosque')
+        UserProfile.objects.create(user=self.user, vertical='mosque')
+
+    def test_account_can_create_text_announcement_and_limit_is_two(self):
+        self.client.force_login(self.user)
+        response = self.client.post('/mosque-announcements/', {
+            'action': 'create',
+            'content_type': 'text',
+            'title': 'First notice',
+            'body': 'First message',
+        })
+        self.assertEqual(response.status_code, 302)
+        MosqueAnnouncement.objects.create(
+            mosque=self.mosque, content_type='text', title='Second notice', body='Second message')
+
+        response = self.client.post('/mosque-announcements/', {
+            'action': 'create',
+            'content_type': 'text',
+            'title': 'Third notice',
+            'body': 'Third message',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.mosque.announcements.count(), 2)
+
+    def test_account_can_create_photo_announcement(self):
+        self.client.force_login(self.user)
+        response = self.client.post('/mosque-announcements/', {
+            'action': 'create',
+            'content_type': 'image',
+            'image': image('notice.png'),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        announcement = self.mosque.announcements.get()
+        self.assertEqual(announcement.content_type, 'image')
+        self.assertGreater(announcement.file_size, 0)
+        announcement.image.delete(save=False)
+
+    def test_announcements_template_renders_and_non_mosque_accounts_are_redirected(self):
+        rendered = get_template('slideshow/mosque_announcements.html').render({
+            'mosque': self.mosque,
+            'announcements': [],
+            'max_announcements': 2,
+        })
+        self.assertIn('Announcements for Test Mosque', rendered)
+
+        other = User.objects.create_user('not-mosque', password='pw')
+        UserProfile.objects.create(user=other, vertical='bank')
+        self.client.force_login(other)
+        response = self.client.get('/mosque-announcements/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_announcement_requires_exactly_one_content_mode(self):
+        with self.assertRaises(ValidationError):
+            MosqueAnnouncement.objects.create(
+                mosque=self.mosque,
+                content_type='text',
+                title='Text',
+                body='Message',
+                image=image(),
+            )
+
+
+class TakbirAnnouncementAdminTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            'announcement-admin', 'announcement-admin@example.com', 'password')
 
     def test_only_superusers_can_manage_announcements(self):
         regular_user = User.objects.create_user('regular', password='password')

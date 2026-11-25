@@ -1,10 +1,12 @@
 from django.db import models, transaction
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import threading
 import uuid
+from .languages import INDIAN_LANGUAGES
 
 class MediaFile(models.Model):
     CONTENT_TYPE_CHOICES = [
@@ -158,8 +160,16 @@ class Device(models.Model):
 
 
 class Mosque(models.Model):
+    REGIONAL_LANGUAGE_CHOICES = INDIAN_LANGUAGES
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
+    regional_language = models.CharField(
+        max_length=4,
+        choices=REGIONAL_LANGUAGE_CHOICES,
+        default='ur',
+        help_text='Language for regional prayer labels and translations when available.',
+    )
     address = models.TextField(blank=True, default='')
     latitude = models.DecimalField(max_digits=16, decimal_places=12, blank=True, null=True)
     longitude = models.DecimalField(max_digits=16, decimal_places=12, blank=True, null=True)
@@ -297,6 +307,58 @@ class TakbirAnnouncement(models.Model):
         return self.title
 
 
+class MosqueAnnouncement(models.Model):
+    CONTENT_TYPE_CHOICES = [
+        ('text', 'Type your announcement'),
+        ('image', 'Upload photo'),
+    ]
+
+    mosque = models.ForeignKey(
+        Mosque, on_delete=models.CASCADE, related_name='announcements')
+    content_type = models.CharField(max_length=5, choices=CONTENT_TYPE_CHOICES)
+    title = models.CharField(max_length=180, blank=True, default='')
+    body = models.TextField(blank=True, default='')
+    image = models.FileField(
+        upload_to='mosque_announcements/',
+        blank=True,
+        validators=[FileExtensionValidator(
+            allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])],
+    )
+    file_size = models.PositiveIntegerField(default=0, help_text='Image size in bytes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def clean(self):
+        super().clean()
+        if self.content_type == 'text':
+            if not self.title.strip() or not self.body.strip():
+                raise ValidationError('Text announcements need both a title and a message.')
+            if self.image:
+                raise ValidationError({'image': 'Choose either text or a photo, not both.'})
+        elif self.content_type == 'image':
+            if not self.image:
+                raise ValidationError({'image': 'Select a photo for this announcement.'})
+            if self.body.strip():
+                raise ValidationError({'body': 'Photo announcements cannot also include a message.'})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self._state.adding:
+            with transaction.atomic():
+                Mosque.objects.select_for_update().get(pk=self.mosque_id)
+                if MosqueAnnouncement.objects.filter(mosque_id=self.mosque_id).count() >= 2:
+                    raise ValidationError(
+                        'A mosque can have at most two announcements. Delete one before adding another.')
+                super().save(*args, **kwargs)
+            return
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title or f'{self.mosque.name} photo announcement'
+
+
 class MosqueSlide(models.Model):
     mosque = models.ForeignKey(Mosque, on_delete=models.CASCADE, related_name='slides')
     title = models.CharField(max_length=255)
@@ -331,6 +393,12 @@ def delete_mosque_slide_file(sender, instance, **kwargs):
     """Delete the stored mosque slide file when a MosqueSlide is deleted"""
     if instance.file:
         instance.file.delete(save=False)
+
+
+@receiver(post_delete, sender=MosqueAnnouncement)
+def delete_mosque_announcement_image(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)
 
 
 # --- FCM push triggers ---------------------------------------------------
@@ -382,6 +450,25 @@ def mosque_slide_changed_push(sender, instance, **kwargs):
     mosque = getattr(instance, 'mosque', None)
     if mosque:
         transaction.on_commit(lambda: _fcm_push_for_devices(mosque.devices.all()))
+
+
+@receiver(post_save, sender=MosqueAnnouncement)
+@receiver(post_delete, sender=MosqueAnnouncement)
+def mosque_announcement_changed_push(sender, instance, **kwargs):
+    mosque = getattr(instance, 'mosque', None)
+    if mosque:
+        transaction.on_commit(lambda: _fcm_push_for_devices(
+            Device.objects.filter(
+                models.Q(mosque=mosque) | models.Q(user_id=mosque.user_id))))
+
+
+@receiver(post_save, sender=TakbirAnnouncement)
+@receiver(post_delete, sender=TakbirAnnouncement)
+def central_announcement_changed_push(sender, instance, **kwargs):
+    transaction.on_commit(lambda: _fcm_push_for_devices(
+        Device.objects.filter(
+            models.Q(mosque__isnull=False) |
+            models.Q(user__userprofile__vertical='mosque'))))
 
 
 @receiver(post_delete, sender=DevicePairing)

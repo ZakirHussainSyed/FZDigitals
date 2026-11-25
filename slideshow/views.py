@@ -15,6 +15,7 @@ from django.utils.crypto import constant_time_compare
 from django.db.models import F, Sum, Max
 from django.db import transaction
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 import json
 import logging
 import os
@@ -28,7 +29,7 @@ from zoneinfo import ZoneInfo
 
 from .models import (
     MediaFile, DevicePairing, UserProfile, Device, Mosque, PrayerTime,
-    PrayerTimeOverride, MosqueSlide, TakbirAnnouncement,
+    PrayerTimeOverride, MosqueSlide, TakbirAnnouncement, MosqueAnnouncement,
 )
 from .prayer_sync import (
     sunrise_time,
@@ -36,6 +37,7 @@ from .prayer_sync import (
     sync_mosque_prayer_times,
 )
 from .geo import parse_google_maps_url, reverse_geocode, timezone_for_coords
+from .languages import INDIAN_LANGUAGES, RTL_LANGUAGES, prayer_labels_for
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +270,7 @@ def user_management(request):
                 'users': User.objects.all().order_by('-id'),
                 'verticals': UserProfile.VERTICAL_CHOICES,
                 'sync_mosques': sync_mosques,
+                'regional_languages': INDIAN_LANGUAGES,
             }
             mosque = Mosque.objects.filter(id=request.POST.get('mosque_id')).first()
             if not mosque:
@@ -292,6 +295,7 @@ def user_management(request):
         mosque_has_website = request.POST.get('mosque_has_website') == 'on'
         mosque_timezone = request.POST.get('mosque_timezone', '').strip()
         mosque_jummah_section = request.POST.get('mosque_jummah_section', '').strip()
+        mosque_language = request.POST.get('mosque_language', 'ur')
 
         def _pos_int(name, default):
             try:
@@ -306,6 +310,7 @@ def user_management(request):
             'users': User.objects.all().order_by('-id'),
             'verticals': UserProfile.VERTICAL_CHOICES,
             'sync_mosques': sync_mosques,
+            'regional_languages': INDIAN_LANGUAGES,
         }
 
         if not username or not password:
@@ -329,6 +334,9 @@ def user_management(request):
         mosque_coords = None
         manual_times = {}
         if vertical == 'mosque':
+            if mosque_language not in dict(INDIAN_LANGUAGES):
+                context['error'] = 'Choose a supported regional language.'
+                return render(request, 'slideshow/user_management.html', context)
             if not mosque_name:
                 context['error'] = 'Mosque name is required.'
                 return render(request, 'slideshow/user_management.html', context)
@@ -380,6 +388,7 @@ def user_management(request):
                     user=user,
                     name=mosque_name,
                     address=mosque_address,
+                    regional_language=mosque_language,
                     latitude=lat,
                     longitude=lng,
                     website_url=mosque_website if mosque_has_website else '',
@@ -411,6 +420,7 @@ def user_management(request):
         'users': users,
         'verticals': UserProfile.VERTICAL_CHOICES,
         'sync_mosques': sync_mosques,
+        'regional_languages': INDIAN_LANGUAGES,
     })
 
 
@@ -475,6 +485,81 @@ def takbir_announcements_admin(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def mosque_announcements(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return redirect(f'/{request.user.id}/')
+    if profile.vertical != 'mosque':
+        return redirect(f'/{request.user.id}/')
+
+    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
+    if not mosque:
+        messages.error(request, 'No mosque is associated with your account.')
+        return redirect('prayer-times')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'delete':
+            announcement = get_object_or_404(
+                MosqueAnnouncement, pk=request.POST.get('announcement_id'), mosque=mosque)
+            announcement.delete()
+            messages.success(request, 'Announcement deleted.')
+            return redirect('mosque-announcements')
+
+        if action != 'create':
+            messages.error(request, 'Choose a valid announcement action.')
+            return redirect('mosque-announcements')
+
+        content_type = request.POST.get('content_type', '')
+        title = request.POST.get('title', '').strip()
+        body = request.POST.get('body', '').strip()
+        image = request.FILES.get('image')
+        if content_type == 'image' and image:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            used = (
+                MediaFile.objects.filter(user=request.user)
+                .aggregate(total=Sum('file_size'))['total'] or 0
+            )
+            used += (
+                MosqueAnnouncement.objects.filter(mosque=mosque)
+                .aggregate(total=Sum('file_size'))['total'] or 0
+            )
+            quota_bytes = profile.storage_quota_mb * 1024 * 1024
+            max_size = getattr(settings, 'MAX_UPLOAD_SIZE_MB', 25) * 1024 * 1024
+            if image.size > max_size:
+                messages.error(request, f'Photo must be no larger than {max_size // (1024 * 1024)} MB.')
+                return redirect('mosque-announcements')
+            if used + image.size > quota_bytes:
+                messages.error(
+                    request, f'Uploading this photo would exceed your {profile.storage_quota_mb} MB storage quota.')
+                return redirect('mosque-announcements')
+
+        announcement = MosqueAnnouncement(
+            mosque=mosque,
+            content_type=content_type,
+            title=title,
+            body=body,
+            image=image or '',
+            file_size=image.size if image else 0,
+        )
+        try:
+            announcement.save()
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return redirect('mosque-announcements')
+        messages.success(request, 'Announcement added.')
+        return redirect('mosque-announcements')
+
+    return render(request, 'slideshow/mosque_announcements.html', {
+        'mosque': mosque,
+        'announcements': mosque.announcements.all(),
+        'max_announcements': 2,
+    })
+
+
+@login_required
 def edit_user(request, user_id):
     """Superuser edits a user's email, plan limits, and mosque details."""
     if not request.user.is_superuser:
@@ -500,8 +585,13 @@ def edit_user(request, user_id):
 
     for mosque in user.mosque_set.all():
         name = request.POST.get(f'mosque_{mosque.id}_name', '').strip()
+        language = request.POST.get(f'mosque_{mosque.id}_language', mosque.regional_language)
+        if language not in dict(INDIAN_LANGUAGES):
+            messages.error(request, f'Choose a supported language for {mosque.name}.')
+            return redirect('/user-management/')
         if name:
             mosque.name = name
+        mosque.regional_language = language
         mosque.website_url = request.POST.get(f'mosque_{mosque.id}_website', '').strip()
         mosque.jummah_section = request.POST.get(f'mosque_{mosque.id}_jummah_section', '').strip()
         mosque.sync_enabled = request.POST.get(f'mosque_{mosque.id}_sync') == 'on'
@@ -1315,8 +1405,11 @@ def api_device_slideshow(request, device_id):
         if mosque:
             _pt, timings, tz = _mosque_timings(mosque)
             timings_tz = str(tz)
+            regional_language, prayer_labels, _rtl = _mosque_tv_language(mosque)
+        else:
+            regional_language, prayer_labels = 'ur', prayer_labels_for('ur')
 
-        files = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
+        files = _mosque_tv_media_files(request, mosque, device.user, device.screen)
         return JsonResponse({
             'success': True,
             'device_id': device.device_id,
@@ -1324,28 +1417,12 @@ def api_device_slideshow(request, device_id):
             'screen': device.screen,
             'timings': timings,
             'tz': timings_tz,
+            'regional_language': regional_language,
+            'prayer_labels': prayer_labels,
             # Server-side switch for remote diagnostics: tablet only ships
             # its dlog buffer when this device's id is in DEVICE_DEBUG_LOGS.
             'debug': device.device_id in settings.DEVICE_DEBUG_LOGS,
-            'files': [
-                {
-                    'id': f.id,
-                    'title': f.title,
-                    'type': f.content_type,
-                    'screen': f.screen,
-                    'url': (
-                        (request.build_absolute_uri(f.file.url) if hasattr(f.file, 'url') else request.build_absolute_uri(f'/media/{f.file}'))
-                        + ('&' if '?' in (f.file.url if hasattr(f.file, 'url') else '') else '?')
-                        + f'v={f.file_size}-{int(f.created_at.timestamp())}'
-                    ),
-                    'size': f.file_size,
-                    # Version marker for tablet change detection: a new upload
-                    # creates a new row (new id + created_at), so this changes
-                    # whenever the content does.
-                    'version': f'{f.file_size}-{int(f.created_at.timestamp())}',
-                }
-                for f in files
-            ],
+            'files': files,
         })
     except Exception as e:
         logger.error(f"Error in api_device_slideshow: {str(e)}", exc_info=True)
@@ -1874,6 +1951,12 @@ def _next_salah(prayer_time, now, tz):
     return {'name': None, 'time': '', 'urdu': ''}
 
 
+def _mosque_tv_language(mosque):
+    language = mosque.regional_language or 'ur'
+    labels = prayer_labels_for(language)
+    return language, labels, language in RTL_LANGUAGES
+
+
 @require_http_methods(["GET"])
 @cache_control(max_age=86400, public=True)
 def api_location_name(request):
@@ -2295,6 +2378,30 @@ def mosque_map(request):
     })
 
 
+@require_http_methods(["GET"])
+@cache_control(max_age=86400, public=True)
+def api_public_quranic_content(request):
+    """Return the versioned Quranic slide package for offline TV caching."""
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'quranic_sample_ur.json')
+    try:
+        with open(data_path, encoding='utf-8') as data_file:
+            package = json.load(data_file)
+    except (OSError, ValueError):
+        logger.exception('Could not load the Quranic sample content package.')
+        return JsonResponse(
+            {'success': False, 'error': 'Quranic content is temporarily unavailable.'},
+            status=503,
+        )
+    return JsonResponse({
+        'success': True,
+        'supported_languages': [
+            {'code': code, 'name': name} for code, name in INDIAN_LANGUAGES
+        ],
+        'available_translation_languages': list(package.get('translations', {})),
+        **package,
+    })
+
+
 @login_required
 def prayer_times(request):
     """Mosque users can add or update today's prayer times."""
@@ -2505,6 +2612,52 @@ def _mosque_timings(mosque, for_date=None):
     return prayer_time, timings, tz
 
 
+def _mosque_tv_media_files(request, mosque, user, screen):
+    files = []
+    media = MediaFile.objects.filter(user=user, screen=screen).order_by('position', '-id')
+    for item in media:
+        file_url = item.file.url
+        files.append({
+            'id': item.id,
+            'url': request.build_absolute_uri(file_url),
+            'type': item.content_type,
+            'title': item.title,
+            'size': item.file_size,
+            'version': f'{item.file_size}-{int(item.created_at.timestamp())}',
+        })
+
+    central = TakbirAnnouncement.objects.filter(
+        is_published=True,
+        published_at__isnull=False,
+    ).order_by('-published_at', '-created_at').first()
+    if central:
+        files.append({
+            'id': f'central-{central.id}',
+            'type': 'text',
+            'theme': 'central',
+            'title': central.title,
+            'body': central.body,
+            'source': central.source,
+            'version': f'{central.id}-{int(central.updated_at.timestamp())}',
+        })
+
+    if mosque:
+        for item in mosque.announcements.all():
+            slide = {
+                'id': f'mosque-{item.id}',
+                'type': item.content_type,
+                'theme': 'mosque',
+                'title': item.title,
+                'body': item.body,
+                'size': item.file_size,
+                'version': f'{item.id}-{item.file_size}-{int(item.created_at.timestamp())}',
+            }
+            if item.content_type == 'image':
+                slide['url'] = request.build_absolute_uri(item.image.url)
+            files.append(slide)
+    return files
+
+
 def mosque_tv(request):
     """Mosque TV view showing prayer times and the user's slideshow."""
     try:
@@ -2526,24 +2679,28 @@ def mosque_tv(request):
     if next_salah.get('time'):
         # TV banner shows a bare clock — drop the ' am'/' pm' suffix
         next_salah['time'] = next_salah['time'].replace(' am', '').replace(' pm', '')
+    regional_language, prayer_labels, regional_language_rtl = _mosque_tv_language(mosque)
+    if next_salah.get('name'):
+        next_key = {
+            "Jumu'ah": 'jummah',
+            "Jumu'ah 2": 'jummah2',
+            "Jumu'ah 3": 'jummah3',
+        }.get(next_salah['name'], next_salah['name'].lower())
+        next_salah['regional'] = prayer_labels.get(next_key, '')
 
-    media = MediaFile.objects.filter(user=request.user, screen=1).order_by('position', '-id')
-    media_files = json.dumps([
-        {
-            'id': m.id,
-            'url': request.build_absolute_uri(m.file.url),
-            'type': m.content_type,
-            'title': m.title,
-            'size': m.file_size,
-            'version': f'{m.file_size}-{int(m.created_at.timestamp())}',
-        }
-        for m in media
-    ])
+    media_files = json.dumps(_mosque_tv_media_files(request, mosque, request.user, 1))
 
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
         'timings': timings,
-        'timings_json': json.dumps({'tz': str(tz), 'timings': timings}),
+        'timings_json': json.dumps({
+            'tz': str(tz),
+            'timings': timings,
+            'regional_language': regional_language,
+            'prayer_labels': prayer_labels,
+        }),
+        'regional_labels': prayer_labels,
+        'regional_language_rtl': regional_language_rtl,
         'next_salah': next_salah,
         'media_files': media_files,
         'today': today,
@@ -2583,29 +2740,30 @@ def mosque_tv_device(request):
     if next_salah.get('time'):
         # TV banner shows a bare clock — drop the ' am'/' pm' suffix
         next_salah['time'] = next_salah['time'].replace(' am', '').replace(' pm', '')
+    regional_language, prayer_labels, regional_language_rtl = _mosque_tv_language(mosque)
+    if next_salah.get('name'):
+        next_key = {
+            "Jumu'ah": 'jummah',
+            "Jumu'ah 2": 'jummah2',
+            "Jumu'ah 3": 'jummah3',
+        }.get(next_salah['name'], next_salah['name'].lower())
+        next_salah['regional'] = prayer_labels.get(next_key, '')
     
     # Get media from the mosque's user (device owner)
-    media = MediaFile.objects.filter(user=device.user, screen=device.screen).order_by('position', '-id')
-    media_files = json.dumps([
-        {
-            'id': m.id,
-            'url': (
-                request.build_absolute_uri(m.file.url if hasattr(m.file, 'url') else f'/media/{m.file}')
-                + ('&' if '?' in (m.file.url if hasattr(m.file, 'url') else '') else '?')
-                + f'v={m.file_size}-{int(m.created_at.timestamp())}'
-            ),
-            'type': m.content_type,
-            'title': m.title,
-            'size': m.file_size,
-            'version': f'{m.file_size}-{int(m.created_at.timestamp())}',
-        }
-        for m in media
-    ])
+    media_files = json.dumps(
+        _mosque_tv_media_files(request, mosque, device.user, device.screen))
     
     return render(request, 'slideshow/mosque_tv.html', {
         'mosque': mosque,
         'timings': timings,
-        'timings_json': json.dumps({'tz': str(tz), 'timings': timings}),
+        'timings_json': json.dumps({
+            'tz': str(tz),
+            'timings': timings,
+            'regional_language': regional_language,
+            'prayer_labels': prayer_labels,
+        }),
+        'regional_labels': prayer_labels,
+        'regional_language_rtl': regional_language_rtl,
         'next_salah': next_salah,
         'media_files': media_files,
         'today': today,

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosque Announcements</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px; background: #f5f6f8; color: #24292f; font: 16px system-ui, sans-serif; }
+        main { max-width: 760px; margin: 0 auto; }
+        .card { margin: 16px 0; padding: 22px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; }
+        h1, h2 { margin: 0 0 8px; }
+        .muted { color: #656d76; }
+        label { display: block; margin: 14px 0 6px; font-weight: 600; }
+        input, select, textarea, button { width: 100%; padding: 11px; border: 1px solid #afb8c1; border-radius: 6px; font: inherit; }
+        textarea { min-height: 130px; resize: vertical; }
+        button { margin-top: 16px; border: 0; background: #176f45; color: #fff; font-weight: 700; cursor: pointer; }
+        .delete { background: #b42318; }
+        .notice { padding: 10px 12px; border-radius: 6px; background: #ddf4e4; }
+        .notice.error { background: #ffebe9; }
+        .announcement { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+        .announcement img { max-width: 180px; max-height: 120px; object-fit: contain; }
+        .announcement p { white-space: pre-wrap; overflow-wrap: anywhere; }
+        @media (max-width: 560px) { body { padding: 12px; } .announcement { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<main>
+    <p><a href="{% url 'prayer-times' %}">← Back to mosque dashboard</a></p>
+    <section class="card">
+        <h1>Announcements for {{ mosque.name }}</h1>
+        <p class="muted">Add up to two announcements. Each can be text or one photo. Delete an announcement before adding another.</p>
+    </section>
+
+    {% for message in messages %}
+    <div class="notice{% if message.tags == 'error' %} error{% endif %}">{{ message }}</div>
+    {% endfor %}
+
+    {% if announcements|length < max_announcements %}
+    <section class="card">
+        <h2>Add announcement</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <label for="content_type">Announcement type</label>
+            <select id="content_type" name="content_type">
+                <option value="image" selected>Upload Photo</option>
+                <option value="text">Type your announcement</option>
+            </select>
+
+            <div id="photo-fields">
+                <label for="image">Photo (JPG, PNG, or WebP)</label>
+                <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+            </div>
+            <div id="text-fields" hidden>
+                <label for="title">Title</label>
+                <input id="title" name="title" maxlength="180">
+                <label for="body">Message</label>
+                <textarea id="body" name="body"></textarea>
+            </div>
+            <button type="submit">Add announcement</button>
+        </form>
+    </section>
+    {% else %}
+    <section class="card">
+        <strong>Announcement limit reached.</strong>
+        <p class="muted">Delete one of the current announcements to add a new one.</p>
+    </section>
+    {% endif %}
+
+    <h2>Current announcements ({{ announcements|length }}/{{ max_announcements }})</h2>
+    {% for item in announcements %}
+    <article class="card announcement">
+        <div>
+            <strong>{% if item.content_type == 'image' %}Photo announcement{% else %}{{ item.title }}{% endif %}</strong>
+            {% if item.body %}<p>{{ item.body }}</p>{% endif %}
+        </div>
+        {% if item.content_type == 'image' %}<img src="{{ item.image.url }}" alt="Announcement photo">{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="announcement_id" value="{{ item.id }}">
+            <button class="delete" type="submit">Delete</button>
+        </form>
+    </article>
+    {% empty %}
+    <p class="muted">No mosque announcements yet.</p>
+    {% endfor %}
+</main>
+<script>
+    const typeSelect = document.getElementById('content_type');
+    const photoFields = document.getElementById('photo-fields');
+    const textFields = document.getElementById('text-fields');
+    const imageInput = document.getElementById('image');
+    const titleInput = document.getElementById('title');
+    const bodyInput = document.getElementById('body');
+    function updateTypeFields() {
+        const isText = typeSelect.value === 'text';
+        photoFields.hidden = isText;
+        textFields.hidden = !isText;
+        imageInput.required = !isText;
+        titleInput.required = isText;
+        bodyInput.required = isText;
+    }
+    typeSelect.addEventListener('change', updateTypeFields);
+    updateTypeFields();
+</script>
+</body>
+</html>
