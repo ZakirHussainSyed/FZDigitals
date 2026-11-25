@@ -183,10 +183,11 @@ class MultilingualQuranContentTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['version'], 2)
+        self.assertEqual(payload['version'], 3)
         self.assertEqual(len(payload['entries']), 10)
-        self.assertEqual(payload['available_translation_languages'], ['en', 'ur'])
+        self.assertEqual(payload['available_translation_languages'], ['en', 'ur', 'te'])
         self.assertEqual(payload['arabic_source']['provider'], 'Tanzil Project')
+        self.assertTrue(all('te' in entry['translations'] for entry in payload['entries']))
         self.assertTrue(all(entry['review_status'] == 'draft' for entry in payload['entries']))
         self.assertIn('max-age=86400', response['Cache-Control'])
 
