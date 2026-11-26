@@ -309,6 +309,10 @@
         .daily-content-slide .regional {
             font-size: calc(clamp(18px, 2.2vw, 34px) * var(--daily-font-scale, 1));
         }
+        .daily-content-slide .arabic,
+        .daily-content-slide .regional[lang="ur"] {
+            font-size: calc(clamp(21.6px, 2.64vw, 40.8px) * var(--daily-font-scale, 1));
+        }
         .daily-content-slide .arabic {
             direction: rtl;
             line-height: 1.6;
@@ -953,6 +957,7 @@
                     if (f.regional) {
                         const regional = document.createElement('div');
                         regional.className = 'regional';
+                        regional.lang = regionalLanguage;
                         regional.dir = ['ks', 'sd', 'ur'].includes(regionalLanguage) ? 'rtl' : 'ltr';
                         regional.textContent = f.regional;
                         content.appendChild(regional);
