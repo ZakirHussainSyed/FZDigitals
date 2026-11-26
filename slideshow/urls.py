@@ -45,6 +45,7 @@ urlpatterns = [
     path('mosque-map/', views.mosque_map, name='mosque-map'),
     path('prayer-times/', views.prayer_times, name='prayer-times'),
     path('mosque-announcements/', views.mosque_announcements, name='mosque-announcements'),
+    path('mosque-slideshow/', views.mosque_slideshow_dashboard, name='mosque-slideshow-dashboard'),
     path('mosque-tv/', views.mosque_tv, name='mosque-tv'),
     path('mosque-tv/setup/', views.mosque_tv_setup, name='mosque-tv-setup'),
     path('mosque-tv/device/', views.mosque_tv_device, name='mosque-tv-device'),

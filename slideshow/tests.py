@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponse
 from django.template.loader import get_template
 from django.test import TestCase
 
@@ -229,6 +230,28 @@ class MosqueAnnouncementTests(TestCase):
         self.user = User.objects.create_user('mosque-admin', password='pw')
         self.mosque = Mosque.objects.create(user=self.user, name='Test Mosque')
         UserProfile.objects.create(user=self.user, vertical='mosque')
+
+    def test_mosque_dashboard_opens_announcements_and_slideshow_remains_available(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(f'/{self.user.id}/')
+        self.assertRedirects(response, '/mosque-announcements/', fetch_redirect_response=False)
+
+        with patch('slideshow.views.render', return_value=HttpResponse()) as render_template:
+            response = self.client.get('/mosque-slideshow/')
+        self.assertEqual(response.status_code, 200)
+        render_template.assert_called_once()
+        self.assertEqual(render_template.call_args.args[1], 'slideshow/index.html')
+
+    def test_non_mosque_dashboard_still_opens_slideshow(self):
+        other = User.objects.create_user('regular-dashboard', password='pw')
+        UserProfile.objects.create(user=other, vertical='bank')
+        self.client.force_login(other)
+
+        with patch('slideshow.views.render', return_value=HttpResponse()):
+            response = self.client.get(f'/{other.id}/')
+
+        self.assertEqual(response.status_code, 200)
 
     def test_account_can_create_text_announcement_and_limit_is_two(self):
         self.client.force_login(self.user)

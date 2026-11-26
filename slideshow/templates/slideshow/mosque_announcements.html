@@ -26,7 +26,10 @@
 </head>
 <body>
 <main>
-    <p><a href="{% url 'prayer-times' %}">← Back to mosque dashboard</a></p>
+    <p>
+        <a href="{% url 'mosque-slideshow-dashboard' %}">Slideshow dashboard</a>
+        · <a href="{% url 'prayer-times' %}">Prayer timings</a>
+    </p>
     <section class="card">
         <h1>Announcements for {{ mosque.name }}</h1>
         <p class="muted">Add up to two announcements. Each can be text or one photo. Delete an announcement before adding another.</p>
