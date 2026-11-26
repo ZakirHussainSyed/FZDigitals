@@ -14,6 +14,7 @@
     const PRAYER_CACHE_KEY = 'takbir_prayer_years_v1';
     const PRAYER_PREFS_KEY = 'takbir_prayer_prefs_v1';
     const ANNOUNCEMENTS_CACHE_KEY = 'takbir_announcements_v1';
+    const DAILY_CONTENT_CACHE_KEY = 'takbir_quran_package_v1';
     const TWENTY_KM_METERS = 20000;
     const ANNOUNCEMENTS_TTL_MS = 24 * 60 * 60 * 1000;
     const prayerLocation = document.getElementById('prayer-location');
@@ -37,6 +38,9 @@
     let prayerPrefs = readJson(PRAYER_PREFS_KEY) || {method: 'auto', hijriAdjustment: 0};
     let prayerBusy = false;
     let notificationBusy = false;
+    let dailyContentBusy = false;
+    let dailyContentPackage = null;
+    let currentAnnouncements = [];
     window.takbirActiveTab = activeTab;
 
     methodSelect.value = prayerPrefs.method || 'auto';
@@ -79,7 +83,10 @@
             screens[key].classList.toggle('active', key === tab);
         });
         if (tab === 'prayer') refreshPrayerTimes();
-        if (tab === 'notifications') refreshAnnouncements();
+        if (tab === 'notifications') {
+            refreshAnnouncements();
+            refreshDailyContent();
+        }
         if (tab === 'website' && websiteFrame && !websiteFrame.hasAttribute('src')) {
             websiteFrame.src = websiteFrame.dataset.src;
         }
@@ -386,7 +393,11 @@
 
     function renderAnnouncements(items) {
         notificationsList.replaceChildren();
-        if (!items.length) {
+        currentAnnouncements = Array.isArray(items) ? items : [];
+        const dailyContentCard = createDailyContentCard(dailyContentPackage);
+        if (dailyContentCard) notificationsList.appendChild(dailyContentCard);
+        if (!currentAnnouncements.length) {
+            if (dailyContentCard) return;
             const empty = document.createElement('div');
             empty.className = 'notification-empty';
             empty.textContent = 'There are no announcements yet.';
@@ -415,7 +426,7 @@
             element.appendChild(document.createTextNode(text.slice(lastIndex)));
         }
 
-        items.forEach(function (item) {
+        currentAnnouncements.forEach(function (item) {
             const card = document.createElement('article');
             card.className = 'announcement-card';
             const title = document.createElement('h2');
@@ -440,6 +451,128 @@
             }
             notificationsList.appendChild(card);
         });
+    }
+
+    function createDailyContentCard(packageData) {
+        const approved = packageData && Array.isArray(packageData.entries)
+            ? packageData.entries.map(normalizeDailyContentEntry).filter(entry =>
+                ['quran', 'hadith'].includes(entry.type)
+                && entry.review_status === 'approved' && entry.translations)
+            : [];
+        if (!approved.length) return null;
+
+        const now = new Date();
+        const dateText = [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, '0'),
+            String(now.getDate()).padStart(2, '0')
+        ].join('-');
+        const startOfYear = Date.UTC(now.getFullYear(), 0, 1);
+        const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+        const dayOfYear = Math.floor((today - startOfYear) / 86400000);
+        const entry = approved[dayOfYear % approved.length];
+        const citation = entry.citation || {};
+        const citationText = entry.type === 'quran'
+            ? `Surah ${citation.surah || ''} · Chapter ${citation.chapter || ''} · Verse ${citation.verse || ''}`
+            : `${citation.book || 'Hadith collection'} · Hadith ${citation.number || ''}`;
+        const card = document.createElement('article');
+        card.className = 'announcement-card daily-content-card';
+        card.dataset.dailyContent = dateText;
+
+        const title = document.createElement('h2');
+        title.textContent = entry.type === 'hadith' ? "Today's Hadith" : "Today's Quran verse";
+        const arabic = document.createElement('p');
+        arabic.className = 'announcement-text';
+        arabic.lang = 'ar';
+        arabic.dir = 'rtl';
+        arabic.textContent = entry.arabic || '';
+        card.append(title, arabic);
+
+        const english = document.createElement('p');
+        english.className = 'announcement-text';
+        english.dir = 'auto';
+        english.textContent = 'English: ' + (entry.translations.en || '');
+        card.appendChild(english);
+
+        const languageCode = (navigator.language || 'en').split('-')[0].toLowerCase();
+        const regional = entry.translations[languageCode];
+        if (languageCode !== 'en' && regional) {
+            const regionalText = document.createElement('p');
+            regionalText.className = 'announcement-text';
+            regionalText.lang = languageCode;
+            regionalText.dir = ['ur', 'ks', 'sd'].includes(languageCode) ? 'rtl' : 'auto';
+            const label = packageData.translations?.[languageCode]?.label || languageCode;
+            regionalText.textContent = label + ': ' + regional;
+            card.appendChild(regionalText);
+        }
+
+        if (entry.type === 'quran') {
+            const source = document.createElement('p');
+            source.className = 'announcement-source';
+            const sourceInfo = packageData.arabic_source || {};
+            if (sourceInfo.url) {
+                const link = document.createElement('a');
+                link.href = sourceInfo.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = 'Arabic text: ' + (sourceInfo.provider || 'Source');
+                source.append(link, document.createTextNode(' — ' + (sourceInfo.copyright_notice || '')));
+            } else {
+                source.textContent = sourceInfo.copyright_notice || '';
+            }
+            if (source.textContent || source.childNodes.length) card.appendChild(source);
+        }
+
+        const citationFooter = document.createElement('p');
+        citationFooter.className = 'announcement-source';
+        citationFooter.textContent = citationText;
+        card.appendChild(citationFooter);
+        return card;
+    }
+
+    function normalizeDailyContentEntry(entry) {
+        if (entry.type || !entry.reference) return entry;
+        const match = /^(.*?)\s+(\d+):(\d+)$/.exec(entry.reference);
+        if (!match) return entry;
+        return {
+            ...entry,
+            type: 'quran',
+            citation: {
+                surah: match[1],
+                chapter: Number(match[2]),
+                verse: Number(match[3])
+            }
+        };
+    }
+
+    async function refreshDailyContent() {
+        if (dailyContentBusy) return;
+        const cached = readJson(DAILY_CONTENT_CACHE_KEY);
+        if (cached && cached.package && Array.isArray(cached.package.entries)) {
+            dailyContentPackage = cached.package;
+            renderAnnouncements(currentAnnouncements);
+            if (Date.now() - cached.savedAt < ANNOUNCEMENTS_TTL_MS) return;
+        }
+
+        dailyContentBusy = true;
+        try {
+            const response = await fetch('/api/public/daily-content/', {
+                cache: 'no-cache',
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error('Daily content could not be loaded.');
+            const packageData = await response.json();
+            if (!packageData.success || !Array.isArray(packageData.entries)) {
+                throw new Error('The daily content response was invalid.');
+            }
+            dailyContentPackage = packageData;
+            saveJson(DAILY_CONTENT_CACHE_KEY, {savedAt: Date.now(), package: packageData});
+            renderAnnouncements(currentAnnouncements);
+        } catch (error) {
+            console.warn('[Takbir] Could not refresh daily content:', error);
+        } finally {
+            dailyContentBusy = false;
+        }
     }
 
     async function refreshAnnouncements() {

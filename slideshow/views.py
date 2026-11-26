@@ -2401,16 +2401,16 @@ def mosque_map(request):
 
 @require_http_methods(["GET"])
 @cache_control(max_age=86400, public=True)
-def api_public_quranic_content(request):
-    """Return the versioned Quranic slide package for offline TV caching."""
-    data_path = os.path.join(os.path.dirname(__file__), 'data', 'quranic_sample_ur.json')
+def api_public_daily_content(request):
+    """Return the versioned Quran-and-hadith package for offline display caching."""
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'daily_content.json')
     try:
         with open(data_path, encoding='utf-8') as data_file:
             package = json.load(data_file)
     except (OSError, ValueError):
-        logger.exception('Could not load the Quranic sample content package.')
+        logger.exception('Could not load the daily content package.')
         return JsonResponse(
-            {'success': False, 'error': 'Quranic content is temporarily unavailable.'},
+            {'success': False, 'error': 'Daily content is temporarily unavailable.'},
             status=503,
         )
     return JsonResponse({
@@ -2421,6 +2421,26 @@ def api_public_quranic_content(request):
         'available_translation_languages': list(package.get('translations', {})),
         **package,
     })
+
+
+@require_http_methods(["GET"])
+@cache_control(max_age=86400, public=True)
+def api_public_quranic_content(request):
+    response = api_public_daily_content(request)
+    if response.status_code != 200:
+        return response
+    package = json.loads(response.content)
+    entries = []
+    for entry in package['entries']:
+        if entry.get('type') != 'quran':
+            continue
+        citation = entry['citation']
+        entries.append({
+            **entry,
+            'reference': f"{citation['surah']} {citation['chapter']}:{citation['verse']}",
+        })
+    package['entries'] = entries
+    return JsonResponse(package)
 
 
 @login_required

@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/mosque/<int:mosque_id>/slides/', views.api_mosque_slides, name='api-mosque-slides'),
     path('api/public/mosques/', views.api_public_mosques, name='api-public-mosques'),
     path('api/public/announcements/', views.api_public_announcements, name='api-public-announcements'),
+    path('api/public/daily-content/', views.api_public_daily_content, name='api-public-daily-content'),
     path('api/public/quranic-content/', views.api_public_quranic_content, name='api-public-quranic-content'),
     path('api/osm/mosques/', views.api_osm_mosques, name='api-osm-mosques'),
     path('api/approx-location/', views.api_approx_location, name='api-approx-location'),
