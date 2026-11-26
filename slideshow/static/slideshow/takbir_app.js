@@ -520,6 +520,12 @@
             } else {
                 source.textContent = sourceInfo.copyright_notice || '';
             }
+            const license = document.createElement('a');
+            license.href = 'https://creativecommons.org/licenses/by/3.0/';
+            license.target = '_blank';
+            license.rel = 'noopener noreferrer';
+            license.textContent = 'CC BY 3.0 license';
+            source.append(document.createTextNode(' · '), license);
             if (source.textContent || source.childNodes.length) card.appendChild(source);
         }
 
