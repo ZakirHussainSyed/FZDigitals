@@ -440,6 +440,32 @@ class ApproximateLocationTests(TestCase):
         response = self.client.get('/api/location-name/', {
             'latitude': '17.38', 'longitude': '78.48',
         })
+        self.assertEqual(response.json()['regional_language'], 'ur')
+
+        mock_get.return_value.json.return_value['address']['ISO3166-2-lvl4'] = 'IN-TG'
+        response = self.client.get('/api/location-name/', {
+            'latitude': '17.38', 'longitude': '78.48',
+        })
+        self.assertEqual(response.json()['regional_language'], 'ur')
+
+        mock_get.return_value.json.return_value['address'].pop('ISO3166-2-lvl4')
+        response = self.client.get('/api/location-name/', {
+            'latitude': '17.38', 'longitude': '78.48',
+        })
+        self.assertEqual(response.json()['regional_language'], 'ur')
+
+        mock_get.return_value.json.return_value['address'].update({
+            'state': 'Andhra Pradesh', 'ISO3166-2-lvl4': 'IN-AP',
+        })
+        response = self.client.get('/api/location-name/', {
+            'latitude': '16.51', 'longitude': '80.65',
+        })
+        self.assertEqual(response.json()['regional_language'], 'te')
+
+        mock_get.return_value.json.return_value['address'].pop('ISO3166-2-lvl4')
+        response = self.client.get('/api/location-name/', {
+            'latitude': '16.51', 'longitude': '80.65',
+        })
         self.assertEqual(response.json()['regional_language'], 'te')
 
         mock_get.return_value.json.return_value['address'].update({
