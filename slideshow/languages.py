@@ -140,6 +140,28 @@ PRAYER_LABELS = {
 
 RTL_LANGUAGES = frozenset({'ks', 'sd', 'ur'})
 
+INDIAN_STATE_LANGUAGES = {
+    'IN-AP': 'te', 'IN-AR': 'hi', 'IN-AS': 'as', 'IN-BR': 'hi',
+    'IN-CH': 'pa', 'IN-CT': 'hi', 'IN-DL': 'hi', 'IN-GA': 'kok',
+    'IN-GJ': 'gu', 'IN-HP': 'hi', 'IN-HR': 'hi', 'IN-JH': 'hi',
+    'IN-JK': 'ur', 'IN-KA': 'kn', 'IN-KL': 'ml', 'IN-LD': 'ml',
+    'IN-MH': 'mr', 'IN-MN': 'mni', 'IN-MP': 'hi',
+    'IN-OD': 'or', 'IN-OR': 'or', 'IN-PB': 'pa', 'IN-PY': 'ta',
+    'IN-RJ': 'hi', 'IN-SK': 'ne', 'IN-TG': 'te', 'IN-TS': 'te',
+    'IN-TN': 'ta', 'IN-TR': 'bn', 'IN-UP': 'hi', 'IN-UT': 'hi',
+    'IN-UK': 'hi', 'IN-WB': 'bn',
+}
+INDIAN_STATE_LANGUAGE_NAMES = {
+    'andhra pradesh': 'te', 'assam': 'as', 'bihar': 'hi',
+    'chhattisgarh': 'hi', 'delhi': 'hi', 'goa': 'kok', 'gujarat': 'gu',
+    'haryana': 'hi', 'himachal pradesh': 'hi', 'jammu and kashmir': 'ur',
+    'jharkhand': 'hi', 'karnataka': 'kn', 'kerala': 'ml',
+    'madhya pradesh': 'hi', 'maharashtra': 'mr', 'manipur': 'mni',
+    'odisha': 'or', 'punjab': 'pa', 'rajasthan': 'hi', 'sikkim': 'ne',
+    'tamil nadu': 'ta', 'telangana': 'te', 'tripura': 'bn',
+    'uttar pradesh': 'hi', 'uttarakhand': 'hi', 'west bengal': 'bn',
+}
+
 
 def prayer_labels_for(language):
     labels = PRAYER_LABELS.get(language, PRAYER_LABELS['ur'])

@@ -37,7 +37,10 @@ from .prayer_sync import (
     sync_mosque_prayer_times,
 )
 from .geo import parse_google_maps_url, reverse_geocode, timezone_for_coords
-from .languages import INDIAN_LANGUAGES, RTL_LANGUAGES, prayer_labels_for
+from .languages import (
+    INDIAN_LANGUAGES, INDIAN_STATE_LANGUAGE_NAMES, INDIAN_STATE_LANGUAGES,
+    PRAYER_LABELS, RTL_LANGUAGES, prayer_labels_for,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1990,16 +1993,25 @@ def api_location_name(request):
         return JsonResponse({'success': False, 'error': 'Invalid coordinates'}, status=400)
 
     address = ''
+    regional_language = ''
     try:
         resp = requests.get(
             'https://nominatim.openstreetmap.org/reverse',
-            params={'format': 'jsonv2', 'lat': latitude, 'lon': longitude, 'zoom': 10},
+            params={'format': 'jsonv2', 'lat': latitude, 'lon': longitude, 'zoom': 10,
+                    'accept-language': 'en'},
             headers={'User-Agent': 'FZDigitals/1.0'},
             timeout=10,
         )
         resp.raise_for_status()
         place = resp.json()
         address_data = place.get('address') or {}
+        if address_data.get('country_code', '').lower() == 'in':
+            state_code = address_data.get('ISO3166-2-lvl4', '').upper()
+            regional_language = (
+                INDIAN_STATE_LANGUAGES.get(state_code)
+                or INDIAN_STATE_LANGUAGE_NAMES.get(address_data.get('state', '').casefold())
+                or ''
+            )
         area = (
             address_data.get('city')
             or address_data.get('town')
@@ -2014,9 +2026,12 @@ def api_location_name(request):
         if not address:
             address = place.get('display_name') or ''
     except Exception:
-        pass
+        logger.warning('Could not resolve location name and regional language', exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Location lookup unavailable'}, status=503)
 
-    return JsonResponse({'success': True, 'name': address})
+    return JsonResponse({
+        'success': True, 'name': address, 'regional_language': regional_language,
+    })
 
 
 @require_http_methods(["GET"])
@@ -2396,6 +2411,7 @@ def mosque_map(request):
         'tile_url': getattr(settings, 'MAP_TILE_URL', 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'),
         'tile_subdomains': getattr(settings, 'MAP_TILE_SUBDOMAINS', 'abcd'),
         'attribution': getattr(settings, 'MAP_ATTRIBUTION', '&copy; OpenStreetMap contributors'),
+        'prayer_labels': PRAYER_LABELS,
     })
 
 

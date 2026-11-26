@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.template.loader import get_template
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 from .models import (
     Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride,
@@ -186,7 +186,7 @@ class MultilingualQuranContentTests(TestCase):
         self.assertTrue(payload['success'])
         self.assertGreaterEqual(payload['version'], 5)
         self.assertGreaterEqual(len(payload['entries']), 9)
-        self.assertEqual(payload['available_translation_languages'], ['en', 'ur', 'te'])
+        self.assertEqual(payload['available_translation_languages'], ['en', 'ur', 'te', 'kn', 'ml', 'ta', 'mr'])
         self.assertEqual(payload['arabic_source']['provider'], 'Tanzil Project')
         self.assertTrue(all(entry['type'] in {'quran', 'hadith'} for entry in payload['entries']))
         for entry in payload['entries']:
@@ -209,6 +209,20 @@ class MultilingualQuranContentTests(TestCase):
             entry['type'] == 'quran' and entry['reference']
             for entry in legacy_response.json()['entries']
         ))
+
+    def test_approved_regional_translations_are_available_for_current_verses(self):
+        payload = self.client.get('/api/public/daily-content/').json()
+        languages = {'kn', 'ml', 'ta', 'mr'}
+        self.assertTrue(languages <= set(payload['available_translation_languages']))
+        self.assertTrue(all(payload['translations'][code]['review_status'] == 'approved'
+                            for code in languages))
+        for entry in payload['entries']:
+            if entry['id'] not in {
+                '2:43', '2:153', '4:103', '29:45', '107:4-5',
+                '17:23', '16:90', '49:13', '2:83',
+            }:
+                continue
+            self.assertTrue(all(entry['translations'].get(code) for code in languages))
 
     def test_device_feed_includes_selected_language_prayer_labels(self):
         user = User.objects.create_user('gujarati-mosque', password='pw')
@@ -400,6 +414,50 @@ class ApproximateLocationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()['success'])
         self.assertEqual(response.json()['name'], 'Bellevue, United States')
+        self.assertEqual(response.json()['regional_language'], '')
+
+    @patch('slideshow.views.requests.get')
+    def test_location_name_returns_language_for_indian_state(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'address': {'city': 'Ahmedabad', 'state': 'Gujarat',
+                        'country': 'India', 'country_code': 'in',
+                        'ISO3166-2-lvl4': 'IN-GJ'},
+        }
+        response = self.client.get('/api/location-name/', {
+            'latitude': '23.02', 'longitude': '72.57',
+        })
+        self.assertEqual(response.json()['regional_language'], 'gu')
+
+        mock_get.return_value.json.return_value['address'].pop('ISO3166-2-lvl4')
+        response = self.client.get('/api/location-name/', {
+            'latitude': '23.02', 'longitude': '72.57',
+        })
+        self.assertEqual(response.json()['regional_language'], 'gu')
+
+        mock_get.return_value.json.return_value['address'].update({
+            'state': 'Telangana', 'ISO3166-2-lvl4': 'IN-TS',
+        })
+        response = self.client.get('/api/location-name/', {
+            'latitude': '17.38', 'longitude': '78.48',
+        })
+        self.assertEqual(response.json()['regional_language'], 'te')
+
+        mock_get.return_value.json.return_value['address'].update({
+            'state': 'Gujarat', 'country_code': 'pk', 'ISO3166-2-lvl4': 'IN-GJ',
+        })
+        response = self.client.get('/api/location-name/', {
+            'latitude': '32.57', 'longitude': '74.08',
+        })
+        self.assertEqual(response.json()['regional_language'], '')
+
+    @patch('slideshow.views.requests.get', side_effect=OSError('unavailable'))
+    def test_location_lookup_reports_failure(self, _mock_get):
+        from .views import api_location_name
+        request = RequestFactory().get('/api/location-name/', {
+            'latitude': '23.02', 'longitude': '72.57',
+        })
+        response = api_location_name(request)
+        self.assertEqual(response.status_code, 503)
 
 
 class TakbirAppShellTests(TestCase):
