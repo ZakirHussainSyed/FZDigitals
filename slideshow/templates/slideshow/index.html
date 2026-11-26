@@ -389,6 +389,11 @@
             flex-shrink: 0;
             white-space: nowrap;
         }
+        .tab-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
         .tab:hover {
             background: rgba(0,0,0,0.08);
             color: #1f2430;
@@ -444,7 +449,7 @@
         <div class="user-info">
             <span>Welcome, {{ mosque.name|default:user.email|default:user.username }}</span>
             <a href="/screens/">My Screens</a>
-            {% if user.userprofile.vertical == 'mosque' %}
+            {% if mosque %}
                 <a href="{% url 'prayer-times' %}">Prayer Timings</a>
                 <a href="{% url 'mosque-map' %}">Mosque Map</a>
             {% endif %}
@@ -469,6 +474,9 @@
                 {% for screen in screens %}
                 <div class="tab{% if forloop.first %} active{% endif %}" data-tab="screen-{{ screen }}">Slideshow-{{ screen }}</div>
                 {% endfor %}
+                {% if mosque %}
+                <a class="tab tab-link" href="{% url 'mosque-announcements' %}">Announcements</a>
+                {% endif %}
             </div>
 
             {% for screen in screens %}
@@ -550,7 +558,7 @@
         }
 
         // Tab switching functionality
-        const tabs = document.querySelectorAll('.tab');
+        const tabs = document.querySelectorAll('.tab[data-tab]');
         const tabContents = document.querySelectorAll('.tab-content');
         let activeScreen = 1;
         

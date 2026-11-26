@@ -124,7 +124,7 @@ def django_login(request):
                 try:
                     profile = user.userprofile
                     if profile.vertical == 'mosque':
-                        return redirect('prayer-times')
+                        return redirect('mosque-announcements')
                 except UserProfile.DoesNotExist:
                     pass
                 return redirect(f'/{user.id}/')
@@ -659,15 +659,36 @@ def user_dashboard(request, user_id):
     """User-specific upload page with device pairing"""
     if request.user.id != user_id:
         return redirect(f'/{request.user.id}/')
-    
+
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    max_slideshows = profile.max_slideshows
-    mosque = Mosque.objects.filter(user=request.user).first()
+    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
+    if profile.vertical == 'mosque' and mosque:
+        return redirect('mosque-announcements')
+
+    return _render_user_slideshow_dashboard(request, profile, mosque)
+
+
+@login_required
+@xframe_options_sameorigin
+def mosque_slideshow_dashboard(request):
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if profile.vertical != 'mosque':
+        return redirect(f'/{request.user.id}/')
+
+    mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
+    if not mosque:
+        messages.error(request, 'No mosque is associated with your account.')
+        return redirect('mosque-announcements')
+
+    return _render_user_slideshow_dashboard(request, profile, mosque)
+
+
+def _render_user_slideshow_dashboard(request, profile, mosque):
     return render(request, 'slideshow/index.html', {
         'user': request.user,
         'mosque': mosque,
-        'max_slideshows': max_slideshows,
-        'screens': range(1, max_slideshows + 1),
+        'max_slideshows': profile.max_slideshows,
+        'screens': range(1, profile.max_slideshows + 1),
         'max_upload_size_mb': settings.MAX_UPLOAD_SIZE_MB,
     })
 
