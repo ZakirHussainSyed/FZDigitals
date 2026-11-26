@@ -280,7 +280,16 @@
         }
         .daily-content-slide {
             background: var(--prayer-background);
-            padding: clamp(12px, 2vh, 24px) 4%;
+            padding: clamp(12px, 2vh, 24px) 4% 0;
+            gap: 0;
+        }
+        .daily-content-frame {
+            width: 100%;
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .daily-content-body {
             width: 100%;
@@ -310,6 +319,9 @@
         }
         .daily-content-slide .source {
             font-size: calc(clamp(14px, 1.4vw, 22px) * var(--daily-font-scale, 1));
+        }
+        .daily-content-slide .attribution {
+            font-size: calc(clamp(7px, 0.7vw, 11px) * var(--daily-font-scale, 1));
         }
         .daily-content-slide .citation {
             color: #ffd54f;
@@ -926,6 +938,8 @@
                 } else if (f.type === 'daily-content') {
                     const card = document.createElement('div');
                     card.className = 'announcement-slide daily-content-slide';
+                    const frame = document.createElement('div');
+                    frame.className = 'daily-content-frame';
                     const content = document.createElement('div');
                     content.className = 'daily-content-body';
                     const arabic = document.createElement('div');
@@ -943,22 +957,23 @@
                         regional.textContent = f.regional;
                         content.appendChild(regional);
                     }
-                    if (f.arabicSource && f.arabicSourceUrl) {
-                        const attribution = document.createElement('a');
-                        attribution.className = 'source';
-                        attribution.href = f.arabicSourceUrl;
-                        attribution.target = '_blank';
-                        attribution.rel = 'noopener';
-                        attribution.textContent = 'Arabic: ' + f.arabicSource + ' (tanzil.net)';
-                        content.appendChild(attribution);
-                    }
                     if (f.citation) {
                         const citation = document.createElement('div');
                         citation.className = 'source citation';
                         citation.textContent = f.citation;
                         content.appendChild(citation);
                     }
-                    card.appendChild(content);
+                    frame.appendChild(content);
+                    card.appendChild(frame);
+                    if (f.arabicSource && f.arabicSourceUrl) {
+                        const attribution = document.createElement('a');
+                        attribution.className = 'source attribution';
+                        attribution.href = f.arabicSourceUrl;
+                        attribution.target = '_blank';
+                        attribution.rel = 'noopener';
+                        attribution.textContent = 'Arabic Source : ' + f.arabicSource;
+                        card.appendChild(attribution);
+                    }
                     wrap.appendChild(card);
                 }
 
@@ -969,22 +984,23 @@
 
         function fitDailyContent() {
             slidesEl.querySelectorAll('.daily-content-body').forEach(content => {
-                content.style.setProperty('--daily-font-scale', '1');
-                content.style.setProperty('--daily-gap-scale', '1');
+                const card = content.closest('.daily-content-slide');
+                card.style.setProperty('--daily-font-scale', '1');
+                card.style.setProperty('--daily-gap-scale', '1');
                 if (content.scrollHeight <= content.clientHeight) return;
 
-                content.style.setProperty('--daily-gap-scale', '0.1');
+                card.style.setProperty('--daily-gap-scale', '0.1');
                 if (content.scrollHeight <= content.clientHeight) return;
 
                 let min = 0.2;
                 let max = 1;
                 for (let i = 0; i < 12; i++) {
                     const scale = (min + max) / 2;
-                    content.style.setProperty('--daily-font-scale', scale);
+                    card.style.setProperty('--daily-font-scale', scale);
                     if (content.scrollHeight <= content.clientHeight) min = scale;
                     else max = scale;
                 }
-                content.style.setProperty('--daily-font-scale', Math.max(0.2, min - 0.005));
+                card.style.setProperty('--daily-font-scale', Math.max(0.2, min - 0.005));
                 if (content.scrollHeight > content.clientHeight + 1) {
                     dwarn('Daily content is too long to fit on screen.');
                 }
