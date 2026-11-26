@@ -147,7 +147,7 @@ INDIAN_STATE_LANGUAGES = {
     'IN-JK': 'ur', 'IN-KA': 'kn', 'IN-KL': 'ml', 'IN-LD': 'ml',
     'IN-MH': 'mr', 'IN-MN': 'mni', 'IN-MP': 'hi',
     'IN-OD': 'or', 'IN-OR': 'or', 'IN-PB': 'pa', 'IN-PY': 'ta',
-    'IN-RJ': 'hi', 'IN-SK': 'ne', 'IN-TG': 'te', 'IN-TS': 'te',
+    'IN-RJ': 'hi', 'IN-SK': 'ne', 'IN-TG': 'ur', 'IN-TS': 'ur',
     'IN-TN': 'ta', 'IN-TR': 'bn', 'IN-UP': 'hi', 'IN-UT': 'hi',
     'IN-UK': 'hi', 'IN-WB': 'bn',
 }
@@ -158,7 +158,7 @@ INDIAN_STATE_LANGUAGE_NAMES = {
     'jharkhand': 'hi', 'karnataka': 'kn', 'kerala': 'ml',
     'madhya pradesh': 'hi', 'maharashtra': 'mr', 'manipur': 'mni',
     'odisha': 'or', 'punjab': 'pa', 'rajasthan': 'hi', 'sikkim': 'ne',
-    'tamil nadu': 'ta', 'telangana': 'te', 'tripura': 'bn',
+    'tamil nadu': 'ta', 'telangana': 'ur', 'tripura': 'bn',
     'uttar pradesh': 'hi', 'uttarakhand': 'hi', 'west bengal': 'bn',
 }
 

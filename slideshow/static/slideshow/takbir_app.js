@@ -15,7 +15,7 @@
     const PRAYER_PREFS_KEY = 'takbir_prayer_prefs_v1';
     const ANNOUNCEMENTS_CACHE_KEY = 'takbir_announcements_v1';
     const DAILY_CONTENT_CACHE_KEY = 'takbir_quran_package_v1';
-    const REGIONAL_LOCATION_CACHE_KEY = 'takbir_regional_location_v1';
+    const REGIONAL_LOCATION_CACHE_KEY = 'takbir_regional_location_v2';
     const prayerLabels = JSON.parse(document.getElementById('takbir-prayer-labels').textContent);
     const TWENTY_KM_METERS = 20000;
     const ANNOUNCEMENTS_TTL_MS = 24 * 60 * 60 * 1000;
@@ -173,7 +173,7 @@
             const params = new URLSearchParams({
                 latitude: location.latitude,
                 longitude: location.longitude,
-                regional: '1'
+                regional: '2'
             });
             const response = await fetch('/api/location-name/?' + params.toString(), {
                 credentials: 'same-origin',
