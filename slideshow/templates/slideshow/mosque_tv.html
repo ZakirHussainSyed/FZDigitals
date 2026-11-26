@@ -12,6 +12,7 @@
     <style>
         :root {
             --spacing-scale: 1;
+            --prayer-background: linear-gradient(#0e3a21, #0b2e1a);
             --panel-top: clamp(12px, 2.5vh, 30px);
             --panel-side: clamp(13px, 3.5vw, 43px);
             --panel-bottom: clamp(10px, 2vh, 16px);
@@ -38,7 +39,7 @@
             min-width: 0;
             min-height: 0;
             position: relative;
-            background: linear-gradient(#0e3a21, #0b2e1a);
+            background: var(--prayer-background);
             color: #fff;
             padding: var(--panel-top) var(--panel-side) var(--panel-bottom);
             display: flex;
@@ -278,20 +279,41 @@
             color: rgba(255,255,255,0.7);
         }
         .daily-content-slide {
-            background: #125b3b;
+            background: var(--prayer-background);
+            padding: clamp(12px, 2vh, 24px) 4%;
+        }
+        .daily-content-body {
+            width: 100%;
+            max-height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: calc(clamp(8px, 2vh, 24px) * var(--daily-gap-scale, 1));
+            overflow-y: auto;
+        }
+        .daily-content-body > * {
+            flex-shrink: 0;
         }
         .daily-content-slide .arabic {
             direction: rtl;
-            font-size: clamp(28px, 4vw, 58px);
-            line-height: 1.8;
+            font-size: calc(clamp(28px, 4vw, 58px) * var(--daily-font-scale, 1));
+            line-height: 1.6;
         }
         .daily-content-slide .translation {
-            font-size: clamp(18px, 2.2vw, 34px);
+            font-size: calc(clamp(18px, 2.2vw, 34px) * var(--daily-font-scale, 1));
             line-height: 1.45;
         }
         .daily-content-slide .regional {
-            font-size: clamp(18px, 2vw, 30px);
+            font-size: calc(clamp(18px, 2vw, 30px) * var(--daily-font-scale, 1));
             line-height: 1.45;
+        }
+        .daily-content-slide .source {
+            font-size: calc(clamp(14px, 1.4vw, 22px) * var(--daily-font-scale, 1));
+        }
+        .daily-content-slide .citation {
+            color: #ffd54f;
+            font-size: calc(clamp(18px, 2.2vw, 34px) * var(--daily-font-scale, 1));
         }
         .empty {
             position: absolute;
@@ -615,7 +637,7 @@
             islamicDateEl.textContent = toHijri(now);
             englishDateEl.textContent = now.toLocaleDateString('en-GB',
                 {day: 'numeric', month: 'long', year: 'numeric'});
-            englishDayEl.textContent = now.toLocaleDateString('en-US', {weekday: 'short'});
+            englishDayEl.textContent = now.toLocaleDateString('en-US', {weekday: 'short'}).toUpperCase();
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -816,11 +838,11 @@
             const entry = approved[dayOfYear % approved.length];
             const citation = entry.citation || {};
             const citationText = entry.type === 'quran'
-                ? `Surah ${citation.surah || ''} · Chapter ${citation.chapter || ''} · Verse ${citation.verse || ''}`
+                ? `Surah ${citation.surah || ''} : Chapter ${citation.chapter || ''} : Verse ${citation.verse || ''}`
                 : `${citation.book || 'Hadith'} · Hadith ${citation.number || ''}`;
             const slide = {
                 id: `daily-content-${dateText}`,
-                version: `${packageData.version}-${entry.id}`,
+                version: `${packageData.version}-${entry.id}-3`,
                 type: 'daily-content',
                 contentType: entry.type,
                 citation: citationText,
@@ -831,8 +853,6 @@
                     ? packageData.arabic_source.provider : '',
                 arabicSourceUrl: entry.type === 'quran' && packageData.arabic_source
                     ? packageData.arabic_source.url : '',
-                arabicCopyright: entry.type === 'quran' && packageData.arabic_source
-                    ? packageData.arabic_source.copyright_notice : '',
             };
             const existing = media.find(item => item.id === slide.id);
             if (existing && existing.version === slide.version) return;
@@ -906,26 +926,22 @@
                 } else if (f.type === 'daily-content') {
                     const card = document.createElement('div');
                     card.className = 'announcement-slide daily-content-slide';
+                    const content = document.createElement('div');
+                    content.className = 'daily-content-body';
                     const arabic = document.createElement('div');
                     arabic.className = 'arabic';
                     arabic.textContent = f.arabic || '';
-                    card.appendChild(arabic);
+                    content.appendChild(arabic);
                     const english = document.createElement('div');
                     english.className = 'translation';
                     english.textContent = f.english || '';
-                    card.appendChild(english);
+                    content.appendChild(english);
                     if (f.regional) {
                         const regional = document.createElement('div');
                         regional.className = 'regional';
                         regional.dir = ['ks', 'sd', 'ur'].includes(regionalLanguage) ? 'rtl' : 'ltr';
                         regional.textContent = f.regional;
-                        card.appendChild(regional);
-                    }
-                    if (f.arabicCopyright) {
-                        const copyright = document.createElement('div');
-                        copyright.className = 'source';
-                        copyright.textContent = f.arabicCopyright;
-                        card.appendChild(copyright);
+                        content.appendChild(regional);
                     }
                     if (f.arabicSource && f.arabicSourceUrl) {
                         const attribution = document.createElement('a');
@@ -933,21 +949,50 @@
                         attribution.href = f.arabicSourceUrl;
                         attribution.target = '_blank';
                         attribution.rel = 'noopener';
-                        attribution.textContent = 'Arabic text: ' + f.arabicSource;
-                        card.appendChild(attribution);
+                        attribution.textContent = 'Arabic: ' + f.arabicSource + ' (tanzil.net)';
+                        content.appendChild(attribution);
                     }
                     if (f.citation) {
                         const citation = document.createElement('div');
-                        citation.className = 'source';
+                        citation.className = 'source citation';
                         citation.textContent = f.citation;
-                        card.appendChild(citation);
+                        content.appendChild(citation);
                     }
+                    card.appendChild(content);
                     wrap.appendChild(card);
                 }
 
                 slidesEl.appendChild(wrap);
             });
+            fitDailyContent();
         }
+
+        function fitDailyContent() {
+            slidesEl.querySelectorAll('.daily-content-body').forEach(content => {
+                content.style.setProperty('--daily-font-scale', '1');
+                content.style.setProperty('--daily-gap-scale', '1');
+                if (content.scrollHeight <= content.clientHeight) return;
+
+                content.style.setProperty('--daily-gap-scale', '0.1');
+                if (content.scrollHeight <= content.clientHeight) return;
+
+                let min = 0.2;
+                let max = 1;
+                for (let i = 0; i < 12; i++) {
+                    const scale = (min + max) / 2;
+                    content.style.setProperty('--daily-font-scale', scale);
+                    if (content.scrollHeight <= content.clientHeight) min = scale;
+                    else max = scale;
+                }
+                content.style.setProperty('--daily-font-scale', Math.max(0.2, min - 0.005));
+                if (content.scrollHeight > content.clientHeight + 1) {
+                    dwarn('Daily content is too long to fit on screen.');
+                }
+            });
+        }
+        window.addEventListener('resize', fitDailyContent);
+        window.addEventListener('orientationchange', fitDailyContent);
+        if (document.fonts) document.fonts.ready.then(fitDailyContent);
 
         function show(i) {
             if (!media.length) return;
