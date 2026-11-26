@@ -261,8 +261,7 @@
             text-align: center;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
-            background: #3b241b;
-            border: 8px solid #d4af37;
+            background: #211201;
             color: #fff;
         }
         .announcement-slide h2 {
@@ -278,20 +277,19 @@
             font-size: clamp(14px, 1.4vw, 22px);
             color: rgba(255,255,255,0.7);
         }
-        .quran-slide {
+        .daily-content-slide {
             background: #125b3b;
-            border: 8px solid #d4af37;
         }
-        .quran-slide .arabic {
+        .daily-content-slide .arabic {
             direction: rtl;
             font-size: clamp(28px, 4vw, 58px);
             line-height: 1.8;
         }
-        .quran-slide .translation {
+        .daily-content-slide .translation {
             font-size: clamp(18px, 2.2vw, 34px);
             line-height: 1.45;
         }
-        .quran-slide .regional {
+        .daily-content-slide .regional {
             font-size: clamp(18px, 2vw, 30px);
             line-height: 1.45;
         }
@@ -441,7 +439,7 @@
         window.DEVICE_ID = "{{ device_id|default:''|escapejs }}";
         window.DEVICE_TOKEN = "{{ token|default:''|escapejs }}";
         const STORAGE_KEY = 'fz_mosque_tv_media_' + (window.DEVICE_ID || 'unknown');
-        const QURAN_PACKAGE_KEY = 'fz_mosque_tv_quran_{{ mosque.id }}_{{ mosque.regional_language }}';
+        const DAILY_CONTENT_PACKAGE_KEY = 'fz_mosque_tv_quran_{{ mosque.id }}_{{ mosque.regional_language }}';
         const MediaDownloader = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.MediaDownloader) ? Capacitor.Plugins.MediaDownloader : null;
 
         const rawLog = console.log;
@@ -617,7 +615,7 @@
             islamicDateEl.textContent = toHijri(now);
             englishDateEl.textContent = now.toLocaleDateString('en-GB',
                 {day: 'numeric', month: 'long', year: 'numeric'});
-            englishDayEl.textContent = now.toLocaleDateString('en-US', {weekday: 'long'});
+            englishDayEl.textContent = now.toLocaleDateString('en-US', {weekday: 'short'});
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -757,41 +755,55 @@
         setInterval(updateNextPrayer, 30000);
         updateNextPrayer();
 
-        async function cacheQuranicPackage() {
+        async function cacheDailyContentPackage() {
             try {
-                const response = await fetch('/api/public/quranic-content/');
-                if (!response.ok) throw new Error('Quranic content request failed.');
+                const response = await fetch('/api/public/daily-content/', {cache: 'no-cache'});
+                if (!response.ok) throw new Error('Daily content request failed.');
                 const packageData = await response.json();
                 if (!packageData.success || !Array.isArray(packageData.entries)) {
-                    throw new Error('Quranic content package is invalid.');
+                    throw new Error('Daily content package is invalid.');
                 }
                 let cached = null;
                 try {
-                    cached = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null');
+                    cached = JSON.parse(localStorage.getItem(DAILY_CONTENT_PACKAGE_KEY) || 'null');
                 } catch (cacheError) {
-                    dwarn('Quranic offline cache is invalid:', cacheError.message);
+                    dwarn('Daily content offline cache is invalid:', cacheError.message);
                 }
                 if (!cached || cached.version !== packageData.version) {
-                    localStorage.setItem(QURAN_PACKAGE_KEY, JSON.stringify(packageData));
-                    dlog('quran package cached:', packageData.version);
+                    localStorage.setItem(DAILY_CONTENT_PACKAGE_KEY, JSON.stringify(packageData));
+                    dlog('daily content cached:', packageData.version);
                 }
-                addDailyQuranSlide(packageData);
+                addDailyContentSlide(packageData);
             } catch (error) {
                 let cached = null;
-                try { cached = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null'); }
-                catch (cacheError) { dwarn('Quranic offline cache is invalid:', cacheError.message); }
+                try { cached = JSON.parse(localStorage.getItem(DAILY_CONTENT_PACKAGE_KEY) || 'null'); }
+                catch (cacheError) { dwarn('Daily content offline cache is invalid:', cacheError.message); }
                 if (cached && Array.isArray(cached.entries)) {
-                    addDailyQuranSlide(cached);
+                    addDailyContentSlide(cached);
                 } else {
-                    dwarn('Quranic package unavailable and no offline copy exists:', error.message);
+                    dwarn('Daily content unavailable and no offline copy exists:', error.message);
                 }
             }
         }
-        cacheQuranicPackage();
+        cacheDailyContentPackage();
 
-        function addDailyQuranSlide(packageData) {
-            const approved = packageData.entries.filter(entry =>
-                entry.review_status === 'approved' && entry.translations);
+        function addDailyContentSlide(packageData) {
+            const approved = packageData.entries.map(entry => {
+                if (entry.type || !entry.reference) return entry;
+                const match = /^(.*?)\s+(\d+):(\d+)$/.exec(entry.reference);
+                if (!match) return entry;
+                return {
+                    ...entry,
+                    type: 'quran',
+                    citation: {
+                        surah: match[1],
+                        chapter: Number(match[2]),
+                        verse: Number(match[3])
+                    }
+                };
+            }).filter(entry =>
+                ['quran', 'hadith'].includes(entry.type)
+                && entry.review_status === 'approved' && entry.translations);
             if (!approved.length) return;
 
             const dateText = tvTz
@@ -802,28 +814,35 @@
             const firstDay = Date.UTC(year, 0, 1);
             const dayOfYear = Math.floor((today - firstDay) / 86400000);
             const entry = approved[dayOfYear % approved.length];
+            const citation = entry.citation || {};
+            const citationText = entry.type === 'quran'
+                ? `Surah ${citation.surah || ''} · Chapter ${citation.chapter || ''} · Verse ${citation.verse || ''}`
+                : `${citation.book || 'Hadith'} · Hadith ${citation.number || ''}`;
             const slide = {
-                id: `quran-${dateText}`,
+                id: `daily-content-${dateText}`,
                 version: `${packageData.version}-${entry.id}`,
-                type: 'quran',
-                reference: entry.reference,
+                type: 'daily-content',
+                contentType: entry.type,
+                citation: citationText,
                 arabic: entry.arabic,
                 english: entry.translations.en || '',
                 regional: entry.translations[regionalLanguage] || '',
-                arabicSource: packageData.arabic_source && packageData.arabic_source.provider,
-                arabicSourceUrl: packageData.arabic_source && packageData.arabic_source.url,
-                arabicCopyright: packageData.arabic_source && packageData.arabic_source.copyright_notice,
+                arabicSource: entry.type === 'quran' && packageData.arabic_source
+                    ? packageData.arabic_source.provider : '',
+                arabicSourceUrl: entry.type === 'quran' && packageData.arabic_source
+                    ? packageData.arabic_source.url : '',
+                arabicCopyright: entry.type === 'quran' && packageData.arabic_source
+                    ? packageData.arabic_source.copyright_notice : '',
             };
             const existing = media.find(item => item.id === slide.id);
             if (existing && existing.version === slide.version) return;
-            media = media.filter(item => item.type !== 'quran');
+            media = media.filter(item =>
+                item.type !== 'daily-content' && item.type !== 'quran');
             media.push(slide);
             saveMediaCache();
-            if (slidesEl.children.length) {
-                current = 0;
-                renderSlides();
-                playCurrent();
-            }
+            current = 0;
+            renderSlides();
+            playCurrent();
         }
 
         (function scheduleDailyReload() {
@@ -884,9 +903,9 @@
                         card.appendChild(source);
                     }
                     wrap.appendChild(card);
-                } else if (f.type === 'quran') {
+                } else if (f.type === 'daily-content') {
                     const card = document.createElement('div');
-                    card.className = 'announcement-slide quran-slide';
+                    card.className = 'announcement-slide daily-content-slide';
                     const arabic = document.createElement('div');
                     arabic.className = 'arabic';
                     arabic.textContent = f.arabic || '';
@@ -902,10 +921,6 @@
                         regional.textContent = f.regional;
                         card.appendChild(regional);
                     }
-                    const reference = document.createElement('div');
-                    reference.className = 'source';
-                    reference.textContent = f.reference || '';
-                    card.appendChild(reference);
                     if (f.arabicCopyright) {
                         const copyright = document.createElement('div');
                         copyright.className = 'source';
@@ -920,6 +935,12 @@
                         attribution.rel = 'noopener';
                         attribution.textContent = 'Arabic text: ' + f.arabicSource;
                         card.appendChild(attribution);
+                    }
+                    if (f.citation) {
+                        const citation = document.createElement('div');
+                        citation.className = 'source';
+                        citation.textContent = f.citation;
+                        card.appendChild(citation);
                     }
                     wrap.appendChild(card);
                 }
@@ -1030,13 +1051,16 @@
                 devlogOn = !!data.debug;  // server-opt-in remote diagnostics
                 const newFiles = data.files || [];
                 const newIds = JSON.stringify(newFiles.map(f => f.id + '|' + (f.version || '')));
-                const curIds = JSON.stringify(
-                    media.filter(f => f.type !== 'quran').map(f => f.id + '|' + (f.version || '')));
-                if (newIds === curIds && newFiles.length === media.length) {
+                const serverMedia = media.filter(f => !['daily-content', 'quran'].includes(f.type));
+                const curIds = JSON.stringify(serverMedia.map(f => f.id + '|' + (f.version || '')));
+                if (newIds === curIds) {
                     // Playlist unchanged, but a restored list can be missing
                     // localUrls — re-resolve so the next render plays local.
-                    if (media.some(f => !f.localUrl)) {
-                        syncMediaToLocal(media).then(synced => { media = synced; });
+                    if (media.some(f => f.url && !f.localUrl)) {
+                        syncMediaToLocal(media).then(synced => {
+                            const localUrls = new Map(synced.filter(f => f.localUrl).map(f => [f.id, f.localUrl]));
+                            media = media.map(f => localUrls.has(f.id) ? {...f, localUrl: localUrls.get(f.id)} : f);
+                        });
                     }
                     return;
                 }
@@ -1044,8 +1068,8 @@
                 dlog('refresh: playlist changed', newFiles.length, 'files');
                 const currentId = media.length && media[current] ? media[current].id : null;
                 media = await syncMediaToLocal(newFiles);
-                const cachedQuran = JSON.parse(localStorage.getItem(QURAN_PACKAGE_KEY) || 'null');
-                if (cachedQuran) addDailyQuranSlide(cachedQuran);
+                const cachedDailyContent = JSON.parse(localStorage.getItem(DAILY_CONTENT_PACKAGE_KEY) || 'null');
+                if (cachedDailyContent) addDailyContentSlide(cachedDailyContent);
                 saveMediaCache();
                 const kept = currentId == null ? -1 : media.findIndex(f => f.id === currentId);
                 current = kept >= 0 ? kept : 0;
@@ -1115,7 +1139,8 @@
         // local server as files land (first launch plays remote meanwhile).
         if (MediaDownloader) {
             syncMediaToLocal(media).then(synced => {
-                media = synced;
+                const localUrls = new Map(synced.filter(f => f.localUrl).map(f => [f.id, f.localUrl]));
+                media = media.map(f => localUrls.has(f.id) ? {...f, localUrl: localUrls.get(f.id)} : f);
                 slidesEl.querySelectorAll('.slide').forEach((node, idx) => {
                     const f = media[idx];
                     const el = f && f.localUrl ? node.querySelector('img, video') : null;

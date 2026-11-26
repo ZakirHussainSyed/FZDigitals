@@ -178,19 +178,37 @@ class MultilingualQuranContentTests(TestCase):
         self.assertEqual(prayer_labels_for('gu')['jummah2'], 'જુમા 2')
         self.assertEqual(prayer_labels_for('ur')['jummah2'], 'جمعہ ۲')
 
-    def test_quranic_package_is_public_versioned_and_review_marked(self):
-        response = self.client.get('/api/public/quranic-content/')
+    def test_daily_content_package_is_public_versioned_and_cited(self):
+        response = self.client.get('/api/public/daily-content/')
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['version'], 3)
-        self.assertEqual(len(payload['entries']), 10)
+        self.assertGreaterEqual(payload['version'], 5)
+        self.assertGreaterEqual(len(payload['entries']), 9)
         self.assertEqual(payload['available_translation_languages'], ['en', 'ur', 'te'])
         self.assertEqual(payload['arabic_source']['provider'], 'Tanzil Project')
-        self.assertTrue(all('te' in entry['translations'] for entry in payload['entries']))
-        self.assertTrue(all(entry['review_status'] == 'draft' for entry in payload['entries']))
+        self.assertTrue(all(entry['type'] in {'quran', 'hadith'} for entry in payload['entries']))
+        for entry in payload['entries']:
+            citation_fields = (
+                {'surah', 'chapter', 'verse'} if entry['type'] == 'quran'
+                else {'book', 'number'}
+            )
+            self.assertTrue(citation_fields <= entry['citation'].keys())
+            self.assertIn(entry['review_status'], {'draft', 'approved'})
+        self.assertTrue(any(entry['review_status'] == 'approved' for entry in payload['entries']))
+        passage = next(entry for entry in payload['entries'] if entry['id'] == '107:4-5')
+        self.assertEqual(passage['citation']['verse'], '4-5')
+        self.assertIn('\n', passage['arabic'])
         self.assertIn('max-age=86400', response['Cache-Control'])
+
+        legacy_response = self.client.get('/api/public/quranic-content/')
+        self.assertEqual(legacy_response.status_code, 200)
+        self.assertEqual(legacy_response.json()['version'], payload['version'])
+        self.assertTrue(all(
+            entry['type'] == 'quran' and entry['reference']
+            for entry in legacy_response.json()['entries']
+        ))
 
     def test_device_feed_includes_selected_language_prayer_labels(self):
         user = User.objects.create_user('gujarati-mosque', password='pw')
