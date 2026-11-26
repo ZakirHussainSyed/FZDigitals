@@ -32,3 +32,10 @@ citations as book and Hadith number at the bottom of each card. Keep entries in
 `draft` until their text and translations have been reviewed; only `approved`
 entries are displayed. Increment the package `version` whenever its content
 changes so offline devices refresh their cached copy.
+
+Machine-generated translations awaiting review are stored separately under
+each entry's `draft_translations`; they are not displayed. Review every
+translation against the Arabic and its context before moving it into that
+entry's `translations`. Once a language has been reviewed for the entries
+being published, add its metadata to the top-level `translations` object,
+remove its draft metadata, and increment the package version.

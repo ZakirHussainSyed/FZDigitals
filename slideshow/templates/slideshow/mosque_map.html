@@ -366,12 +366,13 @@
         }
         .prayer-time-row:last-child { border-bottom: 0; }
         .prayer-time-row strong { font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-        .prayer-urdu {
-            direction: rtl;
+        .prayer-regional {
             text-align: right;
             font-size: 14px;
             font-weight: 800;
             white-space: nowrap;
+        }
+        .prayer-regional[dir="rtl"] {
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
                 'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
         }
@@ -379,7 +380,7 @@
         .prayer-time-row.is-next { color: #087b56; }
         .prayer-time-row.blue { color: #1e90ff; }
         .prayer-time-row.blue strong,
-        .prayer-time-row.blue .prayer-urdu,
+        .prayer-time-row.blue .prayer-regional,
         .prayer-time-row.blue time { color: #1e90ff; }
         .prayer-note, .notification-updated { margin: 12px 2px; color: #68776c; font-size: 12px; line-height: 1.45; }
         .prayer-settings { padding: 14px 16px; margin-top: 14px; }
@@ -387,8 +388,12 @@
         .prayer-settings label { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; }
         .prayer-settings select { width: 100%; margin-top: 5px; padding: 10px; border: 1px solid #ccd8ce; border-radius: 8px; background: #fff; font: inherit; }
         .notifications-heading { font-size: 24px; margin: 8px 0 16px; }
-        .announcement-card { padding: 16px; margin-bottom: 12px; }
-        .announcement-card h2 { font-size: 18px; margin: 0 0 8px; }
+        .announcement-card {
+            padding: 20px 16px; margin-bottom: 12px; border: 0;
+            background: #211201; color: #fff; text-align: center;
+        }
+        .daily-content-card { background: linear-gradient(#0e3a21, #0b2e1a); }
+        .announcement-card h2 { font-size: 18px; margin: 0 0 8px; color: #ffd54f; }
         .announcement-card p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
         .announcement-card .announcement-text {
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
@@ -396,9 +401,13 @@
             line-height: 1.9;
             unicode-bidi: plaintext;
         }
-        .announcement-card a { color: #1769aa; text-decoration: underline; overflow-wrap: anywhere; }
-        .announcement-card .announcement-meta { color: #728076; font-size: 12px; margin-bottom: 8px; }
-        .announcement-card .announcement-source { color: #45634e; font-size: 13px; margin-top: 10px; }
+        .announcement-card a { color: #fff; text-decoration: underline; overflow-wrap: anywhere; }
+        .announcement-card .announcement-meta { color: #ddd; font-size: 12px; margin-bottom: 8px; }
+        .announcement-card .announcement-source { color: #ddd; font-size: 12px; margin-top: 10px; }
+        .daily-content-card .announcement-text + .announcement-text { margin-top: 16px; }
+        .daily-content-card .daily-citation { color: #ffd54f; font-size: 16px; margin-top: 16px; }
+        .daily-content-card .daily-source { font-size: 11px; margin-top: 10px; }
+        .daily-content-card details { margin-top: 12px; font-size: 11px; color: #ddd; }
         .notification-empty { padding: 24px 16px; text-align: center; color: #67736a; background: #fff; border-radius: 14px; }
         #website-frame { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
         @media (min-width: 700px) {
@@ -1398,6 +1407,7 @@
         })();
     </script>
     {% if brand.key == 'takbir' %}
+    {{ prayer_labels|json_script:"takbir-prayer-labels" }}
     <script src="/static/slideshow/takbir_prayer_core.js"></script>
     <script src="/static/slideshow/takbir_app.js"></script>
     {% endif %}

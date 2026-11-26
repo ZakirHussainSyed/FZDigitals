@@ -15,6 +15,8 @@
     const PRAYER_PREFS_KEY = 'takbir_prayer_prefs_v1';
     const ANNOUNCEMENTS_CACHE_KEY = 'takbir_announcements_v1';
     const DAILY_CONTENT_CACHE_KEY = 'takbir_quran_package_v1';
+    const REGIONAL_LOCATION_CACHE_KEY = 'takbir_regional_location_v1';
+    const prayerLabels = JSON.parse(document.getElementById('takbir-prayer-labels').textContent);
     const TWENTY_KM_METERS = 20000;
     const ANNOUNCEMENTS_TTL_MS = 24 * 60 * 60 * 1000;
     const prayerLocation = document.getElementById('prayer-location');
@@ -34,13 +36,16 @@
     let activeTab = 'mosques';
     let prayerCaches = readJson(PRAYER_CACHE_KEY);
     if (!Array.isArray(prayerCaches)) prayerCaches = [];
-    let prayerCache = null;
+    let prayerCache = prayerCaches.find(cache => cache && cache.location && Array.isArray(cache.days)) || null;
     let prayerPrefs = readJson(PRAYER_PREFS_KEY) || {method: 'auto', hijriAdjustment: 0};
     let prayerBusy = false;
     let notificationBusy = false;
     let dailyContentBusy = false;
     let dailyContentPackage = null;
     let currentAnnouncements = [];
+    let regionalLocation = readJson(REGIONAL_LOCATION_CACHE_KEY);
+    let locationPromise = null;
+    let regionRequest = 0;
     window.takbirActiveTab = activeTab;
 
     methodSelect.value = prayerPrefs.method || 'auto';
@@ -86,6 +91,7 @@
         if (tab === 'notifications') {
             refreshAnnouncements();
             refreshDailyContent();
+            refreshNotificationLocation();
         }
         if (tab === 'website' && websiteFrame && !websiteFrame.hasAttribute('src')) {
             websiteFrame.src = websiteFrame.dataset.src;
@@ -123,22 +129,85 @@
         });
     }
 
-    async function getLocationName(location) {
-        if (location.name) return location.name;
+    function getDeviceLocation() {
+        if (!locationPromise) {
+            locationPromise = (async function () {
+                try {
+                    return await getCurrentLocation();
+                } catch (preciseLocationError) {
+                    const response = await fetch('/api/approx-location/', {
+                        credentials: 'same-origin', cache: 'no-store'
+                    });
+                    if (!response.ok) throw preciseLocationError;
+                    const approximate = await response.json();
+                    if (!approximate || !approximate.success
+                        || !Number.isFinite(approximate.latitude)
+                        || !Number.isFinite(approximate.longitude)) {
+                        throw preciseLocationError;
+                    }
+                    return {
+                        latitude: approximate.latitude, longitude: approximate.longitude,
+                        timeZone: approximate.timezone
+                            || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                        approximate: true
+                    };
+                }
+            }()).finally(function () { locationPromise = null; });
+        }
+        return locationPromise;
+    }
+
+    function regionalLanguage() {
+        return regionalLocation?.language || 'ur';
+    }
+
+    async function updateRegionalLocation(location) {
+        const requestId = ++regionRequest;
+        const previous = regionalLocation;
+        if (previous && distanceMeters(previous, location) > 1000) {
+            regionalLocation = null;
+            saveJson(REGIONAL_LOCATION_CACHE_KEY, null);
+            renderAnnouncements(currentAnnouncements);
+        }
         try {
             const params = new URLSearchParams({
                 latitude: location.latitude,
-                longitude: location.longitude
+                longitude: location.longitude,
+                regional: '1'
             });
             const response = await fetch('/api/location-name/?' + params.toString(), {
                 credentials: 'same-origin',
                 cache: 'force-cache'
             });
-            if (!response.ok) return '';
+            if (!response.ok) throw new Error('Location lookup failed: ' + response.status);
             const data = await response.json();
-            return data.success && data.name ? data.name : '';
+            if (!data.success) throw new Error('Location lookup failed.');
+            if (requestId !== regionRequest) return '';
+            regionalLocation = {
+                latitude: location.latitude, longitude: location.longitude,
+                language: data.regional_language || '', name: data.name || ''
+            };
+            saveJson(REGIONAL_LOCATION_CACHE_KEY, regionalLocation);
+            renderAnnouncements(currentAnnouncements);
+            if (prayerCache && prayerDayPicker.value) {
+                const selected = prayerDayPicker.value.split('-').map(Number);
+                if (selected.length === 3) {
+                    renderPrayerDay({year: selected[0], month: selected[1], day: selected[2]});
+                }
+            }
+            return regionalLocation.name;
         } catch (error) {
+            console.warn('[Takbir] Could not resolve regional language:', error);
             return '';
+        }
+    }
+
+    async function refreshNotificationLocation() {
+        try {
+            const location = await getDeviceLocation();
+            await updateRegionalLocation(location);
+        } catch (error) {
+            console.warn('[Takbir] Could not update announcement location:', error);
         }
     }
 
@@ -203,30 +272,7 @@
         prayerBusy = true;
         prayerLocation.textContent = 'Checking your location…';
         try {
-            let location;
-            try {
-                location = await getCurrentLocation();
-            } catch (preciseLocationError) {
-                const response = await fetch('/api/approx-location/', {
-                    credentials: 'same-origin',
-                    cache: 'no-store'
-                });
-                if (!response.ok) throw preciseLocationError;
-                const approximate = await response.json();
-                if (!approximate || !approximate.success
-                    || !Number.isFinite(approximate.latitude)
-                    || !Number.isFinite(approximate.longitude)) {
-                    throw preciseLocationError;
-                }
-                location = {
-                    latitude: approximate.latitude,
-                    longitude: approximate.longitude,
-                    timeZone: approximate.timezone
-                        || Intl.DateTimeFormat().resolvedOptions().timeZone
-                        || 'UTC',
-                    approximate: true
-                };
-            }
+            const location = await getDeviceLocation();
             const date = Core.dateParts(new Date(), location.timeZone);
             const methodPreference = methodSelect.value || 'auto';
             prayerCache = findPrayerCache(location, date.year, methodPreference);
@@ -237,7 +283,7 @@
             prayerDayPicker.max = date.year + '-12-31';
             prayerDayPicker.value = date.year + '-' + String(date.month).padStart(2, '0')
                 + '-' + String(date.day).padStart(2, '0');
-            const locationName = await getLocationName(location);
+            const locationName = await updateRegionalLocation(location);
             if (locationName) {
                 prayerCache.location.name = locationName;
                 location.name = locationName;
@@ -286,16 +332,22 @@
     }
 
     function prayerRows(day) {
+        const language = regionalLanguage();
+        const labels = prayerLabels[language] || prayerLabels.ur;
+        const extra = {
+            gu: {ishraq: 'ઇશરાક', hanafi: 'હનફી'},
+            ur: {ishraq: 'اشراق', hanafi: 'حنفی'}
+        }[language] || {ishraq: 'Ishraq', hanafi: 'Hanafi'};
         return [
-            ['Fajr', 'فجر', day.fajr, 'fajr'],
-            ['Sunrise', 'طلوع آفتاب', day.sunrise, 'sunrise'],
-            ['Ishraq', 'اشراق', day.ishraq, 'ishraq'],
-            ['Dhuhr', 'ظہر', day.dhuhr, 'dhuhr'],
-            ['Asr', 'عصر', day.asrStandard, 'asrStandard'],
-            ['Asr (Hanafi)', 'عصر (حنفی)', day.asrHanafi, 'asrHanafi'],
-            ['Maghrib', 'مغرب', day.maghrib, 'maghrib'],
-            ['Sunset', 'غروب آفتاب', day.maghrib, 'sunset'],
-            ['Isha', 'عشاء', day.isha, 'isha']
+            ['Fajr', labels.fajr, day.fajr, 'fajr'],
+            ['Sunrise', labels.sunrise, day.sunrise, 'sunrise'],
+            ['Ishraq', extra.ishraq, day.ishraq, 'ishraq'],
+            ['Dhuhr', labels.dhuhr, day.dhuhr, 'dhuhr'],
+            ['Asr', labels.asr, day.asrStandard, 'asrStandard'],
+            ['Asr (Hanafi)', labels.asr + ' (' + extra.hanafi + ')', day.asrHanafi, 'asrHanafi'],
+            ['Maghrib', labels.maghrib, day.maghrib, 'maghrib'],
+            ['Sunset', labels.sunset, day.maghrib, 'sunset'],
+            ['Isha', labels.isha, day.isha, 'isha']
         ];
     }
 
@@ -332,9 +384,7 @@
                 month: tomorrow.getUTCMonth() + 1,
                 day: tomorrow.getUTCDate()
             });
-            nextPrayer = tomorrowDay
-                ? ['Fajr', 'فجر', tomorrowDay.fajr, 'fajr']
-                : rows[0];
+            nextPrayer = tomorrowDay ? prayerRows(tomorrowDay)[0] : rows[0];
         }
         nextLabel.textContent = isToday ? 'Next prayer' : 'First prayer';
         nextName.textContent = nextPrayer[0] + ' · ' + nextPrayer[1];
@@ -349,12 +399,14 @@
             const label = document.createElement('strong');
             label.textContent = row[0];
             label.style.whiteSpace = 'nowrap';
-            const urdu = document.createElement('span');
-            urdu.className = 'prayer-urdu';
-            urdu.textContent = row[1];
+            const regional = document.createElement('span');
+            regional.className = 'prayer-regional';
+            regional.lang = regionalLanguage();
+            regional.dir = ['ur', 'ks', 'sd'].includes(regionalLanguage()) ? 'rtl' : 'ltr';
+            regional.textContent = row[1];
             const value = document.createElement('time');
             value.textContent = Core.formatTime(row[2]);
-            element.append(label, value, urdu);
+            element.append(label, value, regional);
             prayerList.appendChild(element);
         });
     }
@@ -479,60 +531,66 @@
         card.className = 'announcement-card daily-content-card';
         card.dataset.dailyContent = dateText;
 
-        const title = document.createElement('h2');
-        title.textContent = entry.type === 'hadith' ? "Today's Hadith" : "Today's Quran verse";
         const arabic = document.createElement('p');
         arabic.className = 'announcement-text';
         arabic.lang = 'ar';
         arabic.dir = 'rtl';
         arabic.textContent = entry.arabic || '';
-        card.append(title, arabic);
+        card.appendChild(arabic);
 
         const english = document.createElement('p');
         english.className = 'announcement-text';
         english.dir = 'auto';
-        english.textContent = 'English: ' + (entry.translations.en || '');
+        english.textContent = entry.translations.en || '';
         card.appendChild(english);
 
-        const languageCode = (navigator.language || 'en').split('-')[0].toLowerCase();
+        const languageCode = regionalLocation?.language
+            || (navigator.language || 'en').split('-')[0].toLowerCase();
         const regional = entry.translations[languageCode];
         if (languageCode !== 'en' && regional) {
             const regionalText = document.createElement('p');
             regionalText.className = 'announcement-text';
             regionalText.lang = languageCode;
             regionalText.dir = ['ur', 'ks', 'sd'].includes(languageCode) ? 'rtl' : 'auto';
-            const label = packageData.translations?.[languageCode]?.label || languageCode;
-            regionalText.textContent = label + ': ' + regional;
+            regionalText.textContent = regional;
             card.appendChild(regionalText);
+        } else if (languageCode === 'gu') {
+            const unavailable = document.createElement('p');
+            unavailable.className = 'announcement-source';
+            unavailable.textContent = 'Gujarati translation is not yet available.';
+            card.appendChild(unavailable);
         }
 
         if (entry.type === 'quran') {
-            const source = document.createElement('p');
-            source.className = 'announcement-source';
             const sourceInfo = packageData.arabic_source || {};
-            if (sourceInfo.url) {
-                const link = document.createElement('a');
-                link.href = sourceInfo.url;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.textContent = 'Arabic text: ' + (sourceInfo.provider || 'Source');
-                source.append(link, document.createTextNode(' — ' + (sourceInfo.copyright_notice || '')));
-            } else {
-                source.textContent = sourceInfo.copyright_notice || '';
-            }
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = 'License information';
+            details.append(summary, document.createTextNode(sourceInfo.copyright_notice || ''));
             const license = document.createElement('a');
             license.href = 'https://creativecommons.org/licenses/by/3.0/';
             license.target = '_blank';
             license.rel = 'noopener noreferrer';
             license.textContent = 'CC BY 3.0 license';
-            source.append(document.createTextNode(' · '), license);
-            if (source.textContent || source.childNodes.length) card.appendChild(source);
+            details.append(document.createTextNode(' · '), license);
+            card.appendChild(details);
         }
 
         const citationFooter = document.createElement('p');
-        citationFooter.className = 'announcement-source';
+        citationFooter.className = 'daily-citation';
         citationFooter.textContent = citationText;
         card.appendChild(citationFooter);
+        if (entry.type === 'quran' && packageData.arabic_source?.url) {
+            const source = document.createElement('p');
+            source.className = 'daily-source';
+            const link = document.createElement('a');
+            link.href = packageData.arabic_source.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'Source : tanzil.net';
+            source.appendChild(link);
+            card.appendChild(source);
+        }
         return card;
     }
 
