@@ -304,17 +304,17 @@
         .daily-content-body > * {
             flex-shrink: 0;
         }
+        .daily-content-slide .arabic,
+        .daily-content-slide .translation,
+        .daily-content-slide .regional {
+            font-size: calc(clamp(18px, 2.2vw, 34px) * var(--daily-font-scale, 1));
+        }
         .daily-content-slide .arabic {
             direction: rtl;
-            font-size: calc(clamp(28px, 4vw, 58px) * var(--daily-font-scale, 1));
             line-height: 1.6;
         }
-        .daily-content-slide .translation {
-            font-size: calc(clamp(18px, 2.2vw, 34px) * var(--daily-font-scale, 1));
-            line-height: 1.45;
-        }
+        .daily-content-slide .translation,
         .daily-content-slide .regional {
-            font-size: calc(clamp(18px, 2vw, 30px) * var(--daily-font-scale, 1));
             line-height: 1.45;
         }
         .daily-content-slide .source {
