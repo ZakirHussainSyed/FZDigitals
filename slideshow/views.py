@@ -2411,7 +2411,7 @@ def mosque_map(request):
         'tile_url': getattr(settings, 'MAP_TILE_URL', 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'),
         'tile_subdomains': getattr(settings, 'MAP_TILE_SUBDOMAINS', 'abcd'),
         'attribution': getattr(settings, 'MAP_ATTRIBUTION', '&copy; OpenStreetMap contributors'),
-        'prayer_labels': PRAYER_LABELS,
+        'prayer_labels': {code: prayer_labels_for(code) for code in PRAYER_LABELS},
     })
 
 
