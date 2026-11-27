@@ -1059,7 +1059,8 @@
             const text = node?.querySelector('.announcement-slide');
 
             if (text) {
-                autoplayTimer = setTimeout(() => show(current + 1), 10000);
+                const duration = text.classList.contains('daily-content-slide') ? 20000 : 10000;
+                autoplayTimer = setTimeout(() => show(current + 1), duration);
             } else if (img) {
                 if (img.complete && img.naturalHeight > 0) {
                     fitMedia(img);
