@@ -71,6 +71,15 @@
         .form-input::placeholder {
             color: rgba(232,234,240,0.4);
         }
+        .remember-login {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            text-align: left;
+            font-size: 13px;
+            color: rgba(232,234,240,0.8);
+        }
         .password-container {
             position: relative;
         }
@@ -168,6 +177,12 @@
                     <button type="button" class="toggle-password" onclick="togglePassword('id_password', this)">Show</button>
                 </div>
             </div>
+            {% if brand.key == 'takbir' %}
+            <label class="remember-login">
+                <input type="checkbox" name="keep_signed_in" {% if request.POST.keep_signed_in %}checked{% endif %}>
+                Keep me signed in for 30 days
+            </label>
+            {% endif %}
             <button type="submit" class="submit-btn">Sign In</button>
         </form>
         

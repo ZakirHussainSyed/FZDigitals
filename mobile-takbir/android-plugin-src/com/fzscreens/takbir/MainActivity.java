@@ -2,6 +2,7 @@ package com.fzscreens.takbir;
 
 import android.Manifest;
 import android.os.Bundle;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebSettings;
 import com.getcapacitor.BridgeActivity;
@@ -34,5 +35,11 @@ public class MainActivity extends BridgeActivity {
 
         bridge.getWebView().setWebViewClient(
                 new MosqueWebViewClient(bridge, getFilesDir()));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CookieManager.getInstance().flush();
     }
 }
