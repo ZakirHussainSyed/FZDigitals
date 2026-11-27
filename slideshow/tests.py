@@ -468,6 +468,21 @@ class ApproximateLocationTests(TestCase):
         })
         self.assertEqual(response.json()['regional_language'], 'te')
 
+        for state_code, state_name, language in (
+            ('IN-KL', 'Kerala', 'ml'),
+            ('IN-KA', 'Karnataka', 'kn'),
+            ('IN-MH', 'Maharashtra', 'mr'),
+            ('IN-TN', 'Tamil Nadu', 'ta'),
+        ):
+            with self.subTest(state=state_name):
+                mock_get.return_value.json.return_value['address'].update({
+                    'state': state_name, 'ISO3166-2-lvl4': state_code,
+                })
+                response = self.client.get('/api/location-name/', {
+                    'latitude': '10', 'longitude': '76',
+                })
+                self.assertEqual(response.json()['regional_language'], language)
+
         mock_get.return_value.json.return_value['address'].update({
             'state': 'Gujarat', 'country_code': 'pk', 'ISO3166-2-lvl4': 'IN-GJ',
         })

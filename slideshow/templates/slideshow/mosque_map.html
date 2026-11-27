@@ -152,9 +152,10 @@
         .timing-label { color: #333; font-weight: 600; }
         .timing-urdu {
             color: #333;
-            direction: rtl;
             font-weight: 800;
             text-align: right;
+        }
+        .timing-urdu[dir="rtl"] {
             font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic',
                 'Urdu Typesetting', 'Jameel Noori Nastaleeq', serif;
         }
@@ -544,6 +545,7 @@
         </div>
     </div>
 
+    {{ prayer_labels|json_script:"takbir-prayer-labels" }}
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         (async function() {
@@ -555,6 +557,50 @@
             const dropdown = document.getElementById('search-dropdown');
             const ddResults = document.getElementById('dd-results');
             const areaBtn = document.getElementById('search-area-btn');
+            const regionalLabels = JSON.parse(document.getElementById('takbir-prayer-labels').textContent);
+            const mosqueLanguages = new Map();
+            let modalLanguageRequest = 0;
+
+            function setMosquePrayerLanguage(language) {
+                const code = regionalLabels[language] ? language : 'ur';
+                const labels = regionalLabels[code];
+                modal.querySelectorAll('.timing-row').forEach(function(row) {
+                    const key = row.querySelector('.timing-value').id.slice(2);
+                    const label = row.querySelector('.timing-urdu');
+                    label.textContent = labels[key];
+                    label.lang = code;
+                    label.dir = ['ur', 'ks', 'sd'].includes(code) ? 'rtl' : 'ltr';
+                });
+            }
+
+            async function setMosqueLocationLanguage(mosque) {
+                const request = ++modalLanguageRequest;
+                setMosquePrayerLanguage('ur');
+                if (mosque.latitude == null || mosque.longitude == null) return;
+                const key = mosque.latitude + ',' + mosque.longitude;
+                try {
+                    let language = mosqueLanguages.get(key);
+                    if (language === undefined) {
+                        const params = new URLSearchParams({
+                            latitude: mosque.latitude, longitude: mosque.longitude, regional: '2'
+                        });
+                        const response = await fetch('/api/location-name/?' + params.toString(), {
+                            credentials: 'same-origin', cache: 'force-cache'
+                        });
+                        if (!response.ok) throw new Error('Location lookup failed: ' + response.status);
+                        const data = await response.json();
+                        if (!data.success) throw new Error('Location lookup failed.');
+                        language = data.regional_language || 'ur';
+                        mosqueLanguages.set(key, language);
+                    }
+                    if (request === modalLanguageRequest && openMosque === mosque
+                        && modal.getAttribute('aria-hidden') === 'false') {
+                        setMosquePrayerLanguage(language);
+                    }
+                } catch (error) {
+                    console.warn('Could not resolve mosque regional language:', error);
+                }
+            }
 
             function showStatus(text, seconds) {
                 statusMsg.textContent = text;
@@ -565,6 +611,7 @@
             }
 
             function closeModal() {
+                modalLanguageRequest++;
                 openMosque = null;
                 modal.classList.remove('open');
                 modal.setAttribute('aria-hidden', 'true');
@@ -670,6 +717,7 @@
 
                 modal.classList.add('open');
                 modal.setAttribute('aria-hidden', 'false');
+                setMosqueLocationLanguage(mosque);
 
                 // Auto-fetch latest timings for actual mosques (not OSM) when modal opens
                 if (hasTimings && mosque.id &&
@@ -1407,7 +1455,6 @@
         })();
     </script>
     {% if brand.key == 'takbir' %}
-    {{ prayer_labels|json_script:"takbir-prayer-labels" }}
     <script src="/static/slideshow/takbir_prayer_core.js"></script>
     <script src="/static/slideshow/takbir_app.js"></script>
     {% endif %}
