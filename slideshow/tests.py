@@ -1,13 +1,15 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.template.loader import get_template
-from django.test import RequestFactory, TestCase
+from django.test import Client, RequestFactory, TestCase
+from django.utils import timezone
 
 from .models import (
     Device, DevicePairing, MediaFile, Mosque, PrayerTime, PrayerTimeOverride,
@@ -18,6 +20,54 @@ from .languages import INDIAN_LANGUAGES, prayer_labels_for
 
 def image(name='pic.png'):
     return SimpleUploadedFile(name, b'fake-image-bytes', content_type='image/png')
+
+
+class RememberedLoginTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('mosque-login', password='pw')
+        self.credentials = {'username': self.user.username, 'password': 'pw'}
+
+    def test_login_form_offers_remember_option_for_takbir(self):
+        template = get_template('slideshow/login.html')
+        takbir = template.render({'brand': {'key': 'takbir'}})
+        other = template.render({'brand': {'key': 'fzscreens'}})
+        self.assertIn('name="keep_signed_in"', takbir)
+        self.assertNotIn('name="keep_signed_in"', other)
+
+    def test_remembered_session_renews_and_logout_invalidates_it(self):
+        response = self.client.post('/login/', {**self.credentials, 'keep_signed_in': 'on'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.cookies['sessionid']['max-age'], 30 * 24 * 60 * 60)
+        session_key = self.client.session.session_key
+        earlier_expiry = timezone.now() + timedelta(days=1)
+        Session.objects.filter(session_key=session_key).update(expire_date=earlier_expiry)
+
+        response = self.client.get('/')
+        self.assertEqual(response.cookies['sessionid']['max-age'], 30 * 24 * 60 * 60)
+        self.assertGreater(Session.objects.get(session_key=session_key).expire_date, earlier_expiry)
+
+        with patch('allauth.account.adapter.DefaultAccountAdapter.add_message'):
+            response = self.client.post('/accounts/logout/')
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())
+        old_client = Client()
+        old_client.cookies['sessionid'] = session_key
+        with patch('slideshow.views.render', return_value=HttpResponse('signed out')):
+            self.assertEqual(old_client.get('/').content, b'signed out')
+
+    def test_ordinary_session_is_not_renewed(self):
+        response = self.client.post('/login/', self.credentials)
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn('keep_signed_in', self.client.session)
+        self.assertNotIn('sessionid', self.client.get('/').cookies)
+
+    def test_expired_remembered_session_does_not_restore_login(self):
+        self.client.post('/login/', {**self.credentials, 'keep_signed_in': 'on'})
+        Session.objects.filter(session_key=self.client.session.session_key).update(
+            expire_date=timezone.now() - timedelta(seconds=1)
+        )
+        with patch('slideshow.views.render', return_value=HttpResponse('signed out')):
+            self.assertEqual(self.client.get('/').content, b'signed out')
 
 
 class MediaAuthorizationTests(TestCase):
@@ -278,6 +328,26 @@ class MosqueAnnouncementTests(TestCase):
     def test_mosque_login_opens_prayer_timings(self):
         response = self.client.post('/login/', {'username': 'mosque-admin', 'password': 'pw'})
         self.assertRedirects(response, '/prayer-times/', fetch_redirect_response=False)
+
+    def test_announcement_form_and_limit_share_heading_card(self):
+        template = get_template('slideshow/mosque_announcements.html')
+        for announcements in ([], [{'id': 1}, {'id': 2}]):
+            with self.subTest(count=len(announcements)):
+                rendered = template.render({
+                    'mosque': self.mosque, 'announcements': announcements,
+                    'max_announcements': 2, 'messages': ['Notice'],
+                })
+                card = rendered.split('<section class="card">', 1)[1].split('</section>', 1)[0]
+                self.assertIn('Announcements for Test Mosque', card)
+                self.assertIn('Add up to two announcements.', card)
+                self.assertIn('Notice', card)
+                self.assertNotIn('<h2>Add announcement</h2>', card)
+                if announcements:
+                    self.assertIn('Announcement limit reached.', card)
+                    self.assertNotIn('name="action" value="create"', card)
+                else:
+                    self.assertIn('name="action" value="create"', card)
+                    self.assertIn('Announcement type', card)
 
     def test_dashboard_pages_share_header_and_select_their_tab(self):
         brand = {'name': 'Takbir al Ula', 'logo': '/static/slideshow/logo_takbir.png',

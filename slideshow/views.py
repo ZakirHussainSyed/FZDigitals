@@ -124,6 +124,9 @@ def django_login(request):
             
             if user is not None:
                 login(request, user)
+                if request.POST.get('keep_signed_in') == 'on':
+                    request.session['keep_signed_in'] = True
+                    request.session.set_expiry(30 * 24 * 60 * 60)
                 try:
                     profile = user.userprofile
                     if profile.vertical == 'mosque':
