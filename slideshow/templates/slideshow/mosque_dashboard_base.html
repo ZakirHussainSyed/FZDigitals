@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mosque Dashboard{% endblock %} - {{ brand.name }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f7f8fa; color: #1f2430; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 30px; background: #fff; border-bottom: 1px solid rgba(0,0,0,.08); }
+        .dashboard-brand { display: flex; flex-direction: column; align-items: center; }
+        .dashboard-logo { max-width: 144px; display: block; border-radius: 16px; }
+        .dashboard-brand-name { margin-top: 6px; font-size: 13px; font-weight: 700; text-align: center; }
+        .dashboard-links { display: flex; align-items: center; gap: 20px; }
+        .dashboard-links a { color: #7c5cff; text-decoration: none; font-size: 14px; white-space: nowrap; }
+        .dashboard-links a:hover { text-decoration: underline; }
+        .dashboard-main { width: min(100% - 32px, 760px); margin: 24px auto; }
+        .dashboard-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .dashboard-tab { padding: 11px 16px; border: 1px solid #176f45; border-radius: 8px; background: #fff; color: #176f45; font-weight: 700; text-decoration: none; }
+        .dashboard-tab[aria-current="page"] { color: #fff; background: #176f45; }
+        @media (max-width: 560px) { .dashboard-header { padding: 14px 16px; } .dashboard-logo { max-width: 100px; } .dashboard-links { gap: 12px; } }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <header class="dashboard-header">
+        <div class="dashboard-brand">
+            <img src="{{ brand.logo }}" alt="{{ brand.name }}" class="dashboard-logo">
+            <div class="dashboard-brand-name">{{ brand.wordmark }}</div>
+        </div>
+        <nav class="dashboard-links" aria-label="Account">
+            <a href="/screens/">My Screens</a>
+            <a href="/accounts/logout/">Sign out</a>
+        </nav>
+    </header>
+    <main class="dashboard-main">
+        <nav class="dashboard-tabs" aria-label="Mosque dashboard">
+            <a class="dashboard-tab" href="{% url 'prayer-times' %}" {% if dashboard_tab == 'prayer' %}aria-current="page"{% endif %}>Prayer Timings</a>
+            <a class="dashboard-tab" href="{% url 'mosque-announcements' %}" {% if dashboard_tab == 'announcements' %}aria-current="page"{% endif %}>Announcements</a>
+        </nav>
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,13 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mosque Announcements</title>
+{% extends "slideshow/mosque_dashboard_base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block styles %}
     <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 24px; background: #f5f6f8; color: #24292f; font: 16px system-ui, sans-serif; }
-        main { max-width: 760px; margin: 0 auto; }
         .card { margin: 16px 0; padding: 22px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; }
         h1, h2 { margin: 0 0 8px; }
         .muted { color: #656d76; }
@@ -21,15 +15,10 @@
         .announcement { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
         .announcement img { max-width: 180px; max-height: 120px; object-fit: contain; }
         .announcement p { white-space: pre-wrap; overflow-wrap: anywhere; }
-        @media (max-width: 560px) { body { padding: 12px; } .announcement { grid-template-columns: 1fr; } }
+        @media (max-width: 560px) { .announcement { grid-template-columns: 1fr; } }
     </style>
-</head>
-<body>
-<main>
-    <p>
-        <a href="{% url 'mosque-slideshow-dashboard' %}">Slideshow dashboard</a>
-        · <a href="{% url 'prayer-times' %}">Prayer timings</a>
-    </p>
+{% endblock %}
+{% block content %}
     <section class="card">
         <h1>Announcements for {{ mosque.name }}</h1>
         <p class="muted">Add up to two announcements. Each can be text or one photo. Delete an announcement before adding another.</p>
@@ -89,7 +78,8 @@
     {% empty %}
     <p class="muted">No mosque announcements yet.</p>
     {% endfor %}
-</main>
+{% endblock %}
+{% block scripts %}
 <script>
     const typeSelect = document.getElementById('content_type');
     const photoFields = document.getElementById('photo-fields');
@@ -105,8 +95,9 @@
         titleInput.required = isText;
         bodyInput.required = isText;
     }
-    typeSelect.addEventListener('change', updateTypeFields);
-    updateTypeFields();
+    if (typeSelect) {
+        typeSelect.addEventListener('change', updateTypeFields);
+        updateTypeFields();
+    }
 </script>
-</body>
-</html>
+{% endblock %}

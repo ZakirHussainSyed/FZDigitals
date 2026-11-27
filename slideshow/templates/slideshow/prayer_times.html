@@ -1,21 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prayer Times - FZ Screens</title>
+{% extends "slideshow/mosque_dashboard_base.html" %}
+{% block title %}Prayer Timings{% endblock %}
+{% block styles %}
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            background: #f7f8fa;
-            color: #1f2430;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
         .container {
             background: #ffffff;
             border: 1px solid rgba(0,0,0,0.10);
@@ -24,6 +10,7 @@
             padding: 32px;
             max-width: 500px;
             width: 100%;
+            margin: 16px auto;
         }
         h1 { font-size: 24px; margin-bottom: 8px; }
         .subtitle {
@@ -144,8 +131,8 @@
         }
         .back-link:hover { color: #1f2430; }
     </style>
-</head>
-<body>
+{% endblock %}
+{% block content %}
     <div class="container">
         <h1>Prayer Times</h1>
         <p class="subtitle">{{ mosque.name }} - {{ today }}</p>
@@ -207,18 +194,17 @@
                 {% endif %}
             </div>
             {% endfor %}
-            <button type="submit" class="submit-btn">Save Prayer Times</button>
             {% if mosque.website_url %}
             <button type="submit" name="action" value="sync" class="sync-btn" id="sync-actions" {% if not mosque.sync_enabled %}style="display:none"{% endif %}>Sync from Website</button>
             {% endif %}
+            <button type="submit" class="submit-btn">Save</button>
         </form>
-
-        <a href="/{{ request.user.id }}/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;">Dashboard</a>
-        <a href="{% url 'mosque-announcements' %}" class="sync-btn" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Announcements</a>
         {% if request.user.is_superuser and brand.key == 'takbir' %}
-        <a href="/takbir/announcements/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Manage Notifications</a>
+        <a href="/takbir/announcements/" class="sync-btn" style="display:block;text-align:center;text-decoration:none;">Manage Notifications</a>
         {% endif %}
     </div>
+{% endblock %}
+{% block scripts %}
     <script>
         const syncBox = document.getElementById('id_sync_enabled');
         const msSel = document.getElementById('id_maghrib_sunset_minutes');
@@ -249,5 +235,4 @@
         msSel.addEventListener('change', toggleMs);
         if (!syncBox || !syncBox.checked) toggleMs();
     </script>
-</body>
-</html>
+{% endblock %}
