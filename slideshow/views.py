@@ -127,7 +127,7 @@ def django_login(request):
                 try:
                     profile = user.userprofile
                     if profile.vertical == 'mosque':
-                        return redirect('mosque-announcements')
+                        return redirect('prayer-times')
                 except UserProfile.DoesNotExist:
                     pass
                 return redirect(f'/{user.id}/')
@@ -559,6 +559,7 @@ def mosque_announcements(request):
         'mosque': mosque,
         'announcements': mosque.announcements.all(),
         'max_announcements': 2,
+        'dashboard_tab': 'announcements',
     })
 
 
@@ -666,7 +667,7 @@ def user_dashboard(request, user_id):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     mosque = Mosque.objects.filter(user=request.user, is_active=True).first()
     if profile.vertical == 'mosque' and mosque:
-        return redirect('mosque-announcements')
+        return redirect('prayer-times')
 
     return _render_user_slideshow_dashboard(request, profile, mosque)
 
@@ -2618,6 +2619,7 @@ def prayer_times(request):
         'prayer_time': resolved,
         'prayer_fields': prayer_fields,
         'today': today,
+        'dashboard_tab': 'prayer',
     })
 
 

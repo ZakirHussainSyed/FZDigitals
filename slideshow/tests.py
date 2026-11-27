@@ -263,17 +263,45 @@ class MosqueAnnouncementTests(TestCase):
         self.mosque = Mosque.objects.create(user=self.user, name='Test Mosque')
         UserProfile.objects.create(user=self.user, vertical='mosque')
 
-    def test_mosque_dashboard_opens_announcements_and_slideshow_remains_available(self):
+    def test_mosque_dashboard_opens_prayer_timings_and_slideshow_remains_available(self):
         self.client.force_login(self.user)
 
         response = self.client.get(f'/{self.user.id}/')
-        self.assertRedirects(response, '/mosque-announcements/', fetch_redirect_response=False)
+        self.assertRedirects(response, '/prayer-times/', fetch_redirect_response=False)
 
         with patch('slideshow.views.render', return_value=HttpResponse()) as render_template:
             response = self.client.get('/mosque-slideshow/')
         self.assertEqual(response.status_code, 200)
         render_template.assert_called_once()
         self.assertEqual(render_template.call_args.args[1], 'slideshow/index.html')
+
+    def test_mosque_login_opens_prayer_timings(self):
+        response = self.client.post('/login/', {'username': 'mosque-admin', 'password': 'pw'})
+        self.assertRedirects(response, '/prayer-times/', fetch_redirect_response=False)
+
+    def test_dashboard_pages_share_header_and_select_their_tab(self):
+        brand = {'name': 'Takbir al Ula', 'logo': '/static/slideshow/logo_takbir.png',
+                 'wordmark': 'Takbir-al-Ula'}
+        for template, tab, active_path in (
+            ('slideshow/prayer_times.html', 'prayer', '/prayer-times/'),
+            ('slideshow/mosque_announcements.html', 'announcements', '/mosque-announcements/'),
+        ):
+            with self.subTest(tab=tab):
+                rendered = get_template(template).render({
+                    'mosque': self.mosque, 'dashboard_tab': tab, 'brand': brand,
+                    'announcements': [], 'max_announcements': 2, 'prayer_fields': [],
+                })
+                self.assertIn('Takbir-al-Ula', rendered)
+                self.assertIn('href="/screens/"', rendered)
+                self.assertIn('href="/accounts/logout/"', rendered)
+                self.assertIn(f'href="{active_path}" aria-current="page"', rendered)
+                self.assertIn('href="/prayer-times/"', rendered)
+                self.assertIn('href="/mosque-announcements/"', rendered)
+                self.assertNotIn('Slideshow dashboard', rendered)
+                if tab == 'prayer':
+                    self.assertIn('class="submit-btn">Save</button>', rendered)
+                else:
+                    self.assertIn('Add announcement', rendered)
 
     def test_non_mosque_dashboard_still_opens_slideshow(self):
         other = User.objects.create_user('regular-dashboard', password='pw')
